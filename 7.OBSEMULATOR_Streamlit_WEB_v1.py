@@ -46,9 +46,9 @@ DEFAULT_FILTER_FILE = ""
 DEFAULT_GDRIVE_MODELS_LINK = "https://drive.google.com/drive/folders/1wsCOZ4G32ZO5fdzGI8YR_0Qp3ej7m5oC?usp=drive_link"
 
 DEFAULT_TARGET_FREQS = [
+	110.840000,	
 	84.299,
 	85.152,
-	110.840000,
 ]
 
 DEFAULT_ALLOW_NEAREST = True
