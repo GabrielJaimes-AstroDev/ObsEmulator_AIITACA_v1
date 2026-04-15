@@ -1815,7 +1815,7 @@ def _generate_obs_payload_cached(
 
 
 def run_streamlit_app():
-	st.set_page_config(page_title="PREDOBS", page_icon="🧪", layout="wide")
+	st.set_page_config(page_title="OBSEMULATOR", page_icon="🧪", layout="wide")
 	_ensure_state()
 	_cleanup_generated_outputs_on_startup_once()
 	st.title("PREDOBS")
