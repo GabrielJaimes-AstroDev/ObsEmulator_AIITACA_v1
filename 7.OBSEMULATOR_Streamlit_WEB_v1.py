@@ -5,6 +5,7 @@ import io
 import json
 import time
 import glob
+import hashlib
 import importlib.util
 import tempfile
 import subprocess
@@ -210,6 +211,27 @@ def _download_gdrive_folder_temp(folder_url_or_id: str) -> Tuple[Optional[str], 
 		return dst, None
 	except Exception as e:
 		return None, f"Google Drive download failed: {e}"
+
+
+def _save_uploaded_file_to_temp(upload_obj, prefix: str) -> Optional[str]:
+	if upload_obj is None:
+		return None
+	try:
+		raw = bytes(upload_obj.getbuffer())
+		if not raw:
+			return None
+		safe_name = os.path.basename(str(getattr(upload_obj, "name", "upload.bin")))
+		ext = os.path.splitext(safe_name)[1]
+		h = hashlib.md5(raw).hexdigest()[:16]
+		root = os.path.join(tempfile.gettempdir(), "predobs_manual_uploads")
+		os.makedirs(root, exist_ok=True)
+		dst = os.path.join(root, f"{prefix}_{h}{ext if ext else ''}")
+		if not os.path.isfile(dst):
+			with open(dst, "wb") as f:
+				f.write(raw)
+		return dst
+	except Exception:
+		return None
 
 
 def parse_freq_list(text: str) -> List[float]:
@@ -942,6 +964,18 @@ def _mark_roi_overlaps(signal_rois: List[dict], noise_rois: List[dict]) -> Tuple
 	return signal_rois, noise_rois
 
 
+def _get_overlapping_noise_roi_indices(signal_roi: dict, noise_rois: List[dict]) -> List[int]:
+	out: List[int] = []
+	if not isinstance(signal_roi, dict):
+		return out
+	for n in noise_rois:
+		if not isinstance(n, dict):
+			continue
+		if _intervals_overlap(float(signal_roi["lo"]), float(signal_roi["hi"]), float(n["lo"]), float(n["hi"])):
+			out.append(int(n["index"]))
+	return out
+
+
 def _plot_roi_overview(signal_rois: List[dict], noise_rois: List[dict], guide_freqs_ghz: Optional[List[float]] = None, selected_signal_index: Optional[int] = None, selected_noise_index: Optional[int] = None, chart_key: Optional[str] = None):
 	fig = go.Figure()
 	for r in signal_rois:
@@ -1652,6 +1686,20 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		signal_models_root = st.text_input("Signal models source", value=DEFAULT_MERGED_H5)
 		noise_models_root = st.text_input("Noise models source (folder or .h5 bundle)", value=DEFAULT_NOISE_NN_H5)
 		filter_file = st.text_input("Spectral filter file", value=DEFAULT_FILTER_FILE)
+		st.markdown("**Manual upload (optional)**")
+		up_signal_h5 = st.file_uploader("Upload signal models (.h5)", type=["h5", "hdf5"], key="p6_up_signal_h5")
+		up_noise_h5 = st.file_uploader("Upload noise models (.h5 bundle or single model)", type=["h5", "hdf5"], key="p6_up_noise_h5")
+		up_filter = st.file_uploader("Upload spectral filter (.txt/.dat/.csv)", type=["txt", "dat", "csv"], key="p6_up_filter")
+
+		uploaded_signal_path = _save_uploaded_file_to_temp(up_signal_h5, "signal")
+		uploaded_noise_path = _save_uploaded_file_to_temp(up_noise_h5, "noise")
+		uploaded_filter_path = _save_uploaded_file_to_temp(up_filter, "filter")
+		if uploaded_signal_path:
+			signal_models_root = str(uploaded_signal_path)
+		if uploaded_noise_path:
+			noise_models_root = str(uploaded_noise_path)
+		if uploaded_filter_path:
+			filter_file = str(uploaded_filter_path)
 
 		st.markdown("---")
 		st.markdown("**Optional: use temporary Google Drive download**")
@@ -1750,11 +1798,20 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					st.selectbox(
 						"Synthetic-model ROIs",
 						options=sig_opts,
-						format_func=lambda i: f"ROI S{signal_rois[i]['index']} | {signal_rois[i]['lo']:.6f}–{signal_rois[i]['hi']:.6f} GHz",
+						format_func=lambda i: (
+							f"ROI S{signal_rois[i]['index']} | {signal_rois[i]['lo']:.6f}–{signal_rois[i]['hi']:.6f} GHz"
+							+ (
+								f" | matches Noise ROI(s): {','.join([str(v) for v in _get_overlapping_noise_roi_indices(signal_rois[i], noise_rois)])}"
+								if _get_overlapping_noise_roi_indices(signal_rois[i], noise_rois)
+								else " | no overlap"
+							)
+						),
 						key="p6_signal_roi_select",
 					)
 					sel_s = signal_rois[int(st.session_state.p6_signal_roi_select)]
-					st.caption(f"Selected: ROI S{int(sel_s['index'])} | range {float(sel_s['lo']):.6f}–{float(sel_s['hi']):.6f} GHz")
+					match_n = _get_overlapping_noise_roi_indices(sel_s, noise_rois)
+					match_txt = ",".join([str(v) for v in match_n]) if match_n else "none"
+					st.caption(f"Selected: ROI S{int(sel_s['index'])} | range {float(sel_s['lo']):.6f}–{float(sel_s['hi']):.6f} GHz | matching Noise ROI(s): {match_txt}")
 				else:
 					st.caption("No signal ROIs available")
 
@@ -1806,7 +1863,8 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			start_cube = st.button("Start cube generation", type="primary", disabled=_is_running())
 		with col_b:
 			stop_cube = st.button("Stop process", disabled=not _is_running())
-		live_every_sec = st.number_input("Live refresh (seconds)", min_value=1, max_value=30, value=3, step=1)
+		live_every_sec = 5
+		st.caption("Live refresh (seconds): 5")
 
 		if start_cube:
 			if not target_freqs:
@@ -2048,11 +2106,20 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					st.selectbox(
 						"Synthetic-model ROIs",
 						options=sig_opts2,
-						format_func=lambda i: f"ROI S{signal_rois2[i]['index']} | {signal_rois2[i]['lo']:.6f}–{signal_rois2[i]['hi']:.6f} GHz",
+						format_func=lambda i: (
+							f"ROI S{signal_rois2[i]['index']} | {signal_rois2[i]['lo']:.6f}–{signal_rois2[i]['hi']:.6f} GHz"
+							+ (
+								f" | matches Noise ROI(s): {','.join([str(v) for v in _get_overlapping_noise_roi_indices(signal_rois2[i], noise_rois2)])}"
+								if _get_overlapping_noise_roi_indices(signal_rois2[i], noise_rois2)
+								else " | no overlap"
+							)
+						),
 						key="p6_signal_roi_select2",
 					)
 					sel_s2 = signal_rois2[int(st.session_state.p6_signal_roi_select2)]
-					st.caption(f"Selected: ROI S{int(sel_s2['index'])} | range {float(sel_s2['lo']):.6f}–{float(sel_s2['hi']):.6f} GHz")
+					match_n2 = _get_overlapping_noise_roi_indices(sel_s2, noise_rois2)
+					match_txt2 = ",".join([str(v) for v in match_n2]) if match_n2 else "none"
+					st.caption(f"Selected: ROI S{int(sel_s2['index'])} | range {float(sel_s2['lo']):.6f}–{float(sel_s2['hi']):.6f} GHz | matching Noise ROI(s): {match_txt2}")
 				else:
 					st.caption("No signal ROIs available")
 
@@ -2085,11 +2152,10 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			fwhm_cube2 = st.number_input("FWHM", value=6.198, format="%.4f", key="p6_cube2_fwhm")
 		with p24:
 			velo_cube2 = st.number_input("Velocity", value=97.549, format="%.4f", key="p6_cube2_velo")
-		st.info("In this tab, parameters are applied to an implicit 1x1-pixel cube.")
 
 		col2_a, col2_b = st.columns(2)
 		with col2_a:
-			start_cube2 = st.button("Start cube generation", type="primary", key="p6_start_cube2", disabled=_is_running())
+			start_cube2 = st.button("Generate Observation", type="primary", key="p6_start_cube2", disabled=_is_running())
 		with col2_b:
 			stop_cube2 = st.button("Stop process", key="p6_stop_cube2", disabled=not _is_running())
 
@@ -2210,8 +2276,8 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				st.caption("No spectra available yet.")
 
 		if running2:
-			st.caption("Auto-updating whenever a target-frequency prediction finishes...")
-			time.sleep(2)
+			st.caption("Auto-updating every 5 seconds...")
+			time.sleep(5)
 			st.rerun()
 
 
