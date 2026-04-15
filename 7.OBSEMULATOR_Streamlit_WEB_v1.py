@@ -1898,7 +1898,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		syn_load_error = str(e)
 
 	with tab_cube:
-		st.subheader("Cube Generator")
+		st.subheader("Cube Generator | CH3OCHO")
 		st.markdown("**ROI explorer (signal and noise models)**")
 		if bool(st.session_state.get("p6_guide_main_refresh", False)):
 			st.session_state.p6_guide_freqs_main_input = str(st.session_state.get("p6_guide_freqs_main_pending", "")).strip()
@@ -2246,7 +2246,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			st.rerun()
 
 	with tab_cube2:
-		st.subheader("Simulate Single Spectrum")
+		st.subheader("Simulate Single Spectrum | CH3OCHO")
 		st.caption("Same workflow as Cube Generator, using implicit scalar values for LogN, Tex, FWHM, and Velocity.")
 
 		st.markdown("**ROI explorer (signal and noise models)**")
