@@ -43,7 +43,7 @@ except Exception:
 DEFAULT_MERGED_H5 = ""
 DEFAULT_NOISE_NN_H5 = ""
 DEFAULT_FILTER_FILE = ""
-DEFAULT_GDRIVE_MODELS_LINK = "https://drive.google.com/drive/folders/1wsCOZ4G32ZO5fdzGI8YR_0Qp3ej7m5oC?usp=drive_link"
+DEFAULT_GDRIVE_MODELS_LINK = "https://drive.google.com/drive/folders/1Zm3UpfWfXfa-Uh1sc1HBH3o25qYvqMNH?usp=drive_link"
 
 DEFAULT_TARGET_FREQS = [
 	84.299,
