@@ -1183,6 +1183,38 @@ def run_cube_worker(cfg_path: str) -> int:
 				selected_model_name=selected_model_name,
 				allow_nearest=allow_nearest,
 			)
+
+			target_tag = f"{float(target_freq):.6f}"
+			y_syn_channels: List[np.ndarray] = []
+			kept_freqs: List[float] = []
+			for _, fch, model_refs in roi_entries:
+				pred_acc = np.zeros((n_valid,), dtype=np.float64)
+				pred_cnt = 0
+				for model_name, ref in model_refs:
+					cache_key = f"{model_name}|{ref}"
+					try:
+						if cache_key not in signal_pkg_cache:
+							if is_h5_signal:
+								signal_pkg_cache[cache_key] = load_joblib_package_from_h5(signal_models_source, ref)
+							else:
+								signal_pkg_cache[cache_key] = joblib.load(ref)
+						pkg = signal_pkg_cache[cache_key]
+						pred = predict_with_joblib_package_batch(pkg, x_valid)
+						pred_acc += pred.astype(np.float64)
+						pred_cnt += 1
+					except Exception as em:
+						print(f"[WARN] target {target_tag} channel {float(fch):.6f} model {str(model_name)} failed: {em}")
+						continue
+				if pred_cnt > 0:
+					y_syn_channels.append((pred_acc / float(pred_cnt)).astype(np.float32))
+					kept_freqs.append(float(fch))
+				else:
+					print(f"[WARN] target {target_tag} channel {float(fch):.6f} skipped: no valid signal predictions")
+
+			if not kept_freqs:
+				raise RuntimeError("No valid signal channels after model prediction")
+
+			roi_freq = np.asarray(kept_freqs, dtype=np.float64)
 			nchan = int(roi_freq.size)
 			tag = f"{float(target_freq):.6f}".replace(".", "p")
 			final_fits = os.path.join(out_dir, f"{out_prefix}_target{tag}.fits")
@@ -1193,23 +1225,7 @@ def run_cube_worker(cfg_path: str) -> int:
 			cube_final = np.full((nchan, ny, nx), np.nan, dtype=np.float32)
 			cube_syn = np.full((nchan, ny, nx), np.nan, dtype=np.float32)
 
-			y_syn_valid = np.zeros((n_valid, nchan), dtype=np.float32)
-			for i, (_, _, model_refs) in enumerate(roi_entries):
-				pred_acc = np.zeros((n_valid,), dtype=np.float64)
-				pred_cnt = 0
-				for model_name, ref in model_refs:
-					cache_key = f"{model_name}|{ref}"
-					if cache_key not in signal_pkg_cache:
-						if is_h5_signal:
-							signal_pkg_cache[cache_key] = load_joblib_package_from_h5(signal_models_source, ref)
-						else:
-							signal_pkg_cache[cache_key] = joblib.load(ref)
-					pkg = signal_pkg_cache[cache_key]
-					pred = predict_with_joblib_package_batch(pkg, x_valid)
-					pred_acc += pred.astype(np.float64)
-					pred_cnt += 1
-				if pred_cnt > 0:
-					y_syn_valid[:, i] = (pred_acc / float(pred_cnt)).astype(np.float32)
+			y_syn_valid = np.stack(y_syn_channels, axis=1).astype(np.float32)
 
 			noise_sum = np.zeros((n_valid, nchan), dtype=np.float64)
 			noise_cnt = np.zeros((n_valid, nchan), dtype=np.float64)
@@ -1476,6 +1492,28 @@ def _read_warn_lines(log_path: str, max_lines: int = 100) -> List[str]:
 		return warns
 	except Exception:
 		return []
+
+
+def _read_target_failure_reasons(log_path: str) -> Dict[float, List[str]]:
+	out: Dict[float, List[str]] = {}
+	if (not log_path) or (not os.path.isfile(log_path)):
+		return out
+	pat = re.compile(r"\[WARN\]\s+target\s+([0-9]+(?:\.[0-9]+)?)\s+failed:\s*(.*)", flags=re.IGNORECASE)
+	try:
+		with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
+			for ln in f:
+				m = pat.search(str(ln).strip())
+				if not m:
+					continue
+				try:
+					ft = float(m.group(1))
+				except Exception:
+					continue
+				reason = str(m.group(2)).strip()
+				out.setdefault(float(ft), []).append(reason)
+	except Exception:
+		return out
+	return out
 
 
 def _get_cube_ny_nx(cube_fits_path: str):
@@ -2556,6 +2594,16 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		missing_targets2 = _find_missing_target_freqs(guide_targets_for_sim, final_cubes2_all)
 		if missing_targets2:
 			st.warning("No se generaron cubos para: " + _freqs_to_text(missing_targets2) + " GHz")
+			fail_reasons2 = _read_target_failure_reasons(str(st.session_state.get("cube_log_path", "")))
+			if fail_reasons2:
+				msg_lines2: List[str] = []
+				for mf in missing_targets2:
+					reasons = fail_reasons2.get(float(mf), [])
+					if reasons:
+						msg_lines2.append(f"{float(mf):.6f} GHz -> {reasons[-1]}")
+				if msg_lines2:
+					with st.expander("Why did these target frequencies fail?"):
+						st.text("\n".join(msg_lines2))
 		if final_cubes2:
 			st.markdown("**Final spectra by target frequency (1x1 cube)**")
 			n_cols = 2 if len(final_cubes2) <= 4 else 3
