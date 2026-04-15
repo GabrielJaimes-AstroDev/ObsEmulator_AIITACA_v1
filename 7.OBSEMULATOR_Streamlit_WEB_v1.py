@@ -1035,7 +1035,17 @@ def _freqs_to_text(freqs: List[float]) -> str:
 	return ", ".join([f"{float(v):.6f}" for v in (freqs or [])])
 
 
-def _plot_roi_overview(signal_rois: List[dict], noise_rois: List[dict], guide_freqs_ghz: Optional[List[float]] = None, selected_signal_index: Optional[int] = None, selected_noise_index: Optional[int] = None, chart_key: Optional[str] = None):
+def _selected_roi_combo_freqs(signal_rois: List[dict], noise_rois: List[dict], selected_signal_pos: Optional[int], selected_noise_pos: Optional[int]) -> List[float]:
+	return _append_selected_rois_to_freq_list(
+		base_freqs=[],
+		signal_rois=signal_rois,
+		noise_rois=noise_rois,
+		selected_signal_pos=selected_signal_pos,
+		selected_noise_pos=selected_noise_pos,
+	)
+
+
+def _plot_roi_overview(signal_rois: List[dict], noise_rois: List[dict], guide_freqs_ghz: Optional[List[float]] = None, selected_combo_freqs_ghz: Optional[List[float]] = None, selected_signal_index: Optional[int] = None, selected_noise_index: Optional[int] = None, chart_key: Optional[str] = None):
 	fig = go.Figure()
 	for r in signal_rois:
 		is_sel = (selected_signal_index is not None) and (int(r["index"]) == int(selected_signal_index))
@@ -1068,6 +1078,9 @@ def _plot_roi_overview(signal_rois: List[dict], noise_rois: List[dict], guide_fr
 	if guide_freqs_ghz:
 		for gf in guide_freqs_ghz:
 			fig.add_vline(x=float(gf), line=dict(color="#9467bd", dash="dash"))
+	if selected_combo_freqs_ghz:
+		for cf in selected_combo_freqs_ghz:
+			fig.add_vline(x=float(cf), line=dict(color="#ff7f0e", dash="dash"))
 	fig.update_layout(
 		title="ROI overview (Signal vs Noise)",
 		xaxis_title="Frequency (GHz)",
@@ -1516,10 +1529,18 @@ def _ensure_state():
 		st.session_state.drive_auto_paths = {}
 	if "drive_last_error" not in st.session_state:
 		st.session_state.drive_last_error = ""
-	if "p6_guide_freqs_main" not in st.session_state:
-		st.session_state.p6_guide_freqs_main = _freqs_to_text([float(v) for v in DEFAULT_TARGET_FREQS])
-	if "p6_guide_freqs_cube2" not in st.session_state:
-		st.session_state.p6_guide_freqs_cube2 = _freqs_to_text([float(v) for v in DEFAULT_TARGET_FREQS])
+	if "p6_guide_freqs_main_input" not in st.session_state:
+		st.session_state.p6_guide_freqs_main_input = _freqs_to_text([float(v) for v in DEFAULT_TARGET_FREQS])
+	if "p6_guide_freqs_cube2_input" not in st.session_state:
+		st.session_state.p6_guide_freqs_cube2_input = _freqs_to_text([float(v) for v in DEFAULT_TARGET_FREQS])
+	if "p6_guide_freqs_main_pending" not in st.session_state:
+		st.session_state.p6_guide_freqs_main_pending = ""
+	if "p6_guide_freqs_cube2_pending" not in st.session_state:
+		st.session_state.p6_guide_freqs_cube2_pending = ""
+	if "p6_guide_main_refresh" not in st.session_state:
+		st.session_state.p6_guide_main_refresh = False
+	if "p6_guide_cube2_refresh" not in st.session_state:
+		st.session_state.p6_guide_cube2_refresh = False
 
 
 def _is_running() -> bool:
@@ -1879,11 +1900,15 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 	with tab_cube:
 		st.subheader("Cube Generator")
 		st.markdown("**ROI explorer (signal and noise models)**")
-		if not str(st.session_state.get("p6_guide_freqs_main", "")).strip():
-			st.session_state.p6_guide_freqs_main = _freqs_to_text([float(v) for v in target_freqs])
+		if bool(st.session_state.get("p6_guide_main_refresh", False)):
+			st.session_state.p6_guide_freqs_main_input = str(st.session_state.get("p6_guide_freqs_main_pending", "")).strip()
+			st.session_state.p6_guide_main_refresh = False
+			st.session_state.p6_guide_freqs_main_pending = ""
+		if not str(st.session_state.get("p6_guide_freqs_main_input", "")).strip():
+			st.session_state.p6_guide_freqs_main_input = _freqs_to_text([float(v) for v in target_freqs])
 		guide_freqs_text = st.text_input(
 			"Guide frequencies (GHz; main list used for Start cube generation)",
-			key="p6_guide_freqs_main",
+			key="p6_guide_freqs_main_input",
 		)
 		guide_freqs = parse_freq_list(guide_freqs_text)
 		guide_freq = float(guide_freqs[0]) if len(guide_freqs) > 0 else None
@@ -1964,7 +1989,13 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 
 			sel_sig_idx = None if not signal_rois else int(signal_rois[int(st.session_state.get("p6_signal_roi_select", 0))]["index"])
 			sel_noi_idx = None if not noise_rois else int(noise_rois[int(st.session_state.get("p6_noise_roi_select", 0))]["index"])
-			_plot_roi_overview(signal_rois, noise_rois, guide_freqs_ghz=guide_freqs, selected_signal_index=sel_sig_idx, selected_noise_index=sel_noi_idx, chart_key="p6_roi_overview_cube")
+			combo_freqs = _selected_roi_combo_freqs(
+				signal_rois=signal_rois,
+				noise_rois=noise_rois,
+				selected_signal_pos=int(st.session_state.get("p6_signal_roi_select", 0)) if signal_rois else None,
+				selected_noise_pos=int(st.session_state.get("p6_noise_roi_select", 0)) if noise_rois else None,
+			)
+			_plot_roi_overview(signal_rois, noise_rois, guide_freqs_ghz=guide_freqs, selected_combo_freqs_ghz=combo_freqs, selected_signal_index=sel_sig_idx, selected_noise_index=sel_noi_idx, chart_key="p6_roi_overview_cube")
 
 		if st.button("Add selected ROI combination to Guide frequencies", key="p6_add_rois_to_guide"):
 			updated_freqs = _append_selected_rois_to_freq_list(
@@ -1974,7 +2005,8 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				selected_signal_pos=int(st.session_state.get("p6_signal_roi_select", 0)) if signal_rois else None,
 				selected_noise_pos=int(st.session_state.get("p6_noise_roi_select", 0)) if noise_rois else None,
 			)
-			st.session_state.p6_guide_freqs_main = _freqs_to_text(updated_freqs)
+			st.session_state.p6_guide_freqs_main_pending = _freqs_to_text(updated_freqs)
+			st.session_state.p6_guide_main_refresh = True
 			st.rerun()
 
 		target_freqs_cube = [float(v) for v in guide_freqs] if guide_freqs else [float(v) for v in target_freqs]
@@ -2218,11 +2250,15 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		st.caption("Same workflow as Cube Generator, using implicit scalar values for LogN, Tex, FWHM, and Velocity.")
 
 		st.markdown("**ROI explorer (signal and noise models)**")
-		if not str(st.session_state.get("p6_guide_freqs_cube2", "")).strip():
-			st.session_state.p6_guide_freqs_cube2 = _freqs_to_text([float(v) for v in target_freqs])
+		if bool(st.session_state.get("p6_guide_cube2_refresh", False)):
+			st.session_state.p6_guide_freqs_cube2_input = str(st.session_state.get("p6_guide_freqs_cube2_pending", "")).strip()
+			st.session_state.p6_guide_cube2_refresh = False
+			st.session_state.p6_guide_freqs_cube2_pending = ""
+		if not str(st.session_state.get("p6_guide_freqs_cube2_input", "")).strip():
+			st.session_state.p6_guide_freqs_cube2_input = _freqs_to_text([float(v) for v in target_freqs])
 		guide_freqs_text2 = st.text_input(
 			"Guide frequencies (GHz; main list used for Generate Observation)",
-			key="p6_guide_freqs_cube2",
+			key="p6_guide_freqs_cube2_input",
 		)
 		guide_freqs2 = parse_freq_list(guide_freqs_text2)
 		guide_freq2 = float(guide_freqs2[0]) if len(guide_freqs2) > 0 else None
@@ -2303,7 +2339,13 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 
 			sel_sig_idx2 = None if not signal_rois2 else int(signal_rois2[int(st.session_state.get("p6_signal_roi_select2", 0))]["index"])
 			sel_noi_idx2 = None if not noise_rois2 else int(noise_rois2[int(st.session_state.get("p6_noise_roi_select2", 0))]["index"])
-			_plot_roi_overview(signal_rois2, noise_rois2, guide_freqs_ghz=guide_freqs2, selected_signal_index=sel_sig_idx2, selected_noise_index=sel_noi_idx2, chart_key="p6_roi_overview_cube2")
+			combo_freqs2 = _selected_roi_combo_freqs(
+				signal_rois=signal_rois2,
+				noise_rois=noise_rois2,
+				selected_signal_pos=int(st.session_state.get("p6_signal_roi_select2", 0)) if signal_rois2 else None,
+				selected_noise_pos=int(st.session_state.get("p6_noise_roi_select2", 0)) if noise_rois2 else None,
+			)
+			_plot_roi_overview(signal_rois2, noise_rois2, guide_freqs_ghz=guide_freqs2, selected_combo_freqs_ghz=combo_freqs2, selected_signal_index=sel_sig_idx2, selected_noise_index=sel_noi_idx2, chart_key="p6_roi_overview_cube2")
 
 		if st.button("Add selected ROI combination to Guide frequencies", key="p6_add_rois_to_guide_cube2"):
 			updated_freqs2 = _append_selected_rois_to_freq_list(
@@ -2313,7 +2355,8 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				selected_signal_pos=int(st.session_state.get("p6_signal_roi_select2", 0)) if signal_rois2 else None,
 				selected_noise_pos=int(st.session_state.get("p6_noise_roi_select2", 0)) if noise_rois2 else None,
 			)
-			st.session_state.p6_guide_freqs_cube2 = _freqs_to_text(updated_freqs2)
+			st.session_state.p6_guide_freqs_cube2_pending = _freqs_to_text(updated_freqs2)
+			st.session_state.p6_guide_cube2_refresh = True
 			st.rerun()
 
 		target_freqs_cube2 = [float(v) for v in guide_freqs2] if guide_freqs2 else [float(v) for v in target_freqs]
