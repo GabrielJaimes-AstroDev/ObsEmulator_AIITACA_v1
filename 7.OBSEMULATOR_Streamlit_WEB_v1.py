@@ -1035,6 +1035,20 @@ def _freqs_to_text(freqs: List[float]) -> str:
 	return ", ".join([f"{float(v):.6f}" for v in (freqs or [])])
 
 
+def _normalize_target_freqs_for_run(freqs: List[float]) -> List[float]:
+	out: List[float] = []
+	for v in (freqs or []):
+		try:
+			fv = float(v)
+		except Exception:
+			continue
+		if not np.isfinite(fv):
+			continue
+		if not any(abs(float(fv) - float(prev)) <= 1e-9 for prev in out):
+			out.append(float(fv))
+	return out
+
+
 def _selected_roi_combo_freqs(signal_rois: List[dict], noise_rois: List[dict], selected_signal_pos: Optional[int], selected_noise_pos: Optional[int]) -> List[float]:
 	return _append_selected_rois_to_freq_list(
 		base_freqs=[],
@@ -2009,7 +2023,8 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			st.session_state.p6_guide_main_refresh = True
 			st.rerun()
 
-		target_freqs_cube = [float(v) for v in guide_freqs] if guide_freqs else [float(v) for v in target_freqs]
+		guide_freqs_run = _normalize_target_freqs_for_run(parse_freq_list(str(st.session_state.get("p6_guide_freqs_main_input", ""))))
+		target_freqs_cube = guide_freqs_run if guide_freqs_run else _normalize_target_freqs_for_run([float(v) for v in target_freqs])
 		st.caption("Target frequencies used for Cube Generator: " + _freqs_to_text(target_freqs_cube))
 
 		default_out = DEFAULT_OUTPUT_DIR
@@ -2045,7 +2060,10 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		st.caption("Live refresh (seconds): 5")
 
 		if start_cube:
-			if not target_freqs_cube:
+			target_freqs_cube_run = _normalize_target_freqs_for_run(parse_freq_list(str(st.session_state.get("p6_guide_freqs_main_input", ""))))
+			if not target_freqs_cube_run:
+				target_freqs_cube_run = _normalize_target_freqs_for_run([float(v) for v in target_freqs])
+			if not target_freqs_cube_run:
 				st.error("Add at least one target frequency.")
 			elif not os.path.isfile(filter_file):
 				st.error(f"Filter file not found: {filter_file}")
@@ -2089,7 +2107,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 						"signal_models_source": str(signal_models_root),
 						"noise_models_root": str(noise_models_root),
 						"filter_file": str(filter_file),
-						"target_freqs": [float(v) for v in target_freqs_cube],
+						"target_freqs": [float(v) for v in target_freqs_cube_run],
 						"progress_every": int(progress_every),
 						"allow_nearest": bool(allow_nearest),
 						"noise_scale": float(noise_scale),
@@ -2359,7 +2377,8 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			st.session_state.p6_guide_cube2_refresh = True
 			st.rerun()
 
-		target_freqs_cube2 = [float(v) for v in guide_freqs2] if guide_freqs2 else [float(v) for v in target_freqs]
+		guide_freqs_run2 = _normalize_target_freqs_for_run(parse_freq_list(str(st.session_state.get("p6_guide_freqs_cube2_input", ""))))
+		target_freqs_cube2 = guide_freqs_run2 if guide_freqs_run2 else _normalize_target_freqs_for_run([float(v) for v in target_freqs])
 		st.caption("Target frequencies used for Simulate Single Spectrum: " + _freqs_to_text(target_freqs_cube2))
 
 		cube2_out_dir = st.text_input("Output directory", value=os.path.join(DEFAULT_OUTPUT_DIR, "cube2"), key="p6_cube2_outdir")
@@ -2380,7 +2399,10 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			stop_cube2 = st.button("Stop process", key="p6_stop_cube2", disabled=not _is_running())
 
 		if start_cube2:
-			if not target_freqs_cube2:
+			target_freqs_cube2_run = _normalize_target_freqs_for_run(parse_freq_list(str(st.session_state.get("p6_guide_freqs_cube2_input", ""))))
+			if not target_freqs_cube2_run:
+				target_freqs_cube2_run = _normalize_target_freqs_for_run([float(v) for v in target_freqs])
+			if not target_freqs_cube2_run:
 				st.error("Add at least one target frequency.")
 			elif not os.path.isfile(filter_file):
 				st.error(f"Filter file not found: {filter_file}")
@@ -2409,7 +2431,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 						"signal_models_source": str(signal_models_root),
 						"noise_models_root": str(noise_models_root),
 						"filter_file": str(filter_file),
-						"target_freqs": [float(v) for v in target_freqs_cube2],
+						"target_freqs": [float(v) for v in target_freqs_cube2_run],
 						"progress_every": int(DEFAULT_PROGRESS_EVERY),
 						"allow_nearest": bool(allow_nearest),
 						"noise_scale": float(noise_scale),
