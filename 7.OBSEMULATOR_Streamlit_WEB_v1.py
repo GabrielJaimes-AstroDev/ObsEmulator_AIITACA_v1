@@ -48,7 +48,7 @@ DEFAULT_GDRIVE_MODELS_LINK = "https://drive.google.com/drive/folders/1Zm3UpfWfXf
 DEFAULT_TARGET_FREQS = [
 	84.299,
 	85.152,
-	110.8540000,
+	110.845600,
 ]
 
 DEFAULT_ALLOW_NEAREST = True
@@ -1449,22 +1449,6 @@ def _filter_cubes_by_target_freqs(cube_paths: List[str], target_freqs: List[floa
 	return out
 
 
-def _find_missing_target_freqs(requested_freqs: List[float], available_cube_paths: List[str], tol: float = 1e-6) -> List[float]:
-	req = [float(v) for v in (requested_freqs or []) if np.isfinite(float(v))]
-	if not req:
-		return []
-	avail: List[float] = []
-	for p in (available_cube_paths or []):
-		fv = _extract_target_freq_from_cube_filename(p)
-		if fv is not None and np.isfinite(float(fv)):
-			avail.append(float(fv))
-	missing: List[float] = []
-	for rv in req:
-		if not any(abs(float(rv) - float(av)) <= float(tol) for av in avail):
-			missing.append(float(rv))
-	return missing
-
-
 def _get_cube_ny_nx(cube_fits_path: str):
 	if fits is None or (not cube_fits_path) or (not os.path.isfile(cube_fits_path)):
 		return None
@@ -2536,9 +2520,6 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			final_cubes2 = final_cubes2_all
 		if guide_targets_for_sim:
 			st.caption("ROIs simuladas para Guide frequencies: " + _freqs_to_text(guide_targets_for_sim))
-		missing_targets_cube2 = _find_missing_target_freqs(guide_targets_for_sim, final_cubes2)
-		if missing_targets_cube2:
-			st.warning("Faltan cubos para algunas Guide frequencies: " + _freqs_to_text(missing_targets_cube2) + ". Revisa el log del worker para ver por qué no se generaron.")
 		if final_cubes2:
 			st.markdown("**Final spectra by target frequency (1x1 cube)**")
 			n_cols = 2 if len(final_cubes2) <= 4 else 3
