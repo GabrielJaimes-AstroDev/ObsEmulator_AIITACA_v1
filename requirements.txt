@@ -1,0 +1,15 @@
+streamlit==1.36.0
+numpy==2.4.4
+h5py==3.16.0
+joblib==1.5.3
+torch==2.11.0+cpu
+scikit-learn==1.8.0
+matplotlib==3.10.8
+streamlit==1.56.0
+plotly==6.7.0
+Pillow==12.1.1
+astropy==7.2.0
+
+
+
+
