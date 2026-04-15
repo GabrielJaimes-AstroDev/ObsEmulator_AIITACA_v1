@@ -46,7 +46,8 @@ DEFAULT_FILTER_FILE = ""
 DEFAULT_GDRIVE_MODELS_LINK = "https://drive.google.com/drive/folders/1Zm3UpfWfXfa-Uh1sc1HBH3o25qYvqMNH?usp=drive_link"
 
 DEFAULT_TARGET_FREQS = [
-	110.855
+	84.299,
+	110.855,
 ]
 
 DEFAULT_ALLOW_NEAREST = True
@@ -1447,6 +1448,36 @@ def _filter_cubes_by_target_freqs(cube_paths: List[str], target_freqs: List[floa
 	return out
 
 
+def _find_missing_target_freqs(requested_freqs: List[float], cube_paths: List[str], tol: float = 1e-6) -> List[float]:
+	requested = [float(v) for v in (requested_freqs or []) if np.isfinite(float(v))]
+	if not requested:
+		return []
+	available = []
+	for p in (cube_paths or []):
+		ft = _extract_target_freq_from_cube_filename(p)
+		if ft is not None and np.isfinite(float(ft)):
+			available.append(float(ft))
+	missing: List[float] = []
+	for r in requested:
+		if not any(abs(float(r) - float(a)) <= float(tol) for a in available):
+			missing.append(float(r))
+	return missing
+
+
+def _read_warn_lines(log_path: str, max_lines: int = 100) -> List[str]:
+	if (not log_path) or (not os.path.isfile(log_path)):
+		return []
+	try:
+		with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
+			lines = [ln.rstrip("\n") for ln in f.readlines()]
+		warns = [ln for ln in lines if "[WARN]" in str(ln)]
+		if len(warns) > int(max_lines):
+			warns = warns[-int(max_lines):]
+		return warns
+	except Exception:
+		return []
+
+
 def _get_cube_ny_nx(cube_fits_path: str):
 	if fits is None or (not cube_fits_path) or (not os.path.isfile(cube_fits_path)):
 		return None
@@ -2500,6 +2531,11 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				code2 = proc2.poll()
 				if code2 == 0:
 					st.success("Status: finished successfully")
+					warn_lines2 = _read_warn_lines(str(st.session_state.get("cube_log_path", "")), max_lines=120)
+					if warn_lines2:
+						st.warning("Se detectaron frecuencias objetivo con fallo. Revisa el detalle del log.")
+						with st.expander("Show worker warnings"):
+							st.text("\n".join(warn_lines2))
 				elif code2 is not None:
 					st.error(f"Status: finished with code {code2}")
 					log_tail2 = _read_log_tail(str(st.session_state.get("cube_log_path", "")), n_lines=80)
@@ -2515,11 +2551,11 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		if not guide_targets_for_sim:
 			guide_targets_for_sim = [float(v) for v in st.session_state.get("p6_cube2_last_run_target_freqs", []) if np.isfinite(float(v))]
 		final_cubes2 = _filter_cubes_by_target_freqs(final_cubes2_all, guide_targets_for_sim)
-		if final_cubes2_all and (not final_cubes2):
-			st.warning("No se encontraron cubos que coincidan con las Guide frequencies actuales. Mostrando todos los cubos disponibles.")
-			final_cubes2 = final_cubes2_all
 		if guide_targets_for_sim:
 			st.caption("ROIs simuladas para Guide frequencies: " + _freqs_to_text(guide_targets_for_sim))
+		missing_targets2 = _find_missing_target_freqs(guide_targets_for_sim, final_cubes2_all)
+		if missing_targets2:
+			st.warning("No se generaron cubos para: " + _freqs_to_text(missing_targets2) + " GHz")
 		if final_cubes2:
 			st.markdown("**Final spectra by target frequency (1x1 cube)**")
 			n_cols = 2 if len(final_cubes2) <= 4 else 3
