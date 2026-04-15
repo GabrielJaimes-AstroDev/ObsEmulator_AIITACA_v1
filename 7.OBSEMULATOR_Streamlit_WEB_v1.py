@@ -47,8 +47,7 @@ DEFAULT_GDRIVE_MODELS_LINK = "https://drive.google.com/drive/folders/1Zm3UpfWfXf
 
 DEFAULT_TARGET_FREQS = [
 	84.299,
-	85.152,
-	110.85600,
+	110.855,
 ]
 
 DEFAULT_ALLOW_NEAREST = True
