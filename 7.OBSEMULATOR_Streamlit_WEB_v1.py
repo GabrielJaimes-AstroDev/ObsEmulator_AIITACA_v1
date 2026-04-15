@@ -2409,8 +2409,12 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			st.rerun()
 
 		guide_freqs_run2 = _normalize_target_freqs_for_run(parse_freq_list(str(st.session_state.get("p6_guide_freqs_cube2_input", ""))))
-		target_freqs_cube2 = guide_freqs_run2 if guide_freqs_run2 else _normalize_target_freqs_for_run([float(v) for v in target_freqs])
-		st.caption("Target frequencies used for Simulate Single Spectrum: " + _freqs_to_text(target_freqs_cube2))
+		target_freqs_cube2 = [float(v) for v in guide_freqs_run2]
+		if target_freqs_cube2:
+			st.caption("Target frequencies used for Simulate Single Spectrum: " + _freqs_to_text(target_freqs_cube2))
+		else:
+			st.caption("Target frequencies used for Simulate Single Spectrum: (empty)")
+		st.caption("Las ROIs seleccionadas en desplegables solo se usarán si se agregan a Guide frequencies.")
 
 		cube2_out_dir = st.text_input("Output directory", value=os.path.join(DEFAULT_OUTPUT_DIR, "cube2"), key="p6_cube2_outdir")
 		p21, p22, p23, p24 = st.columns(4)
@@ -2432,9 +2436,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		if start_cube2:
 			target_freqs_cube2_run = _normalize_target_freqs_for_run(parse_freq_list(str(st.session_state.get("p6_guide_freqs_cube2_input", ""))))
 			if not target_freqs_cube2_run:
-				target_freqs_cube2_run = _normalize_target_freqs_for_run([float(v) for v in target_freqs])
-			if not target_freqs_cube2_run:
-				st.error("Add at least one target frequency.")
+				st.error("Guide frequencies está vacío. Agrega al menos una frecuencia o usa 'Add selected ROI combination to Guide frequencies'.")
 			elif not os.path.isfile(filter_file):
 				st.error(f"Filter file not found: {filter_file}")
 			elif (not signal_models_root) or ((not os.path.isfile(signal_models_root)) and (not os.path.isdir(signal_models_root))):
