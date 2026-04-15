@@ -46,8 +46,9 @@ DEFAULT_FILTER_FILE = ""
 DEFAULT_GDRIVE_MODELS_LINK = "https://drive.google.com/drive/folders/1wsCOZ4G32ZO5fdzGI8YR_0Qp3ej7m5oC?usp=drive_link"
 
 DEFAULT_TARGET_FREQS = [
-	110.840000,	
 	84.299,
+	85.152,
+	110.840000,
 ]
 
 DEFAULT_ALLOW_NEAREST = True
@@ -1418,6 +1419,52 @@ def _find_all_final_main_cubes(out_dir: str) -> List[str]:
 	return main
 
 
+def _extract_target_freq_from_cube_filename(cube_path: str) -> Optional[float]:
+	name = os.path.basename(str(cube_path))
+	m = re.search(r"_target([0-9]+(?:p[0-9]+)?)", name, flags=re.IGNORECASE)
+	if not m:
+		return None
+	tok = str(m.group(1)).replace("p", ".")
+	try:
+		return float(tok)
+	except Exception:
+		return None
+
+
+def _filter_cubes_by_target_freqs(cube_paths: List[str], target_freqs: List[float], tol: float = 1e-6) -> List[str]:
+	if not cube_paths:
+		return []
+	if not target_freqs:
+		return list(cube_paths)
+	tg = [float(v) for v in target_freqs if np.isfinite(float(v))]
+	if not tg:
+		return list(cube_paths)
+	out: List[str] = []
+	for p in cube_paths:
+		ft = _extract_target_freq_from_cube_filename(p)
+		if ft is None:
+			continue
+		if any(abs(float(ft) - float(v)) <= float(tol) for v in tg):
+			out.append(p)
+	return out
+
+
+def _find_missing_target_freqs(requested_freqs: List[float], available_cube_paths: List[str], tol: float = 1e-6) -> List[float]:
+	req = [float(v) for v in (requested_freqs or []) if np.isfinite(float(v))]
+	if not req:
+		return []
+	avail: List[float] = []
+	for p in (available_cube_paths or []):
+		fv = _extract_target_freq_from_cube_filename(p)
+		if fv is not None and np.isfinite(float(fv)):
+			avail.append(float(fv))
+	missing: List[float] = []
+	for rv in req:
+		if not any(abs(float(rv) - float(av)) <= float(tol) for av in avail):
+			missing.append(float(rv))
+	return missing
+
+
 def _get_cube_ny_nx(cube_fits_path: str):
 	if fits is None or (not cube_fits_path) or (not os.path.isfile(cube_fits_path)):
 		return None
@@ -1554,6 +1601,8 @@ def _ensure_state():
 		st.session_state.p6_guide_main_refresh = False
 	if "p6_guide_cube2_refresh" not in st.session_state:
 		st.session_state.p6_guide_cube2_refresh = False
+	if "p6_cube2_last_run_target_freqs" not in st.session_state:
+		st.session_state.p6_cube2_last_run_target_freqs = []
 
 
 def _is_running() -> bool:
@@ -1815,7 +1864,7 @@ def _generate_obs_payload_cached(
 
 
 def run_streamlit_app():
-	st.set_page_config(page_title="OBSEMULATOR", page_icon="🧪", layout="wide")
+	st.set_page_config(page_title="PREDOBS", page_icon="🧪", layout="wide")
 	_ensure_state()
 	_cleanup_generated_outputs_on_startup_once()
 	st.title("PREDOBS")
@@ -2449,6 +2498,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					st.session_state.cube_log_path = log_path2
 					st.session_state.cube_cfg_path = cfg_path2
 					st.session_state.cube_log_handle = log_fh2
+					st.session_state.p6_cube2_last_run_target_freqs = [float(v) for v in target_freqs_cube2_run]
 					st.success("Cube generation started.")
 				except Exception as e:
 					st.error(f"Could not start process: {e}")
@@ -2476,7 +2526,19 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			else:
 				st.caption("Status: idle")
 
-		final_cubes2 = _find_all_final_main_cubes(cube2_out_dir)
+		final_cubes2_all = _find_all_final_main_cubes(cube2_out_dir)
+		guide_targets_for_sim = _normalize_target_freqs_for_run(parse_freq_list(str(st.session_state.get("p6_guide_freqs_cube2_input", ""))))
+		if not guide_targets_for_sim:
+			guide_targets_for_sim = [float(v) for v in st.session_state.get("p6_cube2_last_run_target_freqs", []) if np.isfinite(float(v))]
+		final_cubes2 = _filter_cubes_by_target_freqs(final_cubes2_all, guide_targets_for_sim)
+		if final_cubes2_all and (not final_cubes2):
+			st.warning("No se encontraron cubos que coincidan con las Guide frequencies actuales. Mostrando todos los cubos disponibles.")
+			final_cubes2 = final_cubes2_all
+		if guide_targets_for_sim:
+			st.caption("ROIs simuladas para Guide frequencies: " + _freqs_to_text(guide_targets_for_sim))
+		missing_targets_cube2 = _find_missing_target_freqs(guide_targets_for_sim, final_cubes2)
+		if missing_targets_cube2:
+			st.warning("Faltan cubos para algunas Guide frequencies: " + _freqs_to_text(missing_targets_cube2) + ". Revisa el log del worker para ver por qué no se generaron.")
 		if final_cubes2:
 			st.markdown("**Final spectra by target frequency (1x1 cube)**")
 			n_cols = 2 if len(final_cubes2) <= 4 else 3
