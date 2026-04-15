@@ -1014,6 +1014,27 @@ def _augment_target_freqs_with_selected_rois(base_freqs: List[float], signal_roi
 	return out
 
 
+def _append_selected_rois_to_freq_list(base_freqs: List[float], signal_rois: List[dict], noise_rois: List[dict], selected_signal_pos: Optional[int], selected_noise_pos: Optional[int]) -> List[float]:
+	freqs = [float(v) for v in (base_freqs or [])]
+	if selected_signal_pos is not None and signal_rois and 0 <= int(selected_signal_pos) < len(signal_rois):
+		cs = _roi_center_ghz(signal_rois[int(selected_signal_pos)])
+		if cs is not None:
+			freqs.append(float(cs))
+	if selected_noise_pos is not None and noise_rois and 0 <= int(selected_noise_pos) < len(noise_rois):
+		cn = _roi_center_ghz(noise_rois[int(selected_noise_pos)])
+		if cn is not None:
+			freqs.append(float(cn))
+	out: List[float] = []
+	for v in sorted(freqs):
+		if not out or abs(float(v) - float(out[-1])) > 1e-9:
+			out.append(float(v))
+	return out
+
+
+def _freqs_to_text(freqs: List[float]) -> str:
+	return ", ".join([f"{float(v):.6f}" for v in (freqs or [])])
+
+
 def _plot_roi_overview(signal_rois: List[dict], noise_rois: List[dict], guide_freqs_ghz: Optional[List[float]] = None, selected_signal_index: Optional[int] = None, selected_noise_index: Optional[int] = None, chart_key: Optional[str] = None):
 	fig = go.Figure()
 	for r in signal_rois:
@@ -1495,6 +1516,10 @@ def _ensure_state():
 		st.session_state.drive_auto_paths = {}
 	if "drive_last_error" not in st.session_state:
 		st.session_state.drive_last_error = ""
+	if "p6_guide_freqs_main" not in st.session_state:
+		st.session_state.p6_guide_freqs_main = _freqs_to_text([float(v) for v in DEFAULT_TARGET_FREQS])
+	if "p6_guide_freqs_cube2" not in st.session_state:
+		st.session_state.p6_guide_freqs_cube2 = _freqs_to_text([float(v) for v in DEFAULT_TARGET_FREQS])
 
 
 def _is_running() -> bool:
@@ -1834,8 +1859,10 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		st.caption(f"Noise source in use: {noise_models_root}")
 		st.caption(f"Filter file in use: {filter_file}")
 
-		target_text = st.text_area("Target frequencies (GHz)", value=", ".join([str(v) for v in DEFAULT_TARGET_FREQS]), height=120)
+		target_text = st.text_area("Default target frequencies (GHz)", value=", ".join([str(v) for v in DEFAULT_TARGET_FREQS]), height=120)
 		target_freqs = parse_freq_list(target_text)
+		if not target_freqs:
+			target_freqs = [float(v) for v in DEFAULT_TARGET_FREQS]
 		allow_nearest = st.checkbox("Allow nearest ROI if no overlap", value=bool(DEFAULT_ALLOW_NEAREST))
 		noise_scale = st.number_input("Noise scale", min_value=0.0, value=float(DEFAULT_NOISE_SCALE), step=0.1, format="%.3f")
 
@@ -1852,9 +1879,12 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 	with tab_cube:
 		st.subheader("Cube Generator")
 		st.markdown("**ROI explorer (signal and noise models)**")
-		guide_freq_default_list = target_freqs if len(target_freqs) > 0 else [110.880000]
-		guide_freqs_text_default = ", ".join([f"{float(v):.6f}" for v in guide_freq_default_list])
-		guide_freqs_text = st.text_input("Guide frequencies to locate ROIs (GHz; comma/space separated)", value=guide_freqs_text_default)
+		if not str(st.session_state.get("p6_guide_freqs_main", "")).strip():
+			st.session_state.p6_guide_freqs_main = _freqs_to_text([float(v) for v in target_freqs])
+		guide_freqs_text = st.text_input(
+			"Guide frequencies (GHz; main list used for Start cube generation)",
+			key="p6_guide_freqs_main",
+		)
 		guide_freqs = parse_freq_list(guide_freqs_text)
 		guide_freq = float(guide_freqs[0]) if len(guide_freqs) > 0 else None
 
@@ -1936,16 +1966,19 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			sel_noi_idx = None if not noise_rois else int(noise_rois[int(st.session_state.get("p6_noise_roi_select", 0))]["index"])
 			_plot_roi_overview(signal_rois, noise_rois, guide_freqs_ghz=guide_freqs, selected_signal_index=sel_sig_idx, selected_noise_index=sel_noi_idx, chart_key="p6_roi_overview_cube")
 
-		target_freqs_cube = _augment_target_freqs_with_selected_rois(
-			base_freqs=target_freqs,
-			signal_rois=signal_rois,
-			noise_rois=noise_rois,
-			selected_signal_pos=int(st.session_state.get("p6_signal_roi_select", 0)) if signal_rois else None,
-			selected_noise_pos=int(st.session_state.get("p6_noise_roi_select", 0)) if noise_rois else None,
-		)
-		st.caption("Target frequencies used for Cube Generator: " + ", ".join([f"{float(v):.6f}" for v in target_freqs_cube]))
-		if not target_freqs_cube:
-			target_freqs_cube = [float(v) for v in target_freqs]
+		if st.button("Add selected ROI combination to Guide frequencies", key="p6_add_rois_to_guide"):
+			updated_freqs = _append_selected_rois_to_freq_list(
+				base_freqs=guide_freqs,
+				signal_rois=signal_rois,
+				noise_rois=noise_rois,
+				selected_signal_pos=int(st.session_state.get("p6_signal_roi_select", 0)) if signal_rois else None,
+				selected_noise_pos=int(st.session_state.get("p6_noise_roi_select", 0)) if noise_rois else None,
+			)
+			st.session_state.p6_guide_freqs_main = _freqs_to_text(updated_freqs)
+			st.rerun()
+
+		target_freqs_cube = [float(v) for v in guide_freqs] if guide_freqs else [float(v) for v in target_freqs]
+		st.caption("Target frequencies used for Cube Generator: " + _freqs_to_text(target_freqs_cube))
 
 		default_out = DEFAULT_OUTPUT_DIR
 		cube_out_dir = st.text_input("Output directory", value=default_out)
@@ -2185,9 +2218,12 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		st.caption("Same workflow as Cube Generator, using implicit scalar values for LogN, Tex, FWHM, and Velocity.")
 
 		st.markdown("**ROI explorer (signal and noise models)**")
-		guide_freq_default_list2 = target_freqs if len(target_freqs) > 0 else [110.880000]
-		guide_freqs_text_default2 = ", ".join([f"{float(v):.6f}" for v in guide_freq_default_list2])
-		guide_freqs_text2 = st.text_input("Guide frequencies to locate ROIs (GHz; comma/space separated)", value=guide_freqs_text_default2, key="p6_cube2_guide")
+		if not str(st.session_state.get("p6_guide_freqs_cube2", "")).strip():
+			st.session_state.p6_guide_freqs_cube2 = _freqs_to_text([float(v) for v in target_freqs])
+		guide_freqs_text2 = st.text_input(
+			"Guide frequencies (GHz; main list used for Generate Observation)",
+			key="p6_guide_freqs_cube2",
+		)
 		guide_freqs2 = parse_freq_list(guide_freqs_text2)
 		guide_freq2 = float(guide_freqs2[0]) if len(guide_freqs2) > 0 else None
 
@@ -2269,16 +2305,19 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			sel_noi_idx2 = None if not noise_rois2 else int(noise_rois2[int(st.session_state.get("p6_noise_roi_select2", 0))]["index"])
 			_plot_roi_overview(signal_rois2, noise_rois2, guide_freqs_ghz=guide_freqs2, selected_signal_index=sel_sig_idx2, selected_noise_index=sel_noi_idx2, chart_key="p6_roi_overview_cube2")
 
-		target_freqs_cube2 = _augment_target_freqs_with_selected_rois(
-			base_freqs=target_freqs,
-			signal_rois=signal_rois2,
-			noise_rois=noise_rois2,
-			selected_signal_pos=int(st.session_state.get("p6_signal_roi_select2", 0)) if signal_rois2 else None,
-			selected_noise_pos=int(st.session_state.get("p6_noise_roi_select2", 0)) if noise_rois2 else None,
-		)
-		st.caption("Target frequencies used for Simulate Single Spectrum: " + ", ".join([f"{float(v):.6f}" for v in target_freqs_cube2]))
-		if not target_freqs_cube2:
-			target_freqs_cube2 = [float(v) for v in target_freqs]
+		if st.button("Add selected ROI combination to Guide frequencies", key="p6_add_rois_to_guide_cube2"):
+			updated_freqs2 = _append_selected_rois_to_freq_list(
+				base_freqs=guide_freqs2,
+				signal_rois=signal_rois2,
+				noise_rois=noise_rois2,
+				selected_signal_pos=int(st.session_state.get("p6_signal_roi_select2", 0)) if signal_rois2 else None,
+				selected_noise_pos=int(st.session_state.get("p6_noise_roi_select2", 0)) if noise_rois2 else None,
+			)
+			st.session_state.p6_guide_freqs_cube2 = _freqs_to_text(updated_freqs2)
+			st.rerun()
+
+		target_freqs_cube2 = [float(v) for v in guide_freqs2] if guide_freqs2 else [float(v) for v in target_freqs]
+		st.caption("Target frequencies used for Simulate Single Spectrum: " + _freqs_to_text(target_freqs_cube2))
 
 		cube2_out_dir = st.text_input("Output directory", value=os.path.join(DEFAULT_OUTPUT_DIR, "cube2"), key="p6_cube2_outdir")
 		p21, p22, p23, p24 = st.columns(4)
