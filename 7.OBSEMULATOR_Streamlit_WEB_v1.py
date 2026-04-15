@@ -1680,13 +1680,13 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 **Artificial Intelligence Integral Tool for AstroChemical Analysis (AI-ITACA)** proposes to combine complementary machine learning (ML) techniques to address all the challenges that astrochemistry is currently facing. AI-ITACA will significantly contribute to the development of new AI-based cutting-edge analysis software that will allow us to make a crucial leap in the characterization of the level of chemical complexity in the ISM, and in our understanding of the contribution that interstellar chemistry might have in the origin of life.
 """
 	)
+	signal_models_root = str(DEFAULT_MERGED_H5)
+	noise_models_root = str(DEFAULT_NOISE_NN_H5)
+	filter_file = str(DEFAULT_FILTER_FILE)
 
 	with st.sidebar:
-		st.header("Model & Data")
-		signal_models_root = st.text_input("Signal models source", value=DEFAULT_MERGED_H5)
-		noise_models_root = st.text_input("Noise models source (folder or .h5 bundle)", value=DEFAULT_NOISE_NN_H5)
-		filter_file = st.text_input("Spectral filter file", value=DEFAULT_FILTER_FILE)
-		st.markdown("**Manual upload (optional)**")
+		st.header("Model Upload")
+		st.markdown("**Model Upload**")
 		up_signal_h5 = st.file_uploader("Upload signal models (.h5)", type=["h5", "hdf5"], key="p6_up_signal_h5")
 		up_noise_h5 = st.file_uploader("Upload noise models (.h5 bundle or single model)", type=["h5", "hdf5"], key="p6_up_noise_h5")
 		up_filter = st.file_uploader("Upload spectral filter (.txt/.dat/.csv)", type=["txt", "dat", "csv"], key="p6_up_filter")
