@@ -38,9 +38,9 @@ except Exception:
 # ======================================================
 # DEFAULT CONFIG (single-file, no 4.SYNGEN dependency)
 # ======================================================
-DEFAULT_MERGED_H5 = r"D:\4.DATASETS\CH3OCHO_ALL_MODELS_MERGED.h5"
-DEFAULT_NOISE_NN_H5 = r"D:\4.DATASETS\NOISE_MODELS_CH3OCHO_NN_GUAPOS_v9plotstyle_roi\NOISE_MODELS_CH3OCHO_NN_GUAPOS_v9plotstyle_roi_bundle.h5"
-DEFAULT_FILTER_FILE = r"D:\4.DATASETS\1.MADCUBA_SYNTHETIC_SPECTRA_DATASETS_4VAR_GUAPOS_COMBINED_2\filters\filter_reference_CH3OCHO_100spectra.txt"
+DEFAULT_MERGED_H5 = ""
+DEFAULT_NOISE_NN_H5 = ""
+DEFAULT_FILTER_FILE = ""
 DEFAULT_GDRIVE_MODELS_LINK = "https://drive.google.com/drive/folders/1wsCOZ4G32ZO5fdzGI8YR_0Qp3ej7m5oC?usp=drive_link"
 
 DEFAULT_TARGET_FREQS = [
@@ -53,10 +53,10 @@ DEFAULT_TARGET_FREQS = [
 DEFAULT_ALLOW_NEAREST = True
 DEFAULT_NOISE_SCALE = 1.0
 DEFAULT_PROGRESS_EVERY = 40
-DEFAULT_OUTPUT_DIR = r"D:\4.DATASETS\SYNTH_CUBES\outputs_predobs_6"
+DEFAULT_OUTPUT_DIR = os.path.join(tempfile.gettempdir(), "predobs_outputs")
 DEFAULT_OUT_PREFIX = "PREDOBS6_FAST"
 
-DEFAULT_PARAM_MAPS_DIR = r"D:\4.DATASETS\SYNTH_CUBES"
+DEFAULT_PARAM_MAPS_DIR = ""
 DEFAULT_PARAM_MAP_FILES = {
 	"tex": "CH3OCHO_TRIANGLE_SYNTH_TEX.fits",
 	"logn": "CH3OCHO_TRIANGLE_SYNTH_LOGN.fits",
@@ -988,7 +988,7 @@ def _plot_roi_overview(signal_rois: List[dict], noise_rois: List[dict], guide_fr
 		height=310,
 		margin=dict(l=40, r=20, t=45, b=40),
 	)
-	st.plotly_chart(fig, use_container_width=True, key=chart_key)
+	st.plotly_chart(fig, width="stretch", key=chart_key)
 
 
 def run_cube_worker(cfg_path: str) -> int:
@@ -1337,7 +1337,7 @@ def _plot_spectrum(freq, y_syn, y_noise, y_final, chart_key: Optional[str] = Non
 		fig.add_trace(go.Scatter(x=freq, y=y_noise, mode="lines", name="Predicted noise", line=dict(dash="dot")))
 	fig.add_trace(go.Scatter(x=freq, y=y_final, mode="lines", name="Synthetic + noise"))
 	fig.update_layout(xaxis_title="Frequency (GHz)", yaxis_title="Intensity", template="plotly_white", height=380, margin=dict(l=40, r=20, t=40, b=40))
-	st.plotly_chart(fig, use_container_width=True, key=chart_key)
+	st.plotly_chart(fig, width="stretch", key=chart_key)
 
 
 def _spectrum_to_csv_bytes(freq, y_syn, y_noise, y_final) -> Optional[bytes]:
@@ -1506,7 +1506,7 @@ def _show_fits_preview(title: str, arr: np.ndarray):
 	ax.set_title(f"{title} | shape={v.shape[0]}x{v.shape[1]}")
 	plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
 	plt.tight_layout()
-	st.pyplot(fig, use_container_width=True)
+	st.pyplot(fig, width="stretch")
 	plt.close(fig)
 
 
@@ -1637,7 +1637,7 @@ def run_streamlit_app():
 
 	intro_img = _project_dir() / "NGC6523_BVO_2.jpg"
 	if intro_img.is_file():
-		st.image(str(intro_img), use_container_width=True)
+		st.image(str(intro_img), width="stretch")
 
 	st.markdown(
 		"""
@@ -1835,8 +1835,16 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 								f_out.write(uf.getbuffer())
 							map_files[k] = name
 					else:
-						maps_dir = DEFAULT_PARAM_MAPS_DIR
+						maps_dir = str(DEFAULT_PARAM_MAPS_DIR)
 						map_files = dict(DEFAULT_PARAM_MAP_FILES)
+						if (not maps_dir) or (not os.path.isdir(maps_dir)):
+							raise RuntimeError("No default parameter-map directory available. Upload the 4 FITS maps (Tex, LogN, Velo, FWHM).")
+						missing_maps = [
+							k for k, fn in map_files.items()
+							if not os.path.isfile(os.path.join(maps_dir, fn))
+						]
+						if missing_maps:
+							raise RuntimeError(f"Missing default parameter maps: {', '.join(missing_maps)}. Upload the 4 FITS maps.")
 
 					cfg = {
 						"out_dir": str(cube_out_dir),
@@ -1853,7 +1861,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 						"selected_model_name": DEFAULT_SELECTED_MODEL_NAME,
 						"out_prefix": DEFAULT_OUT_PREFIX,
 					}
-					fd, cfg_path = tempfile.mkstemp(prefix="predobs6_cfg_", suffix=".json", dir=str(_project_dir()))
+					fd, cfg_path = tempfile.mkstemp(prefix="predobs6_cfg_", suffix=".json", dir=tempfile.gettempdir())
 					os.close(fd)
 					with open(cfg_path, "w", encoding="utf-8") as f:
 						json.dump(cfg, f, ensure_ascii=False, indent=2)
@@ -2123,7 +2131,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 						"selected_model_name": DEFAULT_SELECTED_MODEL_NAME,
 						"out_prefix": DEFAULT_OUT_PREFIX,
 					}
-					fd2, cfg_path2 = tempfile.mkstemp(prefix="predobs6_cfg2_", suffix=".json", dir=str(_project_dir()))
+					fd2, cfg_path2 = tempfile.mkstemp(prefix="predobs6_cfg2_", suffix=".json", dir=tempfile.gettempdir())
 					os.close(fd2)
 					with open(cfg_path2, "w", encoding="utf-8") as f:
 						json.dump(cfg2, f, ensure_ascii=False, indent=2)
