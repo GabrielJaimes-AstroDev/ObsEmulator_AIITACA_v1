@@ -10,6 +10,7 @@ import importlib.util
 import tempfile
 import subprocess
 import collections
+import shutil
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 from urllib.parse import urlparse, parse_qs
@@ -976,6 +977,44 @@ def _get_overlapping_noise_roi_indices(signal_roi: dict, noise_rois: List[dict])
 	return out
 
 
+def _get_overlapping_signal_roi_indices(noise_roi: dict, signal_rois: List[dict]) -> List[int]:
+	out: List[int] = []
+	if not isinstance(noise_roi, dict):
+		return out
+	for s in signal_rois:
+		if not isinstance(s, dict):
+			continue
+		if _intervals_overlap(float(noise_roi["lo"]), float(noise_roi["hi"]), float(s["lo"]), float(s["hi"])):
+			out.append(int(s["index"]))
+	return out
+
+
+def _roi_center_ghz(roi: dict) -> Optional[float]:
+	if not isinstance(roi, dict):
+		return None
+	try:
+		return 0.5 * (float(roi["lo"]) + float(roi["hi"]))
+	except Exception:
+		return None
+
+
+def _augment_target_freqs_with_selected_rois(base_freqs: List[float], signal_rois: List[dict], noise_rois: List[dict], selected_signal_pos: Optional[int], selected_noise_pos: Optional[int]) -> List[float]:
+	freqs = [float(v) for v in (base_freqs or [])]
+	if selected_signal_pos is not None and signal_rois and 0 <= int(selected_signal_pos) < len(signal_rois):
+		cs = _roi_center_ghz(signal_rois[int(selected_signal_pos)])
+		if cs is not None:
+			freqs.append(float(cs))
+	if selected_noise_pos is not None and noise_rois and 0 <= int(selected_noise_pos) < len(noise_rois):
+		cn = _roi_center_ghz(noise_rois[int(selected_noise_pos)])
+		if cn is not None:
+			freqs.append(float(cn))
+	out: List[float] = []
+	for v in sorted(freqs):
+		if not out or abs(float(v) - float(out[-1])) > 1e-9:
+			out.append(float(v))
+	return out
+
+
 def _plot_roi_overview(signal_rois: List[dict], noise_rois: List[dict], guide_freqs_ghz: Optional[List[float]] = None, selected_signal_index: Optional[int] = None, selected_noise_index: Optional[int] = None, chart_key: Optional[str] = None):
 	fig = go.Figure()
 	for r in signal_rois:
@@ -1086,84 +1125,94 @@ def run_cube_worker(cfg_path: str) -> int:
 		raise RuntimeError("No valid NoiseNN models loaded")
 
 	signal_pkg_cache: Dict[str, object] = {}
+	n_ok = 0
+	n_fail = 0
 	for target_freq in target_freqs:
-		is_h5_signal, roi_entries, roi_freq = build_signal_index_for_roi(
-			signal_source=signal_models_source,
-			filter_file=filter_file,
-			target_frequency_ghz=float(target_freq),
-			pred_mode=pred_mode,
-			selected_model_name=selected_model_name,
-			allow_nearest=allow_nearest,
-		)
-		nchan = int(roi_freq.size)
-		tag = f"{float(target_freq):.6f}".replace(".", "p")
-		final_fits = os.path.join(out_dir, f"{out_prefix}_target{tag}.fits")
-		synth_fits = os.path.join(out_dir, f"{out_prefix}_target{tag}_SYNTHONLY.fits")
-		progress_fits = os.path.join(out_dir, f"{out_prefix}_target{tag}_INPROGRESS.fits")
-		progress_png = os.path.join(out_dir, f"{out_prefix}_target{tag}_INPROGRESS_MAP.png")
+		try:
+			is_h5_signal, roi_entries, roi_freq = build_signal_index_for_roi(
+				signal_source=signal_models_source,
+				filter_file=filter_file,
+				target_frequency_ghz=float(target_freq),
+				pred_mode=pred_mode,
+				selected_model_name=selected_model_name,
+				allow_nearest=allow_nearest,
+			)
+			nchan = int(roi_freq.size)
+			tag = f"{float(target_freq):.6f}".replace(".", "p")
+			final_fits = os.path.join(out_dir, f"{out_prefix}_target{tag}.fits")
+			synth_fits = os.path.join(out_dir, f"{out_prefix}_target{tag}_SYNTHONLY.fits")
+			progress_fits = os.path.join(out_dir, f"{out_prefix}_target{tag}_INPROGRESS.fits")
+			progress_png = os.path.join(out_dir, f"{out_prefix}_target{tag}_INPROGRESS_MAP.png")
 
-		cube_final = np.full((nchan, ny, nx), np.nan, dtype=np.float32)
-		cube_syn = np.full((nchan, ny, nx), np.nan, dtype=np.float32)
+			cube_final = np.full((nchan, ny, nx), np.nan, dtype=np.float32)
+			cube_syn = np.full((nchan, ny, nx), np.nan, dtype=np.float32)
 
-		y_syn_valid = np.zeros((n_valid, nchan), dtype=np.float32)
-		for i, (_, _, model_refs) in enumerate(roi_entries):
-			pred_acc = np.zeros((n_valid,), dtype=np.float64)
-			pred_cnt = 0
-			for model_name, ref in model_refs:
-				cache_key = f"{model_name}|{ref}"
-				if cache_key not in signal_pkg_cache:
-					if is_h5_signal:
-						signal_pkg_cache[cache_key] = load_joblib_package_from_h5(signal_models_source, ref)
-					else:
-						signal_pkg_cache[cache_key] = joblib.load(ref)
-				pkg = signal_pkg_cache[cache_key]
-				pred = predict_with_joblib_package_batch(pkg, x_valid)
-				pred_acc += pred.astype(np.float64)
-				pred_cnt += 1
-			if pred_cnt > 0:
-				y_syn_valid[:, i] = (pred_acc / float(pred_cnt)).astype(np.float32)
+			y_syn_valid = np.zeros((n_valid, nchan), dtype=np.float32)
+			for i, (_, _, model_refs) in enumerate(roi_entries):
+				pred_acc = np.zeros((n_valid,), dtype=np.float64)
+				pred_cnt = 0
+				for model_name, ref in model_refs:
+					cache_key = f"{model_name}|{ref}"
+					if cache_key not in signal_pkg_cache:
+						if is_h5_signal:
+							signal_pkg_cache[cache_key] = load_joblib_package_from_h5(signal_models_source, ref)
+						else:
+							signal_pkg_cache[cache_key] = joblib.load(ref)
+					pkg = signal_pkg_cache[cache_key]
+					pred = predict_with_joblib_package_batch(pkg, x_valid)
+					pred_acc += pred.astype(np.float64)
+					pred_cnt += 1
+				if pred_cnt > 0:
+					y_syn_valid[:, i] = (pred_acc / float(pred_cnt)).astype(np.float32)
 
-		noise_sum = np.zeros((n_valid, nchan), dtype=np.float64)
-		noise_cnt = np.zeros((n_valid, nchan), dtype=np.float64)
-		for noise_model, noise_scaler, noise_cfg in noise_models:
-			segs = get_noise_segments_for_axis(noise_cfg, roi_freq)
-			for idx, spw_idx in segs:
-				idx = np.asarray(idx, dtype=np.int64)
-				ys_seg = y_syn_valid[:, idx]
-				try:
-					noise_seg = predict_noise_segment_batch(
-						model=noise_model,
-						scaler_y=noise_scaler,
-						cfg_noise=noise_cfg,
-						y_synth_segment_batch=ys_seg,
-						x_features_batch=x_valid,
-						spw_idx=int(spw_idx),
-						noise_scale=noise_scale,
-						batch_size=2048,
-					)
-					noise_sum[:, idx] += noise_seg.astype(np.float64)
-					noise_cnt[:, idx] += 1.0
-				except Exception:
-					continue
-		y_noise_valid = np.zeros((n_valid, nchan), dtype=np.float32)
-		m = noise_cnt > 0
-		y_noise_valid[m] = (noise_sum[m] / noise_cnt[m]).astype(np.float32)
-		y_final_valid = (y_syn_valid + y_noise_valid).astype(np.float32)
+			noise_sum = np.zeros((n_valid, nchan), dtype=np.float64)
+			noise_cnt = np.zeros((n_valid, nchan), dtype=np.float64)
+			for noise_model, noise_scaler, noise_cfg in noise_models:
+				segs = get_noise_segments_for_axis(noise_cfg, roi_freq)
+				for idx, spw_idx in segs:
+					idx = np.asarray(idx, dtype=np.int64)
+					ys_seg = y_syn_valid[:, idx]
+					try:
+						noise_seg = predict_noise_segment_batch(
+							model=noise_model,
+							scaler_y=noise_scaler,
+							cfg_noise=noise_cfg,
+							y_synth_segment_batch=ys_seg,
+							x_features_batch=x_valid,
+							spw_idx=int(spw_idx),
+							noise_scale=noise_scale,
+							batch_size=2048,
+						)
+						noise_sum[:, idx] += noise_seg.astype(np.float64)
+						noise_cnt[:, idx] += 1.0
+					except Exception:
+						continue
+			y_noise_valid = np.zeros((n_valid, nchan), dtype=np.float32)
+			m = noise_cnt > 0
+			y_noise_valid[m] = (noise_sum[m] / noise_cnt[m]).astype(np.float32)
+			y_final_valid = (y_syn_valid + y_noise_valid).astype(np.float32)
 
-		pixel_order = _spiral_pixel_order_valid(valid_mask)
-		total_pixels = int(len(pixel_order))
-		processed_mask = np.zeros((ny, nx), dtype=bool)
-		for p_done, (y, x) in enumerate(pixel_order, start=1):
-			vid = int(valid_id_map[y, x])
-			cube_syn[:, y, x] = y_syn_valid[vid]
-			cube_final[:, y, x] = y_final_valid[vid]
-			processed_mask[y, x] = True
-			if (p_done % progress_every) == 0 or p_done == total_pixels:
-				write_cube_fits(progress_fits, cube_final, roi_freq, ref_hdr, f"Checkpoint: {p_done}/{total_pixels}")
-				save_progress_png(cube_final, target_freq, p_done, total_pixels, progress_png, processed_mask=processed_mask)
+			pixel_order = _spiral_pixel_order_valid(valid_mask)
+			total_pixels = int(len(pixel_order))
+			processed_mask = np.zeros((ny, nx), dtype=bool)
+			for p_done, (y, x) in enumerate(pixel_order, start=1):
+				vid = int(valid_id_map[y, x])
+				cube_syn[:, y, x] = y_syn_valid[vid]
+				cube_final[:, y, x] = y_final_valid[vid]
+				processed_mask[y, x] = True
+				if (p_done % progress_every) == 0 or p_done == total_pixels:
+					write_cube_fits(progress_fits, cube_final, roi_freq, ref_hdr, f"Checkpoint: {p_done}/{total_pixels}")
+					save_progress_png(cube_final, target_freq, p_done, total_pixels, progress_png, processed_mask=processed_mask)
 
-		write_cube_fits(final_fits, cube_final, roi_freq, ref_hdr, "Final synthetic cube")
-		write_cube_fits(synth_fits, cube_syn, roi_freq, ref_hdr, "Final synthetic-only cube")
+			write_cube_fits(final_fits, cube_final, roi_freq, ref_hdr, "Final synthetic cube")
+			write_cube_fits(synth_fits, cube_syn, roi_freq, ref_hdr, "Final synthetic-only cube")
+			n_ok += 1
+		except Exception as e:
+			n_fail += 1
+			print(f"[WARN] target {float(target_freq):.6f} failed: {e}")
+			continue
+	if n_ok <= 0:
+		raise RuntimeError(f"No cubes were generated successfully. Failed targets: {n_fail}/{len(target_freqs)}")
 	return 0
 
 
@@ -1286,6 +1335,20 @@ def _read_progress_info(progress_png_path: Optional[str]) -> Optional[dict]:
 		return obj if isinstance(obj, dict) else None
 	except Exception:
 		return None
+
+
+def _read_log_tail(log_path: str, n_lines: int = 60) -> str:
+	if (not log_path) or (not os.path.isfile(log_path)):
+		return ""
+	try:
+		with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
+			lines = f.readlines()
+		if not lines:
+			return ""
+		n = int(max(1, n_lines))
+		return "".join(lines[-n:]).strip()
+	except Exception:
+		return ""
 
 
 def _find_latest_final_main_cube(out_dir: str) -> Optional[str]:
@@ -1603,6 +1666,35 @@ def _resolve_local_file(filename: str) -> Path:
 	return p
 
 
+def _cleanup_generated_outputs_on_startup_once():
+	if bool(st.session_state.get("p6_cleanup_done", False)):
+		return
+	roots = [
+		str(DEFAULT_OUTPUT_DIR),
+		os.path.join(str(DEFAULT_OUTPUT_DIR), "cube2"),
+	]
+	for root in roots:
+		if (not root) or (not os.path.isdir(root)):
+			continue
+		for name in os.listdir(root):
+			p = os.path.join(root, name)
+			ln = str(name).lower()
+			try:
+				if os.path.isfile(p):
+					is_cube_fits = str(name).startswith(f"{DEFAULT_OUT_PREFIX}_target") and ln.endswith(".fits")
+					is_progress_png = ln.endswith("_inprogress_map.png")
+					is_progress_json = ln.endswith("_inprogress_map.json")
+					is_run_log = (ln.startswith("cube_run_") or ln.startswith("cube2_run_")) and ln.endswith(".log")
+					if is_cube_fits or is_progress_png or is_progress_json or is_run_log:
+						os.remove(p)
+				elif os.path.isdir(p):
+					if str(name).startswith("uploaded_maps_") or str(name).startswith("implicit_maps_"):
+						shutil.rmtree(p, ignore_errors=True)
+			except Exception:
+				pass
+	st.session_state.p6_cleanup_done = True
+
+
 def _load_module_from_path(path: Path, module_name: str):
 	if not path.is_file():
 		raise FileNotFoundError(f"Cannot load module from missing file: {path}")
@@ -1667,6 +1759,7 @@ def _generate_obs_payload_cached(
 def run_streamlit_app():
 	st.set_page_config(page_title="PREDOBS", page_icon="🧪", layout="wide")
 	_ensure_state()
+	_cleanup_generated_outputs_on_startup_once()
 	st.title("PREDOBS")
 
 	intro_img = _project_dir() / "NGC6523_BVO_2.jpg"
@@ -1769,6 +1862,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		signal_rois = _collect_signal_rois_for_ui(signal_models_root, filter_file)
 		noise_rois = _collect_noise_rois_for_ui(noise_models_root)
 		signal_rois, noise_rois = _mark_roi_overlaps(signal_rois, noise_rois)
+		target_freqs_cube = [float(v) for v in target_freqs]
 
 		if (not signal_rois) and (not noise_rois):
 			st.info("Could not load ROIs yet. Check model/filter paths.")
@@ -1801,7 +1895,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 						format_func=lambda i: (
 							f"ROI S{signal_rois[i]['index']} | {signal_rois[i]['lo']:.6f}–{signal_rois[i]['hi']:.6f} GHz"
 							+ (
-								f" | matches Noise ROI(s): {','.join([str(v) for v in _get_overlapping_noise_roi_indices(signal_rois[i], noise_rois)])}"
+								f" | MATCHED BETWEEN MODELS: N{',N'.join([str(v) for v in _get_overlapping_noise_roi_indices(signal_rois[i], noise_rois)])}"
 								if _get_overlapping_noise_roi_indices(signal_rois[i], noise_rois)
 								else " | no overlap"
 							)
@@ -1821,18 +1915,38 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					st.selectbox(
 						"Noise-model ROIs",
 						options=noi_opts,
-						format_func=lambda i: f"ROI N{noise_rois[i]['index']} | {noise_rois[i]['lo']:.6f}–{noise_rois[i]['hi']:.6f} GHz",
+						format_func=lambda i: (
+							f"ROI N{noise_rois[i]['index']} | {noise_rois[i]['lo']:.6f}–{noise_rois[i]['hi']:.6f} GHz"
+							+ (
+								f" | MATCHED BETWEEN MODELS: S{',S'.join([str(v) for v in _get_overlapping_signal_roi_indices(noise_rois[i], signal_rois)])}"
+								if _get_overlapping_signal_roi_indices(noise_rois[i], signal_rois)
+								else " | no overlap"
+							)
+						),
 						key="p6_noise_roi_select",
 					)
 					sel_n = noise_rois[int(st.session_state.p6_noise_roi_select)]
 					spw_txt = ",".join(sel_n.get("spw", [])) if sel_n.get("spw", []) else "-"
-					st.caption(f"Selected: ROI N{int(sel_n['index'])} | range {float(sel_n['lo']):.6f}–{float(sel_n['hi']):.6f} GHz | SPW: {spw_txt}")
+					match_s = _get_overlapping_signal_roi_indices(sel_n, signal_rois)
+					match_s_txt = ",".join([f"S{v}" for v in match_s]) if match_s else "none"
+					st.caption(f"Selected: ROI N{int(sel_n['index'])} | range {float(sel_n['lo']):.6f}–{float(sel_n['hi']):.6f} GHz | SPW: {spw_txt} | matching Signal ROI(s): {match_s_txt}")
 				else:
 					st.caption("No noise ROIs available")
 
 			sel_sig_idx = None if not signal_rois else int(signal_rois[int(st.session_state.get("p6_signal_roi_select", 0))]["index"])
 			sel_noi_idx = None if not noise_rois else int(noise_rois[int(st.session_state.get("p6_noise_roi_select", 0))]["index"])
 			_plot_roi_overview(signal_rois, noise_rois, guide_freqs_ghz=guide_freqs, selected_signal_index=sel_sig_idx, selected_noise_index=sel_noi_idx, chart_key="p6_roi_overview_cube")
+
+		target_freqs_cube = _augment_target_freqs_with_selected_rois(
+			base_freqs=target_freqs,
+			signal_rois=signal_rois,
+			noise_rois=noise_rois,
+			selected_signal_pos=int(st.session_state.get("p6_signal_roi_select", 0)) if signal_rois else None,
+			selected_noise_pos=int(st.session_state.get("p6_noise_roi_select", 0)) if noise_rois else None,
+		)
+		st.caption("Target frequencies used for Cube Generator: " + ", ".join([f"{float(v):.6f}" for v in target_freqs_cube]))
+		if not target_freqs_cube:
+			target_freqs_cube = [float(v) for v in target_freqs]
 
 		default_out = DEFAULT_OUTPUT_DIR
 		cube_out_dir = st.text_input("Output directory", value=default_out)
@@ -1867,7 +1981,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		st.caption("Live refresh (seconds): 5")
 
 		if start_cube:
-			if not target_freqs:
+			if not target_freqs_cube:
 				st.error("Add at least one target frequency.")
 			elif not os.path.isfile(filter_file):
 				st.error(f"Filter file not found: {filter_file}")
@@ -1911,7 +2025,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 						"signal_models_source": str(signal_models_root),
 						"noise_models_root": str(noise_models_root),
 						"filter_file": str(filter_file),
-						"target_freqs": [float(v) for v in target_freqs],
+						"target_freqs": [float(v) for v in target_freqs_cube],
 						"progress_every": int(progress_every),
 						"allow_nearest": bool(allow_nearest),
 						"noise_scale": float(noise_scale),
@@ -1949,6 +2063,10 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					st.success("Status: finished successfully")
 				elif code is not None:
 					st.error(f"Status: finished with code {code}")
+					log_tail = _read_log_tail(str(st.session_state.get("cube_log_path", "")), n_lines=80)
+					if log_tail:
+						with st.expander("Show last worker log lines"):
+							st.text(log_tail)
 				_stop_process()
 			else:
 				st.caption("Status: idle")
@@ -2077,6 +2195,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		signal_rois2 = _collect_signal_rois_for_ui(signal_models_root, filter_file)
 		noise_rois2 = _collect_noise_rois_for_ui(noise_models_root)
 		signal_rois2, noise_rois2 = _mark_roi_overlaps(signal_rois2, noise_rois2)
+		target_freqs_cube2 = [float(v) for v in target_freqs]
 
 		if (not signal_rois2) and (not noise_rois2):
 			st.info("Could not load ROIs yet. Check model/filter paths.")
@@ -2109,7 +2228,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 						format_func=lambda i: (
 							f"ROI S{signal_rois2[i]['index']} | {signal_rois2[i]['lo']:.6f}–{signal_rois2[i]['hi']:.6f} GHz"
 							+ (
-								f" | matches Noise ROI(s): {','.join([str(v) for v in _get_overlapping_noise_roi_indices(signal_rois2[i], noise_rois2)])}"
+								f" | MATCHED BETWEEN MODELS: N{',N'.join([str(v) for v in _get_overlapping_noise_roi_indices(signal_rois2[i], noise_rois2)])}"
 								if _get_overlapping_noise_roi_indices(signal_rois2[i], noise_rois2)
 								else " | no overlap"
 							)
@@ -2129,18 +2248,38 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					st.selectbox(
 						"Noise-model ROIs",
 						options=noi_opts2,
-						format_func=lambda i: f"ROI N{noise_rois2[i]['index']} | {noise_rois2[i]['lo']:.6f}–{noise_rois2[i]['hi']:.6f} GHz",
+						format_func=lambda i: (
+							f"ROI N{noise_rois2[i]['index']} | {noise_rois2[i]['lo']:.6f}–{noise_rois2[i]['hi']:.6f} GHz"
+							+ (
+								f" | MATCHED BETWEEN MODELS: S{',S'.join([str(v) for v in _get_overlapping_signal_roi_indices(noise_rois2[i], signal_rois2)])}"
+								if _get_overlapping_signal_roi_indices(noise_rois2[i], signal_rois2)
+								else " | no overlap"
+							)
+						),
 						key="p6_noise_roi_select2",
 					)
 					sel_n2 = noise_rois2[int(st.session_state.p6_noise_roi_select2)]
 					spw_txt2 = ",".join(sel_n2.get("spw", [])) if sel_n2.get("spw", []) else "-"
-					st.caption(f"Selected: ROI N{int(sel_n2['index'])} | range {float(sel_n2['lo']):.6f}–{float(sel_n2['hi']):.6f} GHz | SPW: {spw_txt2}")
+					match_s2 = _get_overlapping_signal_roi_indices(sel_n2, signal_rois2)
+					match_s_txt2 = ",".join([f"S{v}" for v in match_s2]) if match_s2 else "none"
+					st.caption(f"Selected: ROI N{int(sel_n2['index'])} | range {float(sel_n2['lo']):.6f}–{float(sel_n2['hi']):.6f} GHz | SPW: {spw_txt2} | matching Signal ROI(s): {match_s_txt2}")
 				else:
 					st.caption("No noise ROIs available")
 
 			sel_sig_idx2 = None if not signal_rois2 else int(signal_rois2[int(st.session_state.get("p6_signal_roi_select2", 0))]["index"])
 			sel_noi_idx2 = None if not noise_rois2 else int(noise_rois2[int(st.session_state.get("p6_noise_roi_select2", 0))]["index"])
 			_plot_roi_overview(signal_rois2, noise_rois2, guide_freqs_ghz=guide_freqs2, selected_signal_index=sel_sig_idx2, selected_noise_index=sel_noi_idx2, chart_key="p6_roi_overview_cube2")
+
+		target_freqs_cube2 = _augment_target_freqs_with_selected_rois(
+			base_freqs=target_freqs,
+			signal_rois=signal_rois2,
+			noise_rois=noise_rois2,
+			selected_signal_pos=int(st.session_state.get("p6_signal_roi_select2", 0)) if signal_rois2 else None,
+			selected_noise_pos=int(st.session_state.get("p6_noise_roi_select2", 0)) if noise_rois2 else None,
+		)
+		st.caption("Target frequencies used for Simulate Single Spectrum: " + ", ".join([f"{float(v):.6f}" for v in target_freqs_cube2]))
+		if not target_freqs_cube2:
+			target_freqs_cube2 = [float(v) for v in target_freqs]
 
 		cube2_out_dir = st.text_input("Output directory", value=os.path.join(DEFAULT_OUTPUT_DIR, "cube2"), key="p6_cube2_outdir")
 		p21, p22, p23, p24 = st.columns(4)
@@ -2160,7 +2299,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			stop_cube2 = st.button("Stop process", key="p6_stop_cube2", disabled=not _is_running())
 
 		if start_cube2:
-			if not target_freqs:
+			if not target_freqs_cube2:
 				st.error("Add at least one target frequency.")
 			elif not os.path.isfile(filter_file):
 				st.error(f"Filter file not found: {filter_file}")
@@ -2189,7 +2328,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 						"signal_models_source": str(signal_models_root),
 						"noise_models_root": str(noise_models_root),
 						"filter_file": str(filter_file),
-						"target_freqs": [float(v) for v in target_freqs],
+						"target_freqs": [float(v) for v in target_freqs_cube2],
 						"progress_every": int(DEFAULT_PROGRESS_EVERY),
 						"allow_nearest": bool(allow_nearest),
 						"noise_scale": float(noise_scale),
@@ -2227,6 +2366,10 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					st.success("Status: finished successfully")
 				elif code2 is not None:
 					st.error(f"Status: finished with code {code2}")
+					log_tail2 = _read_log_tail(str(st.session_state.get("cube_log_path", "")), n_lines=80)
+					if log_tail2:
+						with st.expander("Show last worker log lines"):
+							st.text(log_tail2)
 				_stop_process()
 			else:
 				st.caption("Status: idle")
