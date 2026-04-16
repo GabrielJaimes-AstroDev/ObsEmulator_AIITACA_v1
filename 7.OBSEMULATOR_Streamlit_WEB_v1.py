@@ -1654,6 +1654,8 @@ def _ensure_state():
 		st.session_state.p6_guide_cube2_refresh = False
 	if "p6_cube2_last_run_target_freqs" not in st.session_state:
 		st.session_state.p6_cube2_last_run_target_freqs = []
+	if "p6_cube_last_run_target_freqs" not in st.session_state:
+		st.session_state.p6_cube_last_run_target_freqs = []
 
 
 def _is_running() -> bool:
@@ -2225,6 +2227,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					st.session_state.cube_log_path = log_path
 					st.session_state.cube_cfg_path = cfg_path
 					st.session_state.cube_log_handle = log_fh
+					st.session_state.p6_cube_last_run_target_freqs = [float(v) for v in target_freqs_cube_run]
 					st.success("Cube generation started.")
 				except Exception as e:
 					st.error(f"Could not start process: {e}")
@@ -2242,6 +2245,11 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				code = proc.poll()
 				if code == 0:
 					st.success("Status: finished successfully")
+					warn_lines = _read_warn_lines(str(st.session_state.get("cube_log_path", "")), max_lines=120)
+					if warn_lines:
+						st.warning("Se detectaron frecuencias objetivo con fallo. Revisa el detalle del log.")
+						with st.expander("Show worker warnings"):
+							st.text("\n".join(warn_lines))
 				elif code is not None:
 					st.error(f"Status: finished with code {code}")
 					log_tail = _read_log_tail(str(st.session_state.get("cube_log_path", "")), n_lines=80)
@@ -2275,7 +2283,28 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				else:
 					st.caption("Progress image is being written, retrying on next refresh...")
 
-		latest_final = _find_latest_final_main_cube(cube_out_dir)
+		final_cubes_all_main = _find_all_final_main_cubes(cube_out_dir)
+		guide_targets_for_cube = _normalize_target_freqs_for_run(parse_freq_list(str(st.session_state.get("p6_guide_freqs_main_input", ""))))
+		if not guide_targets_for_cube:
+			guide_targets_for_cube = [float(v) for v in st.session_state.get("p6_cube_last_run_target_freqs", []) if np.isfinite(float(v))]
+		final_cubes_main = _filter_cubes_by_target_freqs(final_cubes_all_main, guide_targets_for_cube)
+		if guide_targets_for_cube:
+			st.caption("ROIs simuladas para Guide frequencies: " + _freqs_to_text(guide_targets_for_cube))
+		missing_targets_main = _find_missing_target_freqs(guide_targets_for_cube, final_cubes_all_main)
+		if missing_targets_main:
+			st.warning("No se generaron cubos para: " + _freqs_to_text(missing_targets_main) + " GHz")
+			fail_reasons_main = _read_target_failure_reasons(str(st.session_state.get("cube_log_path", "")))
+			if fail_reasons_main:
+				msg_lines_main: List[str] = []
+				for mf in missing_targets_main:
+					reasons = fail_reasons_main.get(float(mf), [])
+					if reasons:
+						msg_lines_main.append(f"{float(mf):.6f} GHz -> {reasons[-1]}")
+				if msg_lines_main:
+					with st.expander("Why did these target frequencies fail?"):
+						st.text("\n".join(msg_lines_main))
+
+		latest_final = final_cubes_main[-1] if final_cubes_main else _find_latest_final_main_cube(cube_out_dir)
 		shape_ref = _get_cube_ny_nx(latest_final) if latest_final else None
 		if shape_ref is not None:
 			ny_ref, nx_ref = int(shape_ref[0]), int(shape_ref[1])
@@ -2333,7 +2362,9 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			_plot_spectrum(spec_data.get("freq"), spec_data.get("y_syn"), spec_data.get("y_noise"), spec_data.get("y_final"), chart_key="p6_spec_plot_cube")
 
 		st.markdown("**Download generated cube**")
-		cubes_for_download = _find_all_final_main_cubes(cube_out_dir)
+		cubes_for_download = list(final_cubes_main)
+		if not cubes_for_download:
+			cubes_for_download = _find_all_final_main_cubes(cube_out_dir)
 		if cubes_for_download:
 			sel_cube_dl = st.selectbox(
 				"Select cube",
