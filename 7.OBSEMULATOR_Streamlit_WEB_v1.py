@@ -46,7 +46,8 @@ DEFAULT_FILTER_FILE = ""
 DEFAULT_GDRIVE_MODELS_LINK = "https://drive.google.com/drive/folders/1Zm3UpfWfXfa-Uh1sc1HBH3o25qYvqMNH?usp=drive_link"
 
 DEFAULT_TARGET_FREQS = [
-	110.73
+	84.299,
+	110.855,
 ]
 
 DEFAULT_ALLOW_NEAREST = True
@@ -1248,6 +1249,8 @@ def run_cube_worker(cfg_path: str) -> int:
 						noise_cnt[:, idx] += 1.0
 					except Exception:
 						continue
+			if not np.any(noise_cnt > 0):
+				raise RuntimeError("No overlapping noise ROI segments for this guide frequency")
 			y_noise_valid = np.zeros((n_valid, nchan), dtype=np.float32)
 			m = noise_cnt > 0
 			y_noise_valid[m] = (noise_sum[m] / noise_cnt[m]).astype(np.float32)
@@ -1998,7 +2001,8 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		target_freqs = parse_freq_list(target_text)
 		if not target_freqs:
 			target_freqs = [float(v) for v in DEFAULT_TARGET_FREQS]
-		allow_nearest = st.checkbox("Allow nearest ROI if no overlap", value=bool(DEFAULT_ALLOW_NEAREST))
+		allow_nearest = False
+		st.caption("ROI selection mode for cube generation: exact overlap only (nearest disabled).")
 		noise_scale = st.number_input("Noise scale", min_value=0.0, value=float(DEFAULT_NOISE_SCALE), step=0.1, format="%.3f")
 
 	tab_cube, tab_cube2 = st.tabs(["Cube Generator", "Simulate Single Spectrum"])
@@ -2124,8 +2128,11 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			st.rerun()
 
 		guide_freqs_run = _normalize_target_freqs_for_run(parse_freq_list(str(st.session_state.get("p6_guide_freqs_main_input", ""))))
-		target_freqs_cube = guide_freqs_run if guide_freqs_run else _normalize_target_freqs_for_run([float(v) for v in target_freqs])
-		st.caption("Target frequencies used for Cube Generator: " + _freqs_to_text(target_freqs_cube))
+		target_freqs_cube = [float(v) for v in guide_freqs_run]
+		if target_freqs_cube:
+			st.caption("Target frequencies used for Cube Generator: " + _freqs_to_text(target_freqs_cube))
+		else:
+			st.caption("Target frequencies used for Cube Generator: (empty)")
 
 		default_out = DEFAULT_OUTPUT_DIR
 		cube_out_dir = st.text_input("Output directory", value=default_out)
@@ -2162,9 +2169,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		if start_cube:
 			target_freqs_cube_run = _normalize_target_freqs_for_run(parse_freq_list(str(st.session_state.get("p6_guide_freqs_main_input", ""))))
 			if not target_freqs_cube_run:
-				target_freqs_cube_run = _normalize_target_freqs_for_run([float(v) for v in target_freqs])
-			if not target_freqs_cube_run:
-				st.error("Add at least one target frequency.")
+				st.error("Guide frequencies está vacío. Agrega al menos una frecuencia o usa 'Add selected ROI combination to Guide frequencies'.")
 			elif not os.path.isfile(filter_file):
 				st.error(f"Filter file not found: {filter_file}")
 			elif (not signal_models_root) or ((not os.path.isfile(signal_models_root)) and (not os.path.isdir(signal_models_root))):
