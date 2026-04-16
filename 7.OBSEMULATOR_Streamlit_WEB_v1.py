@@ -1249,11 +1249,17 @@ def run_cube_worker(cfg_path: str) -> int:
 						noise_cnt[:, idx] += 1.0
 					except Exception:
 						continue
-			if not np.any(noise_cnt > 0):
-				raise RuntimeError("No overlapping noise ROI segments for this guide frequency")
 			y_noise_valid = np.zeros((n_valid, nchan), dtype=np.float32)
 			m = noise_cnt > 0
-			y_noise_valid[m] = (noise_sum[m] / noise_cnt[m]).astype(np.float32)
+			if np.any(m):
+				y_noise_valid[m] = (noise_sum[m] / noise_cnt[m]).astype(np.float32)
+				covered_channels = int(np.sum(np.any(m, axis=0)))
+				if covered_channels < int(nchan):
+					print(
+						f"[WARN] target {target_tag} partial noise coverage: {covered_channels}/{int(nchan)} channels. "
+						"Missing channels will be generated as synthetic-only.")
+			else:
+				print(f"[WARN] target {target_tag} has no overlapping noise ROI segments. Generating synthetic-only cube for this target.")
 			y_final_valid = (y_syn_valid + y_noise_valid).astype(np.float32)
 
 			pixel_order = _spiral_pixel_order_valid(valid_mask)
