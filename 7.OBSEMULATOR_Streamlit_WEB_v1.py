@@ -1070,9 +1070,9 @@ def _plot_roi_overview(signal_rois: List[dict], noise_rois: List[dict], guide_fr
 			mode="lines+markers",
 			line=dict(color=color, width=width),
 			marker=dict(size=6, color=color),
-			name="Signal ROI",
+			name="Synthetic ROI",
 			showlegend=False,
-			hovertemplate=f"Signal ROI {int(r['index'])}<br>{float(r['lo']):.6f} - {float(r['hi']):.6f} GHz<extra></extra>",
+			hovertemplate=f"Synthetic ROI {int(r['index'])}<br>{float(r['lo']):.6f} - {float(r['hi']):.6f} GHz<extra></extra>",
 		))
 	for r in noise_rois:
 		is_sel = (selected_noise_index is not None) and (int(r["index"]) == int(selected_noise_index))
@@ -1100,7 +1100,7 @@ def _plot_roi_overview(signal_rois: List[dict], noise_rois: List[dict], guide_fr
 		yaxis=dict(
 			tickmode="array",
 			tickvals=[0.0, 1.0],
-			ticktext=["Noise ROIs", "Signal ROIs"],
+			ticktext=["Noise ROIs", "Synthetic ROIs"],
 			range=[-0.5, 1.5],
 		),
 		template="plotly_white",
@@ -1603,6 +1603,26 @@ def _spectrum_to_csv_bytes(freq, y_syn, y_noise, y_final) -> Optional[bytes]:
 	return out.getvalue().encode("utf-8")
 
 
+def _spectrum_to_txt_bytes(freq, y_syn, y_noise, y_final) -> Optional[bytes]:
+	if freq is None or y_final is None:
+		return None
+	f = np.asarray(freq, dtype=np.float64).reshape(-1)
+	yf = np.asarray(y_final, dtype=np.float64).reshape(-1)
+	if f.size != yf.size or f.size == 0:
+		return None
+	ys = np.asarray(y_syn, dtype=np.float64).reshape(-1) if y_syn is not None else None
+	yn = np.asarray(y_noise, dtype=np.float64).reshape(-1) if y_noise is not None else None
+
+	out = io.StringIO()
+	head = ["freq_ghz", "synthetic", "predicted_noise", "synthetic_plus_noise"]
+	out.write("\t".join(head) + "\n")
+	for i in range(int(f.size)):
+		vs = "" if ys is None or ys.size != f.size else f"{float(ys[i]):.10g}"
+		vn = "" if yn is None or yn.size != f.size else f"{float(yn[i]):.10g}"
+		out.write(f"{float(f[i]):.10g}\t{vs}\t{vn}\t{float(yf[i]):.10g}\n")
+	return out.getvalue().encode("utf-8")
+
+
 def _ensure_state():
 	if "cube_proc" not in st.session_state:
 		st.session_state.cube_proc = None
@@ -1658,6 +1678,10 @@ def _ensure_state():
 		st.session_state.p6_cube2_last_run_target_freqs = []
 	if "p6_cube_last_run_target_freqs" not in st.session_state:
 		st.session_state.p6_cube_last_run_target_freqs = []
+	if "p6_cube_download_cache" not in st.session_state:
+		st.session_state.p6_cube_download_cache = []
+	if "p6_cube_download_selected" not in st.session_state:
+		st.session_state.p6_cube_download_selected = ""
 
 
 def _is_running() -> bool:
@@ -1857,6 +1881,29 @@ def _cleanup_generated_outputs_on_startup_once():
 	st.session_state.p6_cleanup_done = True
 
 
+def _cleanup_generated_outputs_for_dir(out_dir: str, include_cube2_logs: bool = False):
+	if (not out_dir) or (not os.path.isdir(out_dir)):
+		return
+	for name in os.listdir(out_dir):
+		p = os.path.join(out_dir, name)
+		ln = str(name).lower()
+		try:
+			if os.path.isfile(p):
+				is_cube_fits = str(name).startswith(f"{DEFAULT_OUT_PREFIX}_target") and ln.endswith(".fits")
+				is_progress_png = ln.endswith("_inprogress_map.png")
+				is_progress_json = ln.endswith("_inprogress_map.json")
+				is_run_log = ln.startswith("cube_run_") and ln.endswith(".log")
+				if include_cube2_logs:
+					is_run_log = is_run_log or (ln.startswith("cube2_run_") and ln.endswith(".log"))
+				if is_cube_fits or is_progress_png or is_progress_json or is_run_log:
+					os.remove(p)
+			elif os.path.isdir(p):
+				if str(name).startswith("uploaded_maps_") or str(name).startswith("implicit_maps_"):
+					shutil.rmtree(p, ignore_errors=True)
+		except Exception:
+			pass
+
+
 def _load_module_from_path(path: Path, module_name: str):
 	if not path.is_file():
 		raise FileNotFoundError(f"Cannot load module from missing file: {path}")
@@ -1919,10 +1966,10 @@ def _generate_obs_payload_cached(
 
 
 def run_streamlit_app():
-	st.set_page_config(page_title="PREDOBS", page_icon="🧪", layout="wide")
+	st.set_page_config(page_title="OBSEMULATOR", page_icon="🧪", layout="wide")
 	_ensure_state()
 	_cleanup_generated_outputs_on_startup_once()
-	st.title("PREDOBS")
+	st.title("OBSEMULATOR")
 
 	intro_img = _project_dir() / "NGC6523_BVO_2.jpg"
 	if intro_img.is_file():
@@ -2179,6 +2226,9 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			else:
 				try:
 					os.makedirs(cube_out_dir, exist_ok=True)
+					_cleanup_generated_outputs_for_dir(str(cube_out_dir), include_cube2_logs=False)
+					st.session_state.p6_cube_download_cache = []
+					st.session_state.p6_cube_download_selected = ""
 					uploaded = {"tex": up_tex, "logn": up_logn, "velo": up_velo, "fwhm": up_fwhm}
 					n_uploaded = sum(v is not None for v in uploaded.values())
 					if n_uploaded not in (0, 4):
@@ -2336,47 +2386,55 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			with sp2:
 				pix_x = st.number_input("Spectrum pixel X", min_value=0, value=0, step=1, key="p6_spec_pixel_x")
 
-		if latest_final and os.path.isfile(latest_final):
-			new_mtime = float(os.path.getmtime(latest_final))
-			if (
-				st.session_state.get("cube_last_spectrum_data", None) is None
-				or st.session_state.get("cube_last_final_fits", "") != latest_final
-				or int(st.session_state.get("cube_last_spectrum_data", {}).get("pix_y", -1)) != int(pix_y)
-				or int(st.session_state.get("cube_last_spectrum_data", {}).get("pix_x", -1)) != int(pix_x)
-				or new_mtime > float(st.session_state.get("cube_last_final_mtime", 0.0))
-			):
-				freq, y_syn, y_noise, y_final, err = _extract_pixel_spectra(latest_final, ypix=int(pix_y), xpix=int(pix_x))
-				if err is None:
-					st.session_state.cube_last_spectrum_data = {
-						"freq": freq,
-						"y_syn": y_syn,
-						"y_noise": y_noise,
-						"y_final": y_final,
-						"cube_name": os.path.basename(latest_final),
-						"pix_y": int(pix_y),
-						"pix_x": int(pix_x),
-					}
-					st.session_state.cube_last_final_fits = latest_final
-					st.session_state.cube_last_final_mtime = new_mtime
-
-		spec_data = st.session_state.get("cube_last_spectrum_data", None)
-		if spec_data is not None:
-			st.markdown(f"**Spectrum preview — {spec_data.get('cube_name', 'latest cube')} | pixel (y={int(spec_data.get('pix_y', 0))}, x={int(spec_data.get('pix_x', 0))})**")
-			_plot_spectrum(spec_data.get("freq"), spec_data.get("y_syn"), spec_data.get("y_noise"), spec_data.get("y_final"), chart_key="p6_spec_plot_cube")
+		plot_cubes_main = list(final_cubes_all_main)
+		if (not running) and plot_cubes_main:
+			st.markdown(f"**Final spectra grid (all generated cubes) | pixel (y={int(pix_y)}, x={int(pix_x)})**")
+			n_cols_main = 2 if len(plot_cubes_main) <= 4 else 3
+			cols_main = st.columns(n_cols_main)
+			for i_pc, pc_path in enumerate(plot_cubes_main):
+				freq_pc, y_syn_pc, y_noise_pc, y_final_pc, err_pc = _extract_pixel_spectra(pc_path, ypix=int(pix_y), xpix=int(pix_x))
+				with cols_main[i_pc % n_cols_main]:
+					st.caption(os.path.basename(pc_path))
+					if err_pc is None:
+						plot_key_pc = f"p6_spec_plot_cube_{os.path.basename(pc_path)}_{int(os.path.getmtime(pc_path))}_{int(pix_y)}_{int(pix_x)}"
+						_plot_spectrum(freq_pc, y_syn_pc, y_noise_pc, y_final_pc, chart_key=plot_key_pc)
+					else:
+						st.error(f"Could not read spectrum: {err_pc}")
+		elif running:
+			st.caption("Spectrum grid will be shown after cube generation finishes.")
 
 		st.markdown("**Download generated cube**")
-		cubes_for_download = list(final_cubes_main)
-		if not cubes_for_download:
-			cubes_for_download = _find_all_final_main_cubes(cube_out_dir)
-		if cubes_for_download:
+		cubes_for_download_now = _find_all_final_main_cubes(cube_out_dir)
+		cached_cubes = [
+			str(p) for p in st.session_state.get("p6_cube_download_cache", [])
+			if isinstance(p, str) and os.path.isfile(str(p))
+		]
+		merged_download = []
+		seen_download = set()
+		for p in list(cubes_for_download_now) + list(cached_cubes):
+			sp = str(p)
+			if (not sp) or (sp in seen_download) or (not os.path.isfile(sp)):
+				continue
+			seen_download.add(sp)
+			merged_download.append(sp)
+		st.session_state.p6_cube_download_cache = list(merged_download)
+
+		if merged_download:
+			prev_sel = str(st.session_state.get("p6_cube_download_selected", "")).strip()
+			if prev_sel in merged_download:
+				default_idx = int(merged_download.index(prev_sel))
+			else:
+				default_idx = int(max(0, len(merged_download) - 1))
 			sel_cube_dl = st.selectbox(
 				"Select cube",
-				options=cubes_for_download,
+				options=merged_download,
+				index=default_idx,
 				format_func=lambda p: os.path.basename(str(p)),
 				key="p6_cube_download_select",
 			)
+			st.session_state.p6_cube_download_selected = str(sel_cube_dl)
 			try:
-				with open(sel_cube_dl, "rb") as f_in:
+				with open(str(sel_cube_dl), "rb") as f_in:
 					cube_bytes = f_in.read()
 				st.download_button(
 					"Download selected cube (.fits)",
@@ -2665,16 +2723,16 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				if err_dl is not None:
 					st.error(f"Could not read spectrum: {err_dl}")
 				else:
-					csv_bytes = _spectrum_to_csv_bytes(freq_dl, y_syn_dl, y_noise_dl, y_final_dl)
-					if csv_bytes is None:
-						st.error("Could not serialize spectrum to CSV.")
+					txt_bytes = _spectrum_to_txt_bytes(freq_dl, y_syn_dl, y_noise_dl, y_final_dl)
+					if txt_bytes is None:
+						st.error("Could not serialize spectrum to TXT.")
 					else:
 						base_name = os.path.splitext(os.path.basename(str(sel_spec_cube)))[0]
 						st.download_button(
-							"Download spectrum (.csv)",
-							data=csv_bytes,
-							file_name=f"{base_name}_spectrum.csv",
-							mime="text/csv",
+							"Download spectrum (.txt)",
+							data=txt_bytes,
+							file_name=f"{base_name}_spectrum.txt",
+							mime="text/plain",
 							key="p6_spec_download_button",
 						)
 			else:
