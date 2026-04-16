@@ -43,7 +43,7 @@ except Exception:
 DEFAULT_MERGED_H5 = ""
 DEFAULT_NOISE_NN_H5 = ""
 DEFAULT_FILTER_FILE = ""
-DEFAULT_GDRIVE_MODELS_LINK = "https://drive.google.com/drive/folders/1uSZRFgBIqytuJqv0-IeYPm5D57lCIZVz?usp=sharing"
+DEFAULT_GDRIVE_MODELS_LINK = "https://drive.google.com/drive/folders/1t2UgN5AlAsjdAdIVjZ9B9tK6VkMg77lh?usp=drive_link"
 
 DEFAULT_TARGET_FREQS = [
 	84.299,
@@ -1682,6 +1682,10 @@ def _ensure_state():
 		st.session_state.p6_cube_download_cache = []
 	if "p6_cube_download_selected" not in st.session_state:
 		st.session_state.p6_cube_download_selected = ""
+	if "p6_guide_freqs_main_last_nonempty" not in st.session_state:
+		st.session_state.p6_guide_freqs_main_last_nonempty = ""
+	if "p6_guide_freqs_cube2_last_nonempty" not in st.session_state:
+		st.session_state.p6_guide_freqs_cube2_last_nonempty = ""
 
 
 def _is_running() -> bool:
@@ -2070,11 +2074,17 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			st.session_state.p6_guide_main_refresh = False
 			st.session_state.p6_guide_freqs_main_pending = ""
 		if not str(st.session_state.get("p6_guide_freqs_main_input", "")).strip():
-			st.session_state.p6_guide_freqs_main_input = _freqs_to_text([float(v) for v in target_freqs])
+			last_main = str(st.session_state.get("p6_guide_freqs_main_last_nonempty", "")).strip()
+			if last_main:
+				st.session_state.p6_guide_freqs_main_input = last_main
+			else:
+				st.session_state.p6_guide_freqs_main_input = _freqs_to_text([float(v) for v in target_freqs])
 		guide_freqs_text = st.text_input(
 			"Guide frequencies (GHz; main list used for Start cube generation)",
 			key="p6_guide_freqs_main_input",
 		)
+		if str(guide_freqs_text).strip():
+			st.session_state.p6_guide_freqs_main_last_nonempty = str(guide_freqs_text).strip()
 		guide_freqs = parse_freq_list(guide_freqs_text)
 		guide_freq = float(guide_freqs[0]) if len(guide_freqs) > 0 else None
 
@@ -2464,11 +2474,17 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			st.session_state.p6_guide_cube2_refresh = False
 			st.session_state.p6_guide_freqs_cube2_pending = ""
 		if not str(st.session_state.get("p6_guide_freqs_cube2_input", "")).strip():
-			st.session_state.p6_guide_freqs_cube2_input = _freqs_to_text([float(v) for v in target_freqs])
+			last_cube2 = str(st.session_state.get("p6_guide_freqs_cube2_last_nonempty", "")).strip()
+			if last_cube2:
+				st.session_state.p6_guide_freqs_cube2_input = last_cube2
+			else:
+				st.session_state.p6_guide_freqs_cube2_input = _freqs_to_text([float(v) for v in target_freqs])
 		guide_freqs_text2 = st.text_input(
 			"Guide frequencies (GHz; main list used for Generate Observation)",
 			key="p6_guide_freqs_cube2_input",
 		)
+		if str(guide_freqs_text2).strip():
+			st.session_state.p6_guide_freqs_cube2_last_nonempty = str(guide_freqs_text2).strip()
 		guide_freqs2 = parse_freq_list(guide_freqs_text2)
 		guide_freq2 = float(guide_freqs2[0]) if len(guide_freqs2) > 0 else None
 
@@ -2695,11 +2711,12 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				if msg_lines2:
 					with st.expander("Why did these target frequencies fail?"):
 						st.text("\n".join(msg_lines2))
-		if final_cubes2:
+		plot_cubes2 = list(final_cubes2_all)
+		if (not running2) and plot_cubes2:
 			st.markdown("**Final spectra by target frequency (1x1 cube)**")
-			n_cols = 2 if len(final_cubes2) <= 4 else 3
+			n_cols = 2 if len(plot_cubes2) <= 4 else 3
 			cols_spec = st.columns(n_cols)
-			for i_fc, fc_path in enumerate(final_cubes2):
+			for i_fc, fc_path in enumerate(plot_cubes2):
 				freq2, y_syn2, y_noise2, y_final2, err2 = _extract_pixel_spectra(fc_path, ypix=0, xpix=0)
 				with cols_spec[i_fc % n_cols]:
 					st.caption(os.path.basename(fc_path))
@@ -2712,10 +2729,10 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			st.caption("No final spectra available yet.")
 
 		with st.expander("Download spectrum (Simulate Single Spectrum)"):
-			if final_cubes2:
+			if plot_cubes2:
 				sel_spec_cube = st.selectbox(
 					"Select cube to export spectrum",
-					options=final_cubes2,
+					options=plot_cubes2,
 					format_func=lambda p: os.path.basename(str(p)),
 					key="p6_spec_download_select",
 				)
