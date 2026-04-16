@@ -2292,7 +2292,6 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			st.caption("ROIs simuladas para Guide frequencies: " + _freqs_to_text(guide_targets_for_cube))
 		missing_targets_main = _find_missing_target_freqs(guide_targets_for_cube, final_cubes_all_main)
 		if missing_targets_main:
-			st.warning("No se generaron cubos para: " + _freqs_to_text(missing_targets_main) + " GHz")
 			fail_reasons_main = _read_target_failure_reasons(str(st.session_state.get("cube_log_path", "")))
 			if fail_reasons_main:
 				msg_lines_main: List[str] = []
@@ -2624,7 +2623,6 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			st.caption("ROIs simuladas para Guide frequencies: " + _freqs_to_text(guide_targets_for_sim))
 		missing_targets2 = _find_missing_target_freqs(guide_targets_for_sim, final_cubes2_all)
 		if missing_targets2:
-			st.warning("No se generaron cubos para: " + _freqs_to_text(missing_targets2) + " GHz")
 			fail_reasons2 = _read_target_failure_reasons(str(st.session_state.get("cube_log_path", "")))
 			if fail_reasons2:
 				msg_lines2: List[str] = []
