@@ -1576,6 +1576,60 @@ def _extract_pixel_spectra(final_fits_path: str, ypix: Optional[int] = None, xpi
 		return None, None, None, None, str(e)
 
 
+def _build_concatenated_spectra_from_cubes(cube_paths: List[str], ypix: int = 0, xpix: int = 0):
+	segments = []
+	errors = []
+	for p in (cube_paths or []):
+		freq, y_syn, y_noise, y_final, err = _extract_pixel_spectra(str(p), ypix=int(ypix), xpix=int(xpix))
+		if err is not None:
+			errors.append(f"{os.path.basename(str(p))}: {err}")
+			continue
+		if freq is None or y_final is None:
+			errors.append(f"{os.path.basename(str(p))}: empty spectrum")
+			continue
+		f = np.asarray(freq, dtype=np.float64).reshape(-1)
+		ys = np.asarray(y_syn, dtype=np.float64).reshape(-1) if y_syn is not None else np.full_like(f, np.nan, dtype=np.float64)
+		yn = np.asarray(y_noise, dtype=np.float64).reshape(-1) if y_noise is not None else np.full_like(f, np.nan, dtype=np.float64)
+		yf = np.asarray(y_final, dtype=np.float64).reshape(-1)
+		if f.size == 0 or yf.size != f.size:
+			errors.append(f"{os.path.basename(str(p))}: invalid spectrum shape")
+			continue
+		segments.append((float(np.nanmin(f)), f, ys, yn, yf, str(p)))
+
+	if not segments:
+		return None, None, None, None, [], errors
+
+	segments = sorted(segments, key=lambda t: t[0])
+	f_parts = []
+	ys_parts = []
+	yn_parts = []
+	yf_parts = []
+	used_paths = []
+	for i, (_, f, ys, yn, yf, p) in enumerate(segments):
+		if i > 0:
+			f_parts.append(np.array([np.nan], dtype=np.float64))
+			ys_parts.append(np.array([np.nan], dtype=np.float64))
+			yn_parts.append(np.array([np.nan], dtype=np.float64))
+			yf_parts.append(np.array([np.nan], dtype=np.float64))
+		f_parts.append(f)
+		ys_parts.append(ys)
+		yn_parts.append(yn)
+		yf_parts.append(yf)
+		used_paths.append(p)
+
+	f_concat = np.concatenate(f_parts).astype(np.float64)
+	ys_concat = np.concatenate(ys_parts).astype(np.float64)
+	yn_concat = np.concatenate(yn_parts).astype(np.float64)
+	yf_concat = np.concatenate(yf_parts).astype(np.float64)
+
+	if not np.any(np.isfinite(ys_concat)):
+		ys_concat = None
+	if not np.any(np.isfinite(yn_concat)):
+		yn_concat = None
+
+	return f_concat, ys_concat, yn_concat, yf_concat, used_paths, errors
+
+
 def _plot_spectrum(freq, y_syn, y_noise, y_final, chart_key: Optional[str] = None):
 	if freq is None or y_final is None:
 		return
@@ -2908,6 +2962,26 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					with st.expander("Why did these target frequencies fail?"):
 						st.text("\n".join(msg_lines2))
 		plot_cubes2 = list(final_cubes2_all)
+		freq_concat2 = None
+		y_syn_concat2 = None
+		y_noise_concat2 = None
+		y_final_concat2 = None
+		concat_used_paths2 = []
+		concat_errors2 = []
+		if (not running2) and plot_cubes2:
+			freq_concat2, y_syn_concat2, y_noise_concat2, y_final_concat2, concat_used_paths2, concat_errors2 = _build_concatenated_spectra_from_cubes(
+				plot_cubes2,
+				ypix=0,
+				xpix=0,
+			)
+			if (freq_concat2 is not None) and (y_final_concat2 is not None):
+				st.markdown("**Concatenated spectrum overview (all generated targets)**")
+				_plot_spectrum(freq_concat2, y_syn_concat2, y_noise_concat2, y_final_concat2, chart_key="p6_spec_plot_cube2_concat")
+			elif concat_errors2:
+				st.caption("Could not build concatenated spectrum from generated cubes.")
+				with st.expander("Show concatenation details"):
+					st.text("\n".join([str(v) for v in concat_errors2]))
+
 		if (not running2) and plot_cubes2:
 			st.markdown("**Final spectra by target frequency (1x1 cube)**")
 			n_cols = 2 if len(plot_cubes2) <= 4 else 3
@@ -2925,6 +2999,16 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			st.caption("No final spectra available yet.")
 
 		with st.expander("Download spectrum (Simulate Single Spectrum)"):
+			if (freq_concat2 is not None) and (y_final_concat2 is not None):
+				txt_concat = _spectrum_to_txt_bytes(freq_concat2, y_syn_concat2, y_noise_concat2, y_final_concat2)
+				if txt_concat is not None:
+					st.download_button(
+						"Download concatenated spectrum (.txt)",
+						data=txt_concat,
+						file_name="simulated_concatenated_spectrum.txt",
+						mime="text/plain",
+						key="p6_spec_download_concat_button",
+					)
 			if plot_cubes2:
 				sel_spec_cube = st.selectbox(
 					"Select cube to export spectrum",
