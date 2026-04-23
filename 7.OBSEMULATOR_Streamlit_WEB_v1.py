@@ -2651,7 +2651,8 @@ def _predict_synthetic_batch_single_target(
 		pkg_cache=pkg_cache,
 	)
 	if pred_err is not None or roi_freq is None or Y_syn is None:
-		return None, None, "No valid synthetic predictions for selected ROI"
+		err_msg = str(pred_err).strip() if pred_err is not None else "No valid synthetic predictions for selected ROI"
+		return None, None, err_msg
 	return np.asarray(roi_freq, dtype=np.float64), np.asarray(Y_syn, dtype=np.float32), None
 
 
