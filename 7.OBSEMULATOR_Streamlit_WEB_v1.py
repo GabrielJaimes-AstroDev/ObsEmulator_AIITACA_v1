@@ -16,6 +16,22 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 from urllib.parse import urlparse, parse_qs
 
+# ======================================================
+# Runtime resource policy (CPU-only, efficient local use)
+# ======================================================
+_CPU_COUNT = int(os.cpu_count() or 4)
+_DEFAULT_CPU_THREADS = int(max(1, _CPU_COUNT - 1))
+
+# Respect user-provided env vars; otherwise set sensible defaults.
+os.environ.setdefault("OBSEMULATOR_CPU_THREADS", str(_DEFAULT_CPU_THREADS))
+os.environ.setdefault("OMP_NUM_THREADS", os.environ.get("OBSEMULATOR_CPU_THREADS", str(_DEFAULT_CPU_THREADS)))
+os.environ.setdefault("MKL_NUM_THREADS", os.environ.get("OBSEMULATOR_CPU_THREADS", str(_DEFAULT_CPU_THREADS)))
+os.environ.setdefault("OPENBLAS_NUM_THREADS", os.environ.get("OBSEMULATOR_CPU_THREADS", str(_DEFAULT_CPU_THREADS)))
+os.environ.setdefault("NUMEXPR_NUM_THREADS", os.environ.get("OBSEMULATOR_CPU_THREADS", str(_DEFAULT_CPU_THREADS)))
+
+# Force CPU-only execution (no GPU).
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "-1")
+
 import numpy as np
 import h5py
 import joblib
@@ -25,6 +41,11 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import streamlit as st
 import plotly.graph_objects as go
+
+try:
+	import xgboost as xgb
+except Exception:
+	xgb = None
 
 try:
 	from PIL import Image, UnidentifiedImageError
@@ -41,10 +62,15 @@ except Exception:
 # ======================================================
 # DEFAULT CONFIG (single-file, no 4.SYNGEN dependency)
 # ======================================================
-DEFAULT_MERGED_H5 = ""
+DEFAULT_MERGED_H5 = r"D:\4.DATASETS\MODELS_CH3OCHO_ENSEMBLES_PERCHANNEL_ROI_dynamicrange_v2_PER_ROI"
 DEFAULT_NOISE_NN_H5 = ""
 DEFAULT_FILTER_FILE = ""
-DEFAULT_GDRIVE_MODELS_LINK = "https://drive.google.com/drive/folders/1wsCOZ4G32ZO5fdzGI8YR_0Qp3ej7m5oC?usp=sharing"
+DEFAULT_GDRIVE_MODELS_LINK = "https://drive.google.com/drive/folders/1uSZRFgBIqytuJqv0-IeYPm5D57lCIZVz?usp=drive_link"
+
+# Local preset (Windows)
+DEFAULT_LOCAL_SIGNAL_H5 = r"D:\4.DATASETS\CH3OCHO_MODELS_COMPRESSED_v2_PER_ROI.h5"
+DEFAULT_LOCAL_NOISE_H5 = r"D:\4.DATASETS\NOISE_MODELS_CH3OCHO_NN_GUAPOS_v12plotstyle_roi_bundle.h5"
+DEFAULT_LOCAL_FILTER_FILE = r"D:\4.DATASETS\filter_reference_CH3OCHO_100spectra.txt"
 
 DEFAULT_TARGET_FREQS = [
 	84.299,
@@ -66,7 +92,44 @@ DEFAULT_PARAM_MAP_FILES = {
 }
 
 DEFAULT_PRED_MODE = "ensemble_mean"
-DEFAULT_SELECTED_MODEL_NAME = "GradientBoosting"
+DEFAULT_SELECTED_MODEL_NAME = "XGBoost"
+
+
+def _get_int_env(name: str, fallback: int) -> int:
+	try:
+		v = int(str(os.environ.get(name, str(fallback))).strip())
+		return int(max(1, v))
+	except Exception:
+		return int(max(1, fallback))
+
+
+def _configure_runtime_resources_cpu_only() -> dict:
+	threads = _get_int_env("OBSEMULATOR_CPU_THREADS", _DEFAULT_CPU_THREADS)
+	interop = int(max(1, min(8, threads // 2)))
+
+	# Re-apply explicitly to current process as well.
+	os.environ["OMP_NUM_THREADS"] = str(threads)
+	os.environ["MKL_NUM_THREADS"] = str(threads)
+	os.environ["OPENBLAS_NUM_THREADS"] = str(threads)
+	os.environ["NUMEXPR_NUM_THREADS"] = str(threads)
+	os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+	try:
+		torch.set_num_threads(int(threads))
+	except Exception:
+		pass
+	try:
+		if hasattr(torch, "set_num_interop_threads"):
+			torch.set_num_interop_threads(int(interop))
+	except Exception:
+		pass
+
+	return {
+		"cpu_count": int(_CPU_COUNT),
+		"cpu_threads": int(threads),
+		"interop_threads": int(interop),
+		"cuda_visible_devices": str(os.environ.get("CUDA_VISIBLE_DEVICES", "")),
+	}
 
 
 def _extract_gdrive_folder_id(url_or_id: str) -> Optional[str]:
@@ -152,6 +215,9 @@ def _detect_model_data_paths(root_dir: str) -> dict:
 	else:
 		for p in sorted(set(os.path.dirname(x) for x in h5_files)):
 			if len(glob.glob(os.path.join(p, "CH_*_f*GHz", "*", "model", "final_model.joblib"))) > 0:
+				result["signal_models_source"] = p
+				break
+			if len(glob.glob(os.path.join(p, "ROI_*", "*", "model", "final_model.joblib"))) > 0:
 				result["signal_models_source"] = p
 				break
 
@@ -256,6 +322,18 @@ def parse_channel_freq_from_dirname(channel_dir_name: str) -> Optional[float]:
 		return None
 
 
+def parse_roi_freq_bounds_from_dirname(roi_dir_name: str) -> Tuple[Optional[float], Optional[float]]:
+	m = re.search(r"_f([0-9]+(?:\.[0-9]+)?)-([0-9]+(?:\.[0-9]+)?)GHz$", str(roi_dir_name).strip())
+	if not m:
+		return None, None
+	try:
+		lo = float(m.group(1))
+		hi = float(m.group(2))
+		return float(min(lo, hi)), float(max(lo, hi))
+	except Exception:
+		return None, None
+
+
 def normalize_model_name(name: str) -> str:
 	s = str(name).strip().lower().replace("_", "").replace("-", "").replace(" ", "")
 	aliases = {
@@ -276,12 +354,86 @@ def inverse_target_transform(y_t, transform_name="none", scale=1.0):
 	s = np.maximum(1e-12, s)
 	if mode == "asinh":
 		return s * np.sinh(yy)
+	if mode == "asinh_log10":
+		z = np.sinh(yy)
+		return np.sign(z) * s * (np.power(10.0, np.abs(z)) - 1.0)
 	if mode == "tanh":
 		z = np.clip(yy, -0.999999, 0.999999)
 		return s * np.arctanh(z)
 	if mode == "arctanh":
 		return s * np.tanh(yy)
 	return yy
+
+
+def apply_target_transform(y, transform_name="none", scale=1.0):
+	yy = np.asarray(y, dtype=np.float64)
+	mode = str(transform_name).strip().lower()
+	s = np.asarray(scale, dtype=np.float64)
+	s = np.maximum(1e-12, s)
+	if mode == "asinh":
+		return np.arcsinh(yy / s)
+	if mode == "asinh_log10":
+		z = np.sign(yy) * np.log10(1.0 + (np.abs(yy) / s))
+		return np.arcsinh(z)
+	if mode == "tanh":
+		return np.tanh(yy / s)
+	if mode == "arctanh":
+		ratio = np.clip(yy / s, -0.999999, 0.999999)
+		return np.arctanh(ratio)
+	return yy
+
+
+class SerializedXGBoostBoosterRegressor:
+	"""Compatibility class to unpickle compact models generated by script 1.4."""
+
+	def __init__(self, booster_bytes):
+		self.booster_bytes = bytes(booster_bytes)
+		self._booster = None
+
+	def _get_booster(self):
+		if self._booster is None:
+			if xgb is None:
+				raise RuntimeError("xgboost is required to use compact XGBoost models")
+			booster = xgb.Booster()
+			booster.load_model(bytearray(self.booster_bytes))
+			self._booster = booster
+		return self._booster
+
+	def predict(self, X):
+		if xgb is None:
+			raise RuntimeError("xgboost is required for prediction")
+		xx = np.asarray(X, dtype=np.float32)
+		dmat = xgb.DMatrix(xx)
+		pred = self._get_booster().predict(dmat)
+		return np.asarray(pred, dtype=np.float64).reshape(-1)
+
+
+class PhysicalDomainCalibratedRegressor:
+	"""Compatibility class to unpickle calibrated wrappers generated by script 1.4."""
+
+	def __init__(self, base_estimator, a=1.0, b=0.0, transform_name="none", transform_scale=1.0):
+		self.base_estimator = base_estimator
+		self.a = float(a)
+		self.b = float(b)
+		self.transform_name = str(transform_name)
+		self.transform_scale = float(transform_scale)
+
+	def predict(self, X):
+		pred_t = np.asarray(self.base_estimator.predict(X), dtype=np.float64).reshape(-1, 1)
+		pred_raw = inverse_target_transform(pred_t, self.transform_name, self.transform_scale).reshape(-1)
+		pred_raw_cal = (self.a * pred_raw) + self.b
+		pred_t_cal = apply_target_transform(pred_raw_cal.reshape(-1, 1), self.transform_name, self.transform_scale).reshape(-1)
+		return pred_t_cal
+
+
+# Ensure joblib can resolve classes pickled from training script executed as __main__.
+try:
+	_main_mod = sys.modules.get("__main__", None)
+	if _main_mod is not None:
+		setattr(_main_mod, "SerializedXGBoostBoosterRegressor", SerializedXGBoostBoosterRegressor)
+		setattr(_main_mod, "PhysicalDomainCalibratedRegressor", PhysicalDomainCalibratedRegressor)
+except Exception:
+	pass
 
 
 def _apply_velocity_shift_to_frequency(freq_ghz: np.ndarray, velocity_kms: float) -> np.ndarray:
@@ -427,6 +579,50 @@ def list_h5_models(h5_path: str):
 	return sorted(rows, key=lambda t: t[1])
 
 
+def list_h5_roi_models_v14(h5_path: str) -> List[dict]:
+	out_map: Dict[str, dict] = {}
+	with h5py.File(h5_path, "r") as hf:
+		grp = hf.get("models")
+		if grp is None:
+			return []
+
+		def visitor(_name, obj):
+			if not isinstance(obj, h5py.Dataset):
+				return
+			ds_path = str(obj.name).strip("/")
+			if not ds_path.endswith("/joblib"):
+				return
+			parts = ds_path.split("/")
+			if len(parts) < 4 or parts[0] != "models":
+				return
+
+			roi_name = str(parts[1])
+			model_name = str(parts[2])
+			lo, hi = parse_roi_freq_bounds_from_dirname(roi_name)
+			if lo is None or hi is None:
+				return
+
+			if roi_name not in out_map:
+				out_map[roi_name] = {
+					"roi_name": str(roi_name),
+					"roi_lo_ghz": float(lo),
+					"roi_hi_ghz": float(hi),
+					"roi_center_ghz": float(0.5 * (float(lo) + float(hi))),
+					"model_refs": [],
+				}
+
+			out_map[roi_name]["model_refs"].append((model_name, ds_path))
+
+		grp.visititems(visitor)
+
+	out = []
+	for roi_name, rec in out_map.items():
+		_ = roi_name
+		rec["model_refs"] = sorted(list(rec.get("model_refs", [])), key=lambda t: t[0].lower())
+		out.append(rec)
+	return sorted(out, key=lambda d: float(d["roi_center_ghz"]))
+
+
 def list_folder_models(models_root: str):
 	rows = []
 	ch_dirs = sorted(glob.glob(os.path.join(models_root, "CH_*_f*GHz")))
@@ -442,7 +638,47 @@ def list_folder_models(models_root: str):
 			model_name = os.path.basename(os.path.dirname(os.path.dirname(mp)))
 			items.append((model_name, mp))
 		rows.append((os.path.basename(chd), float(fch), items))
+
+	roi_dirs = sorted(glob.glob(os.path.join(models_root, "ROI_*")))
+	for rd in roi_dirs:
+		roi_name = os.path.basename(rd)
+		lo, hi = parse_roi_freq_bounds_from_dirname(roi_name)
+		if lo is None or hi is None:
+			continue
+		mps = sorted(glob.glob(os.path.join(rd, "*", "model", "final_model.joblib")))
+		if not mps:
+			continue
+		items = []
+		for mp in mps:
+			model_name = os.path.basename(os.path.dirname(os.path.dirname(mp)))
+			items.append((model_name, mp))
+		rows.append((roi_name, 0.5 * (float(lo) + float(hi)), items))
 	return sorted(rows, key=lambda t: t[1])
+
+
+def list_folder_roi_models_v14(models_root: str) -> List[dict]:
+	out: List[dict] = []
+	roi_dirs = sorted(glob.glob(os.path.join(str(models_root), "ROI_*")))
+	for rd in roi_dirs:
+		roi_name = os.path.basename(rd)
+		lo, hi = parse_roi_freq_bounds_from_dirname(roi_name)
+		if lo is None or hi is None:
+			continue
+		mps = sorted(glob.glob(os.path.join(rd, "*", "model", "final_model.joblib")))
+		if not mps:
+			continue
+		models = []
+		for mp in mps:
+			model_name = os.path.basename(os.path.dirname(os.path.dirname(mp)))
+			models.append((model_name, mp))
+		out.append({
+			"roi_name": str(roi_name),
+			"roi_lo_ghz": float(lo),
+			"roi_hi_ghz": float(hi),
+			"roi_center_ghz": float(0.5 * (float(lo) + float(hi))),
+			"model_refs": sorted(models, key=lambda t: t[0].lower()),
+		})
+	return sorted(out, key=lambda d: float(d["roi_center_ghz"]))
 
 
 def load_joblib_package_from_h5(h5_path: str, dataset_path: str):
@@ -675,6 +911,176 @@ def predict_with_joblib_package_batch(package, x_features_2d: np.ndarray) -> np.
 	return y
 
 
+def _package_is_channel_aware_roi_model(package: dict) -> bool:
+	if not isinstance(package, dict):
+		return False
+	fc = [str(v).strip().lower() for v in list(package.get("feature_columns", []))]
+	has_ch_freq = "channel_freq_ghz" in fc
+	has_ch_rel = "channel_relpos" in fc
+	roi_idx = package.get("roi_channel_indices", None)
+	has_roi_idx = isinstance(roi_idx, (list, tuple, np.ndarray)) and len(roi_idx) > 0
+	return bool(has_ch_freq and has_ch_rel and has_roi_idx)
+
+
+def _estimate_roi_frequency_axis(package: dict, roi_lo_ghz: Optional[float] = None, roi_hi_ghz: Optional[float] = None) -> Optional[np.ndarray]:
+	if not isinstance(package, dict):
+		return None
+	roi_idx = package.get("roi_channel_indices", None)
+	if not isinstance(roi_idx, (list, tuple, np.ndarray)):
+		return None
+	n_ch = int(len(roi_idx))
+	if n_ch <= 0:
+		return None
+	if roi_lo_ghz is None or roi_hi_ghz is None:
+		return None
+	lo = float(min(float(roi_lo_ghz), float(roi_hi_ghz)))
+	hi = float(max(float(roi_lo_ghz), float(roi_hi_ghz)))
+	if n_ch == 1:
+		return np.asarray([0.5 * (lo + hi)], dtype=np.float64)
+	return np.linspace(lo, hi, num=n_ch, dtype=np.float64)
+
+
+def predict_with_joblib_roi_package_batch(package: dict, x_features_2d: np.ndarray, roi_freq_ghz: np.ndarray) -> np.ndarray:
+	if not _package_is_channel_aware_roi_model(package):
+		y = predict_with_joblib_package_batch(package, x_features_2d)
+		return np.asarray(y, dtype=np.float32).reshape(-1, 1)
+
+	model = package["model"]
+	scaler_x = package["scaler_x"]
+	transform_name = str(package.get("target_transform", "none"))
+	transform_scale = float(package.get("target_transform_scale", 1.0))
+	feature_columns = [str(v).strip().lower() for v in list(package.get("feature_columns", []))]
+
+	x_phys_raw = np.asarray(x_features_2d, dtype=np.float32)
+	freq = np.asarray(roi_freq_ghz, dtype=np.float32).reshape(-1)
+	n_spec = int(x_phys_raw.shape[0])
+	n_ch = int(freq.size)
+	if n_spec <= 0 or n_ch <= 0:
+		return np.zeros((n_spec, 0), dtype=np.float32)
+
+	# 1.4 training scales only physical variables (4 cols), then appends channel features.
+	n_scaler_in = int(getattr(scaler_x, "n_features_in_", x_phys_raw.shape[1]))
+	if n_scaler_in == int(x_phys_raw.shape[1]):
+		x_phys = np.asarray(scaler_x.transform(x_phys_raw), dtype=np.float32)
+		apply_scaler_after_assembly = False
+	else:
+		x_phys = np.asarray(x_phys_raw, dtype=np.float32)
+		apply_scaler_after_assembly = True
+
+	if n_ch == 1:
+		rel = np.zeros((1,), dtype=np.float32)
+	else:
+		rel = np.linspace(0.0, 1.0, num=n_ch, dtype=np.float32)
+
+	base = {
+		"logn": np.repeat(x_phys[:, 0], n_ch),
+		"tex": np.repeat(x_phys[:, 1], n_ch),
+		"velo": np.repeat(x_phys[:, 2], n_ch),
+		"fwhm": np.repeat(x_phys[:, 3], n_ch),
+		"channel_freq_ghz": np.tile(freq, n_spec),
+		"channel_relpos": np.tile(rel, n_spec),
+	}
+
+	cols = []
+	for c in feature_columns:
+		if c in base:
+			cols.append(base[c])
+		else:
+			cols.append(np.zeros((n_spec * n_ch,), dtype=np.float32))
+	x_full = np.column_stack(cols).astype(np.float32)
+	if apply_scaler_after_assembly:
+		x_n = scaler_x.transform(x_full)
+	else:
+		x_n = x_full
+	y_t = np.asarray(model.predict(x_n), dtype=np.float64).reshape(-1, 1)
+	y_raw = np.asarray(inverse_target_transform(y_t, transform_name=transform_name, scale=transform_scale), dtype=np.float32).reshape(-1)
+	return y_raw.reshape(n_spec, n_ch)
+
+
+def predict_signal_roi_batch(
+	signal_models_source: str,
+	is_h5_signal: bool,
+	roi_entries,
+	x_features_2d: np.ndarray,
+	pkg_cache: Dict[str, object],
+) -> Tuple[np.ndarray, np.ndarray, Optional[str]]:
+	if not roi_entries:
+		return None, None, "No ROI entries"
+
+	# New hierarchy (1.4): one ROI-level model predicts all channels.
+	if isinstance(roi_entries[0], dict) and (str(roi_entries[0].get("entry_type", "")).lower() == "roi_model_v14"):
+		entry = dict(roi_entries[0])
+		model_refs = list(entry.get("model_refs", []))
+		if not model_refs:
+			return None, None, "No model references in selected ROI"
+
+		pred_acc = None
+		pred_cnt = 0
+		roi_freq_ref = None
+		for model_name, ref in model_refs:
+			cache_key = f"{model_name}|{ref}"
+			try:
+				if cache_key not in pkg_cache:
+					if is_h5_signal:
+						pkg_cache[cache_key] = load_joblib_package_from_h5(signal_models_source, ref)
+					else:
+						pkg_cache[cache_key] = joblib.load(ref)
+				pkg = pkg_cache[cache_key]
+				roi_freq = _estimate_roi_frequency_axis(pkg, entry.get("roi_lo_ghz", None), entry.get("roi_hi_ghz", None))
+				if roi_freq is None or roi_freq.size <= 0:
+					continue
+				pred2d = predict_with_joblib_roi_package_batch(pkg, x_features_2d, roi_freq)
+				if pred_acc is None:
+					pred_acc = np.asarray(pred2d, dtype=np.float64)
+					roi_freq_ref = np.asarray(roi_freq, dtype=np.float64)
+				else:
+					if pred_acc.shape != pred2d.shape:
+						continue
+					pred_acc += np.asarray(pred2d, dtype=np.float64)
+				pred_cnt += 1
+			except Exception:
+				continue
+
+		if pred_cnt <= 0 or pred_acc is None or roi_freq_ref is None:
+			return None, None, "No valid predictions for selected ROI"
+
+		y_mean = (pred_acc / float(pred_cnt)).astype(np.float32)
+		return np.asarray(roi_freq_ref, dtype=np.float64), y_mean, None
+
+	# Legacy channel-by-channel hierarchy.
+	n_spec = int(np.asarray(x_features_2d).shape[0])
+	freqs: List[float] = []
+	cols: List[np.ndarray] = []
+	for _, fch, model_refs in roi_entries:
+		pred_acc = np.zeros((n_spec,), dtype=np.float64)
+		pred_cnt = 0
+		for model_name, ref in model_refs:
+			cache_key = f"{model_name}|{ref}"
+			try:
+				if cache_key not in pkg_cache:
+					if is_h5_signal:
+						pkg_cache[cache_key] = load_joblib_package_from_h5(signal_models_source, ref)
+					else:
+						pkg_cache[cache_key] = joblib.load(ref)
+				pkg = pkg_cache[cache_key]
+				pred = predict_with_joblib_package_batch(pkg, x_features_2d)
+				pred_acc += np.asarray(pred, dtype=np.float64)
+				pred_cnt += 1
+			except Exception:
+				continue
+		if pred_cnt > 0:
+			freqs.append(float(fch))
+			cols.append((pred_acc / float(pred_cnt)).astype(np.float32))
+
+	if not cols:
+		return None, None, "No valid synthetic predictions in selected ROI"
+
+	roi_freq = np.asarray(freqs, dtype=np.float64)
+	Y = np.stack(cols, axis=1).astype(np.float32)
+	ord_idx = np.argsort(roi_freq)
+	return roi_freq[ord_idx], Y[:, ord_idx], None
+
+
 def predict_noise_segment_batch(model, scaler_y, cfg_noise: dict, y_synth_segment_batch: np.ndarray, x_features_batch: np.ndarray, spw_idx: int, noise_scale: float = 1.0, batch_size: int = 2048) -> np.ndarray:
 	input_size = int(cfg_noise["input_size"])
 	output_size = int(cfg_noise.get("output_size", 0))
@@ -834,6 +1240,89 @@ def _spiral_pixel_order_valid(valid_mask: np.ndarray) -> List[Tuple[int, int]]:
 
 def build_signal_index_for_roi(signal_source: str, filter_file: str, target_frequency_ghz: float, pred_mode: str, selected_model_name: str, allow_nearest: bool):
 	is_h5 = os.path.isfile(signal_source) and str(signal_source).lower().endswith(".h5")
+	if is_h5:
+		roi_rows_h5 = list_h5_roi_models_v14(signal_source)
+		if roi_rows_h5:
+			t = float(target_frequency_ghz)
+			selected = None
+			for r in roi_rows_h5:
+				if float(r["roi_lo_ghz"]) <= t <= float(r["roi_hi_ghz"]):
+					selected = dict(r)
+					break
+			if selected is None and allow_nearest:
+				selected = min(roi_rows_h5, key=lambda rr: abs(float(rr["roi_center_ghz"]) - t))
+			if selected is None:
+				selected = min(roi_rows_h5, key=lambda rr: abs(float(rr["roi_center_ghz"]) - t))
+			if selected is None:
+				raise RuntimeError("Could not select ROI")
+
+			selected_model_norm = normalize_model_name(selected_model_name)
+			pm = str(pred_mode).strip().lower()
+			model_refs = list(selected.get("model_refs", []))
+			if pm == "single_model":
+				model_refs = [(mn, ref) for (mn, ref) in model_refs if normalize_model_name(mn) == selected_model_norm]
+				if not model_refs:
+					raise RuntimeError("No channels inside ROI")
+
+			selected["model_refs"] = model_refs
+			selected["entry_type"] = "roi_model_v14"
+
+			n_hint = 1
+			if model_refs:
+				try:
+					pkg0 = load_joblib_package_from_h5(signal_source, model_refs[0][1])
+					if isinstance(pkg0, dict) and isinstance(pkg0.get("roi_channel_indices", None), (list, tuple, np.ndarray)):
+						n_hint = int(max(1, len(pkg0.get("roi_channel_indices", []))))
+				except Exception:
+					pass
+			if n_hint <= 1:
+				roi_freq = np.asarray([float(selected["roi_center_ghz"])], dtype=np.float64)
+			else:
+				roi_freq = np.linspace(float(selected["roi_lo_ghz"]), float(selected["roi_hi_ghz"]), num=int(n_hint), dtype=np.float64)
+			return is_h5, [selected], roi_freq
+
+	if (not is_h5) and os.path.isdir(signal_source):
+		roi_rows = list_folder_roi_models_v14(signal_source)
+		if roi_rows:
+			t = float(target_frequency_ghz)
+			selected = None
+			for r in roi_rows:
+				if float(r["roi_lo_ghz"]) <= t <= float(r["roi_hi_ghz"]):
+					selected = dict(r)
+					break
+			if selected is None and allow_nearest:
+				selected = min(roi_rows, key=lambda rr: abs(float(rr["roi_center_ghz"]) - t))
+			# Robust fallback for ROI-folder hierarchy: choose nearest ROI if no overlap.
+			if selected is None:
+				selected = min(roi_rows, key=lambda rr: abs(float(rr["roi_center_ghz"]) - t))
+			if selected is None:
+				raise RuntimeError("Could not select ROI")
+
+			selected_model_norm = normalize_model_name(selected_model_name)
+			pm = str(pred_mode).strip().lower()
+			model_refs = list(selected.get("model_refs", []))
+			if pm == "single_model":
+				model_refs = [(mn, ref) for (mn, ref) in model_refs if normalize_model_name(mn) == selected_model_norm]
+				if not model_refs:
+					raise RuntimeError("No channels inside ROI")
+
+			selected["model_refs"] = model_refs
+			selected["entry_type"] = "roi_model_v14"
+
+			n_hint = 1
+			if model_refs:
+				try:
+					pkg0 = joblib.load(model_refs[0][1])
+					if isinstance(pkg0, dict) and isinstance(pkg0.get("roi_channel_indices", None), (list, tuple, np.ndarray)):
+						n_hint = int(max(1, len(pkg0["roi_channel_indices"])))
+				except Exception:
+					pass
+			if n_hint <= 1:
+				roi_freq = np.asarray([float(selected["roi_center_ghz"])], dtype=np.float64)
+			else:
+				roi_freq = np.linspace(float(selected["roi_lo_ghz"]), float(selected["roi_hi_ghz"]), num=int(n_hint), dtype=np.float64)
+			return is_h5, [selected], roi_freq
+
 	entries = list_h5_models(signal_source) if is_h5 else list_folder_models(signal_source)
 	if not entries:
 		raise RuntimeError("No signal channels found")
@@ -894,9 +1383,39 @@ def _pick_default_roi_index(rois: List[dict], guide_freq_ghz: Optional[float]) -
 
 
 def _collect_signal_rois_for_ui(signal_source: str, filter_file: str) -> List[dict]:
-	if (not signal_source) or (not filter_file):
+	if not signal_source:
 		return []
-	if ((not os.path.isfile(signal_source)) and (not os.path.isdir(signal_source))) or (not os.path.isfile(filter_file)):
+	if (not os.path.isfile(signal_source)) and (not os.path.isdir(signal_source)):
+		return []
+	if os.path.isfile(signal_source) and str(signal_source).lower().endswith(".h5"):
+		roi_rows_h5 = list_h5_roi_models_v14(signal_source)
+		if roi_rows_h5:
+			out = []
+			for i, r in enumerate(roi_rows_h5, start=1):
+				out.append({
+					"index": int(i),
+					"lo": float(r["roi_lo_ghz"]),
+					"hi": float(r["roi_hi_ghz"]),
+					"a": 0,
+					"b": 0,
+					"overlap": False,
+				})
+			return out
+	if os.path.isdir(signal_source):
+		roi_rows = list_folder_roi_models_v14(signal_source)
+		if roi_rows:
+			out = []
+			for i, r in enumerate(roi_rows, start=1):
+				out.append({
+					"index": int(i),
+					"lo": float(r["roi_lo_ghz"]),
+					"hi": float(r["roi_hi_ghz"]),
+					"a": 0,
+					"b": 0,
+					"overlap": False,
+				})
+			return out
+	if not filter_file or (not os.path.isfile(filter_file)):
 		return []
 	is_h5 = os.path.isfile(signal_source) and str(signal_source).lower().endswith(".h5")
 	entries = list_h5_models(signal_source) if is_h5 else list_folder_models(signal_source)
@@ -1201,36 +1720,16 @@ def run_cube_worker(cfg_path: str) -> int:
 			)
 
 			target_tag = f"{float(target_freq):.6f}"
-			y_syn_channels: List[np.ndarray] = []
-			kept_freqs: List[float] = []
-			for _, fch, model_refs in roi_entries:
-				pred_acc = np.zeros((n_valid,), dtype=np.float64)
-				pred_cnt = 0
-				for model_name, ref in model_refs:
-					cache_key = f"{model_name}|{ref}"
-					try:
-						if cache_key not in signal_pkg_cache:
-							if is_h5_signal:
-								signal_pkg_cache[cache_key] = load_joblib_package_from_h5(signal_models_source, ref)
-							else:
-								signal_pkg_cache[cache_key] = joblib.load(ref)
-						pkg = signal_pkg_cache[cache_key]
-						pred = predict_with_joblib_package_batch(pkg, x_valid)
-						pred_acc += pred.astype(np.float64)
-						pred_cnt += 1
-					except Exception as em:
-						print(f"[WARN] target {target_tag} channel {float(fch):.6f} model {str(model_name)} failed: {em}")
-						continue
-				if pred_cnt > 0:
-					y_syn_channels.append((pred_acc / float(pred_cnt)).astype(np.float32))
-					kept_freqs.append(float(fch))
-				else:
-					print(f"[WARN] target {target_tag} channel {float(fch):.6f} skipped: no valid signal predictions")
+			roi_freq, y_syn_valid, pred_err = predict_signal_roi_batch(
+				signal_models_source=signal_models_source,
+				is_h5_signal=bool(is_h5_signal),
+				roi_entries=roi_entries,
+				x_features_2d=x_valid,
+				pkg_cache=signal_pkg_cache,
+			)
+			if pred_err is not None or roi_freq is None or y_syn_valid is None:
+				raise RuntimeError(pred_err if pred_err is not None else "No valid signal channels after model prediction")
 
-			if not kept_freqs:
-				raise RuntimeError("No valid signal channels after model prediction")
-
-			roi_freq = np.asarray(kept_freqs, dtype=np.float64)
 			nchan = int(roi_freq.size)
 			tag = f"{float(target_freq):.6f}".replace(".", "p")
 			final_fits = os.path.join(out_dir, f"{out_prefix}_target{tag}.fits")
@@ -1240,8 +1739,6 @@ def run_cube_worker(cfg_path: str) -> int:
 
 			cube_final = np.full((nchan, ny, nx), np.nan, dtype=np.float32)
 			cube_syn = np.full((nchan, ny, nx), np.nan, dtype=np.float32)
-
-			y_syn_valid = np.stack(y_syn_channels, axis=1).astype(np.float32)
 
 			noise_sum = np.zeros((n_valid, nchan), dtype=np.float64)
 			noise_cnt = np.zeros((n_valid, nchan), dtype=np.float64)
@@ -1299,6 +1796,219 @@ def run_cube_worker(cfg_path: str) -> int:
 			continue
 	if n_ok <= 0:
 		raise RuntimeError(f"No cubes were generated successfully. Failed targets: {n_fail}/{len(target_freqs)}")
+	return 0
+
+
+def _write_map_fits_2d(out_fits_path: str, map_2d: np.ndarray, ref_hdr: Optional[object], history_text: str):
+	if fits is None:
+		return
+	arr = np.asarray(map_2d, dtype=np.float32)
+	hdr = fits.Header()
+	hdr["WCSAXES"] = 2
+	hdr["BUNIT"] = "a.u."
+	if ref_hdr is not None:
+		for k in ["CTYPE1", "CTYPE2", "CUNIT1", "CUNIT2", "CRPIX1", "CRPIX2", "CRVAL1", "CRVAL2", "CDELT1", "CDELT2", "CROTA1", "CROTA2", "RADESYS", "EQUINOX", "LONPOLE", "LATPOLE"]:
+			if k in ref_hdr:
+				hdr[k] = ref_hdr[k]
+		for k in ref_hdr.keys():
+			ks = str(k)
+			if ks.startswith("CD1_") or ks.startswith("CD2_") or ks.startswith("PC1_") or ks.startswith("PC2_"):
+				hdr[ks] = ref_hdr[ks]
+	hdr["HISTORY"] = str(history_text)
+	fits.writeto(out_fits_path, arr, header=hdr, overwrite=True)
+
+
+def _save_cubefit_progress_png(
+	logn_map: np.ndarray,
+	tex_map: np.ndarray,
+	velo_map: np.ndarray,
+	fwhm_map: np.ndarray,
+	done_steps: int,
+	total_steps: int,
+	out_png: str,
+):
+	fig, axes = plt.subplots(2, 2, figsize=(8.6, 7.4))
+	items = [
+		("logN", np.asarray(logn_map, dtype=np.float32), "viridis"),
+		("Tex", np.asarray(tex_map, dtype=np.float32), "magma"),
+		("Velocity", np.asarray(velo_map, dtype=np.float32), "coolwarm"),
+		("FWHM", np.asarray(fwhm_map, dtype=np.float32), "plasma"),
+	]
+	for ax, (ttl, arr, cmap) in zip(axes.ravel(), items):
+		fin = np.isfinite(arr)
+		if np.any(fin):
+			v = arr[fin]
+			vmin = float(np.nanpercentile(v, 1.0))
+			vmax = float(np.nanpercentile(v, 99.0))
+			if vmax <= vmin:
+				vmax = vmin + 1e-6
+			im = ax.imshow(arr, origin="lower", cmap=cmap, vmin=vmin, vmax=vmax)
+			plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+		else:
+			im = ax.imshow(np.zeros_like(arr, dtype=np.float32), origin="lower", cmap=cmap)
+			plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+		ax.set_title(ttl)
+		ax.set_xlabel("x")
+		ax.set_ylabel("y")
+	fig.suptitle(f"Cube Fitting progress | pixels processed: {int(done_steps)}/{int(total_steps)}", y=0.98)
+	plt.tight_layout()
+	fig.savefig(out_png, dpi=170)
+	plt.close(fig)
+	info_path = os.path.splitext(out_png)[0] + ".json"
+	info = {
+		"title": f"Cube fitting parameter maps | pixels processed: {int(done_steps)}/{int(total_steps)}",
+		"done_steps": int(done_steps),
+		"total_steps": int(total_steps),
+	}
+	try:
+		with open(info_path, "w", encoding="utf-8") as f:
+			json.dump(info, f, ensure_ascii=False, indent=2)
+	except Exception:
+		pass
+
+
+def run_cube_fit_worker(cfg_path: str) -> int:
+	if fits is None:
+		print("FITS backend not available")
+		return 2
+	with open(cfg_path, "r", encoding="utf-8") as f:
+		cfg = json.load(f)
+
+	out_dir = str(cfg["out_dir"])
+	os.makedirs(out_dir, exist_ok=True)
+	obs_cube_path = str(cfg["obs_cube_path"])
+	signal_models_source = str(cfg["signal_models_source"])
+	noise_models_root = str(cfg["noise_models_root"])
+	filter_file = str(cfg["filter_file"])
+	target_freqs = [float(v) for v in cfg.get("target_freqs", [])]
+	case_mode = str(cfg.get("case_mode", "synthetic_only"))
+	fit_criterion = str(cfg.get("fit_criterion", "rmse"))
+	global_weight_mode = str(cfg.get("global_weight_mode", "inverse_best_error"))
+	global_search_mode = str(cfg.get("global_search_mode", "concatenated"))
+	candidate_mode = str(cfg.get("candidate_mode", "random"))
+	n_candidates = int(cfg.get("n_candidates", 300))
+	ranges = dict(cfg.get("ranges", {}))
+	noise_scale = float(cfg.get("noise_scale", 1.0))
+	allow_nearest = bool(cfg.get("allow_nearest", True))
+	seed = int(cfg.get("seed", 42))
+	progress_every = int(max(1, int(cfg.get("progress_every", 40))))
+	spatial_stride = int(max(1, int(cfg.get("spatial_stride", 1))))
+	obs_shift_enabled = bool(cfg.get("obs_shift_enabled", True))
+	obs_shift_mode = str(cfg.get("obs_shift_mode", "per_frequency"))
+	obs_shift_kms = float(cfg.get("obs_shift_kms", 0.0))
+	out_prefix = str(cfg.get("out_prefix", "CUBEFIT"))
+
+	if not os.path.isfile(obs_cube_path):
+		raise FileNotFoundError(f"Observational cube not found: {obs_cube_path}")
+
+	with fits.open(obs_cube_path, memmap=True) as hdul:
+		arr = np.asarray(hdul[0].data, dtype=np.float32)
+		ref_hdr = hdul[0].header.copy()
+	if arr.ndim == 4:
+		arr = arr[0]
+	if arr.ndim != 3:
+		raise RuntimeError(f"Unexpected observational cube shape: {arr.shape}")
+	nchan, ny, nx = int(arr.shape[0]), int(arr.shape[1]), int(arr.shape[2])
+	obs_freq = _build_freq_axis_from_header(ref_hdr, nchan)
+	if obs_shift_enabled:
+		if str(obs_shift_mode).strip().lower() == "spw_center":
+			obs_freq = _apply_velocity_shift_by_spw_center(obs_freq, float(obs_shift_kms))
+		else:
+			obs_freq = _apply_velocity_shift_to_frequency(obs_freq, float(obs_shift_kms))
+
+	X_shared = _sample_fit_candidates(
+		n_samples=int(n_candidates),
+		ranges=ranges,
+		seed=int(seed),
+		mode=str(candidate_mode),
+	)
+	noise_models_shared = None
+	if str(case_mode).strip().lower() == "synthetic_plus_noise":
+		entries = _list_noise_model_entries(noise_models_root)
+		nm = []
+		for e in entries:
+			try:
+				m, sy, c = _load_noisenn_from_entry(e)
+				m.eval()
+				nm.append((m, sy, c))
+			except Exception:
+				continue
+		if not nm:
+			raise RuntimeError("Case 2 requires valid noise models. None could be loaded.")
+		noise_models_shared = nm
+
+	pkg_cache_shared: Dict[str, object] = {}
+
+	map_logn = np.full((ny, nx), np.nan, dtype=np.float32)
+	map_tex = np.full((ny, nx), np.nan, dtype=np.float32)
+	map_velo = np.full((ny, nx), np.nan, dtype=np.float32)
+	map_fwhm = np.full((ny, nx), np.nan, dtype=np.float32)
+	map_obj = np.full((ny, nx), np.nan, dtype=np.float32)
+	map_mae = np.full((ny, nx), np.nan, dtype=np.float32)
+
+	valid_mask = np.any(np.isfinite(arr), axis=0)
+	pixel_order = _spiral_pixel_order_valid(valid_mask)
+	if int(spatial_stride) > 1:
+		pixel_order = [(yy, xx) for (yy, xx) in pixel_order if (int(yy) % int(spatial_stride) == 0) and (int(xx) % int(spatial_stride) == 0)]
+	total_pixels = int(len(pixel_order))
+	if total_pixels <= 0:
+		raise RuntimeError("No valid observational pixels in cube")
+
+	progress_png = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_MAP.png")
+	fit_count = 0
+	for p_done, (y, x) in enumerate(pixel_order, start=1):
+		y_obs = np.asarray(arr[:, y, x], dtype=np.float64)
+		if int(np.count_nonzero(np.isfinite(y_obs))) < 3:
+			continue
+		res = _run_roi_fitting(
+			signal_models_source=signal_models_source,
+			noise_models_root=noise_models_root,
+			filter_file=filter_file,
+			target_freqs=target_freqs,
+			obs_freq=np.asarray(obs_freq, dtype=np.float64),
+			obs_intensity=np.asarray(y_obs, dtype=np.float64),
+			case_mode=case_mode,
+			fit_criterion=fit_criterion,
+			global_weight_mode=global_weight_mode,
+			global_search_mode=global_search_mode,
+			candidate_mode=candidate_mode,
+			n_candidates=int(n_candidates),
+			ranges=ranges,
+			noise_scale=float(noise_scale),
+			allow_nearest=bool(allow_nearest),
+			seed=int(seed),
+			x_candidates_override=np.asarray(X_shared, dtype=np.float32),
+			noise_models_loaded_override=noise_models_shared,
+			pkg_cache_override=pkg_cache_shared,
+			refine_after_first_fit=False,
+		)
+		if isinstance(res, dict) and bool(res.get("ok", False)):
+			bp = res.get("best_global_params", {}) if isinstance(res.get("best_global_params", {}), dict) else {}
+			map_logn[y, x] = float(bp.get("logN", np.nan))
+			map_tex[y, x] = float(bp.get("Tex", np.nan))
+			map_velo[y, x] = float(bp.get("Velocity", np.nan))
+			map_fwhm[y, x] = float(bp.get("FWHM", np.nan))
+			map_obj[y, x] = float(res.get("best_global_mean_objective", np.nan))
+			map_mae[y, x] = float(res.get("best_global_mean_MAE", np.nan))
+			fit_count += 1
+
+		if (p_done % progress_every) == 0 or p_done == total_pixels:
+			_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_INPROGRESS_LOGN.fits"), map_logn, ref_hdr, f"Checkpoint: {p_done}/{total_pixels}")
+			_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_INPROGRESS_TEX.fits"), map_tex, ref_hdr, f"Checkpoint: {p_done}/{total_pixels}")
+			_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_INPROGRESS_VELOCITY.fits"), map_velo, ref_hdr, f"Checkpoint: {p_done}/{total_pixels}")
+			_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_INPROGRESS_FWHM.fits"), map_fwhm, ref_hdr, f"Checkpoint: {p_done}/{total_pixels}")
+			_save_cubefit_progress_png(map_logn, map_tex, map_velo, map_fwhm, p_done, total_pixels, progress_png)
+
+	if fit_count <= 0:
+		raise RuntimeError("Cube fitting produced no valid fitted pixels")
+
+	_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_LOGN.fits"), map_logn, ref_hdr, "Final cube fitting map")
+	_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_TEX.fits"), map_tex, ref_hdr, "Final cube fitting map")
+	_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_VELOCITY.fits"), map_velo, ref_hdr, "Final cube fitting map")
+	_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_FWHM.fits"), map_fwhm, ref_hdr, "Final cube fitting map")
+	_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_OBJECTIVE.fits"), map_obj, ref_hdr, "Final cube fitting objective map")
+	_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_MAE.fits"), map_mae, ref_hdr, "Final cube fitting MAE map")
+	print(f"[INFO] Cube fitting completed | valid fitted pixels: {fit_count}/{total_pixels}")
 	return 0
 
 
@@ -1822,36 +2532,19 @@ def _generate_synthetic_spectra_for_targets(
 				allow_nearest=allow_nearest,
 			)
 			use_h5 = bool(is_h5 and is_h5_signal)
-			freqs: List[float] = []
-			yvals: List[float] = []
-			for _, fch, model_refs in roi_entries:
-				pred_acc = 0.0
-				pred_cnt = 0
-				for model_name, ref in model_refs:
-					cache_key = f"{model_name}|{ref}"
-					try:
-						if cache_key not in pkg_cache:
-							if use_h5:
-								pkg_cache[cache_key] = load_joblib_package_from_h5(signal_models_source, ref)
-							else:
-								pkg_cache[cache_key] = joblib.load(ref)
-						pkg = pkg_cache[cache_key]
-						pred = predict_with_joblib_package_batch(pkg, x_arr)
-						pred_acc += float(pred[0])
-						pred_cnt += 1
-					except Exception:
-						continue
-				if pred_cnt > 0:
-					freqs.append(float(fch))
-					yvals.append(float(pred_acc / float(pred_cnt)))
-
-			if not freqs:
+			roi_freq, y_syn_2d, pred_err = predict_signal_roi_batch(
+				signal_models_source=signal_models_source,
+				is_h5_signal=bool(use_h5),
+				roi_entries=roi_entries,
+				x_features_2d=x_arr,
+				pkg_cache=pkg_cache,
+			)
+			if pred_err is not None or roi_freq is None or y_syn_2d is None or y_syn_2d.size <= 0:
 				warnings_out.append(f"target {tag} failed: no valid synthetic predictions in selected ROI")
 				continue
 
-			ord_idx = np.argsort(np.asarray(freqs, dtype=np.float64))
-			f_arr = np.asarray(freqs, dtype=np.float64)[ord_idx]
-			y_arr = np.asarray(yvals, dtype=np.float64)[ord_idx]
+			f_arr = np.asarray(roi_freq, dtype=np.float64).reshape(-1)
+			y_arr = np.asarray(y_syn_2d[0], dtype=np.float64).reshape(-1)
 			results[tag] = {
 				"target_freq_ghz": float(tf),
 				"freq": f_arr,
@@ -1925,38 +2618,16 @@ def _predict_synthetic_batch_single_target(
 		allow_nearest=allow_nearest,
 	)
 	use_h5 = bool(is_h5 and is_h5_signal)
-	n_cand = int(x_candidates.shape[0])
-	cols = []
-	kept_freqs: List[float] = []
-
-	for _, fch, model_refs in roi_entries:
-		pred_acc = np.zeros((n_cand,), dtype=np.float64)
-		pred_cnt = 0
-		for model_name, ref in model_refs:
-			cache_key = f"{model_name}|{ref}"
-			try:
-				if cache_key not in pkg_cache:
-					if use_h5:
-						pkg_cache[cache_key] = load_joblib_package_from_h5(signal_models_source, ref)
-					else:
-						pkg_cache[cache_key] = joblib.load(ref)
-				pkg = pkg_cache[cache_key]
-				pred = predict_with_joblib_package_batch(pkg, x_candidates)
-				pred_acc += pred.astype(np.float64)
-				pred_cnt += 1
-			except Exception:
-				continue
-		if pred_cnt > 0:
-			cols.append((pred_acc / float(pred_cnt)).astype(np.float32))
-			kept_freqs.append(float(fch))
-
-	if not cols:
+	roi_freq, Y_syn, pred_err = predict_signal_roi_batch(
+		signal_models_source=signal_models_source,
+		is_h5_signal=bool(use_h5),
+		roi_entries=roi_entries,
+		x_features_2d=np.asarray(x_candidates, dtype=np.float32),
+		pkg_cache=pkg_cache,
+	)
+	if pred_err is not None or roi_freq is None or Y_syn is None:
 		return None, None, "No valid synthetic predictions for selected ROI"
-
-	roi_freq = np.asarray(kept_freqs, dtype=np.float64)
-	Y_syn = np.stack(cols, axis=1).astype(np.float32)
-	ord_idx = np.argsort(roi_freq)
-	return roi_freq[ord_idx], Y_syn[:, ord_idx], None
+	return np.asarray(roi_freq, dtype=np.float64), np.asarray(Y_syn, dtype=np.float32), None
 
 
 def _add_noise_batch_for_target(
@@ -2060,6 +2731,88 @@ def _criterion_aware_roi_quality_weight(
 	return float(np.clip(1.0 / max(err, 1e-12), 1e-6, 1e6))
 
 
+def _format_freqs_short(freqs: List[float], max_show: int = 4) -> str:
+	v = [float(x) for x in (freqs or []) if np.isfinite(float(x))]
+	if not v:
+		return ""
+	v = sorted(v)
+	ms = int(max(1, max_show))
+	if len(v) <= ms:
+		return ", ".join([f"{float(x):.6f}" for x in v])
+	head = ", ".join([f"{float(x):.6f}" for x in v[:ms]])
+	return f"{head}, ... (+{int(len(v) - ms)} more)"
+
+
+def _group_target_freqs_by_signal_roi(
+	signal_models_source: str,
+	filter_file: str,
+	target_freqs: List[float],
+	allow_nearest: bool,
+) -> List[dict]:
+	raw = [float(v) for v in (target_freqs or []) if np.isfinite(float(v))]
+	# Last occurrence wins: keep unique frequencies preserving the order of their
+	# latest appearance in the input list.
+	seen = set()
+	uniq_rev: List[float] = []
+	for tf in reversed(raw):
+		k = round(float(tf), 12)
+		if k in seen:
+			continue
+		seen.add(k)
+		uniq_rev.append(float(tf))
+	uniq = list(reversed(uniq_rev))
+	out: List[dict] = []
+	key_to_idx: Dict[tuple, int] = {}
+
+	for tf in uniq:
+		grp_key = ("freq", round(float(tf), 9))
+		roi_lo = None
+		roi_hi = None
+		n_ch = None
+		try:
+			_, _, roi_freq = build_signal_index_for_roi(
+				signal_source=signal_models_source,
+				filter_file=filter_file,
+				target_frequency_ghz=float(tf),
+				pred_mode=DEFAULT_PRED_MODE,
+				selected_model_name=DEFAULT_SELECTED_MODEL_NAME,
+				allow_nearest=bool(allow_nearest),
+			)
+			rf = np.asarray(roi_freq, dtype=np.float64).reshape(-1)
+			if rf.size > 0 and np.any(np.isfinite(rf)):
+				roi_lo = float(np.nanmin(rf))
+				roi_hi = float(np.nanmax(rf))
+				n_ch = int(rf.size)
+				grp_key = ("roi", int(n_ch), round(float(roi_lo), 9), round(float(roi_hi), 9))
+		except Exception:
+			pass
+
+		if grp_key not in key_to_idx:
+			key_to_idx[grp_key] = int(len(out))
+			out.append({
+				"representative_target_freq_ghz": float(tf),
+				"guide_freqs_ghz": [float(tf)],
+				"roi_f_min_ghz": (None if roi_lo is None else float(roi_lo)),
+				"roi_f_max_ghz": (None if roi_hi is None else float(roi_hi)),
+				"n_roi_channels": (None if n_ch is None else int(n_ch)),
+			})
+		else:
+			ix = int(key_to_idx[grp_key])
+			out[ix]["guide_freqs_ghz"].append(float(tf))
+			# Use the most recently added guide frequency as representative.
+			out[ix]["representative_target_freq_ghz"] = float(tf)
+			if roi_lo is not None and roi_hi is not None:
+				out[ix]["roi_f_min_ghz"] = float(roi_lo)
+				out[ix]["roi_f_max_ghz"] = float(roi_hi)
+			if n_ch is not None:
+				out[ix]["n_roi_channels"] = int(n_ch)
+
+	for g in out:
+		g["guide_freqs_ghz"] = sorted([float(x) for x in g.get("guide_freqs_ghz", [])])
+
+	return out
+
+
 def _run_roi_fitting(
 	signal_models_source: str,
 	noise_models_root: str,
@@ -2077,6 +2830,13 @@ def _run_roi_fitting(
 	noise_scale: float,
 	allow_nearest: bool,
 	seed: int,
+	x_candidates_override: Optional[np.ndarray] = None,
+	noise_models_loaded_override: Optional[List[tuple]] = None,
+	pkg_cache_override: Optional[Dict[str, object]] = None,
+	refine_after_first_fit: bool = True,
+	refine_span_fraction: float = 0.20,
+	refine_n_candidates: Optional[int] = None,
+	_internal_refine_stage: int = 0,
 ):
 	crit = str(fit_criterion).strip().lower()
 	if crit not in {"mae", "rmse", "chi_like", "r2"}:
@@ -2088,26 +2848,52 @@ def _run_roi_fitting(
 	if search_mode not in {"per_roi", "concatenated"}:
 		search_mode = "per_roi"
 
-	X = _sample_fit_candidates(
-		n_samples=int(n_candidates),
-		ranges=ranges,
-		seed=int(seed),
-		mode=str(candidate_mode),
-	)
+	if isinstance(x_candidates_override, np.ndarray) and x_candidates_override.ndim == 2 and x_candidates_override.shape[1] == 4:
+		X = np.asarray(x_candidates_override, dtype=np.float32)
+	else:
+		X = _sample_fit_candidates(
+			n_samples=int(n_candidates),
+			ranges=ranges,
+			seed=int(seed),
+			mode=str(candidate_mode),
+		)
 	n = int(X.shape[0])
-	pkg_cache: Dict[str, object] = {}
+	pkg_cache: Dict[str, object] = (pkg_cache_override if isinstance(pkg_cache_override, dict) else {})
 	warnings_out: List[str] = []
+	target_groups = _group_target_freqs_by_signal_roi(
+		signal_models_source=str(signal_models_source),
+		filter_file=str(filter_file),
+		target_freqs=[float(v) for v in (target_freqs or [])],
+		allow_nearest=bool(allow_nearest),
+	)
+	target_freqs_eval = [float(g.get("representative_target_freq_ghz", np.nan)) for g in target_groups]
+	target_meta_by_rep: Dict[float, dict] = {}
+	for g in target_groups:
+		target_meta_by_rep[float(g.get("representative_target_freq_ghz", np.nan))] = {
+			"guide_freqs_ghz": [float(v) for v in g.get("guide_freqs_ghz", [])],
+			"guide_freqs_label": _format_freqs_short([float(v) for v in g.get("guide_freqs_ghz", [])]),
+			"n_guide_freqs_in_roi": int(len(g.get("guide_freqs_ghz", []))),
+			"roi_f_min_ghz": g.get("roi_f_min_ghz", None),
+			"roi_f_max_ghz": g.get("roi_f_max_ghz", None),
+		}
+	if not target_freqs_eval:
+		return {
+			"ok": False,
+			"warnings": ["Guide frequencies did not produce any valid ROI group."],
+			"message": "No ROI could be built from Guide frequencies.",
+		}
 
-	noise_models_loaded = []
+	noise_models_loaded = list(noise_models_loaded_override) if isinstance(noise_models_loaded_override, list) else []
 	if str(case_mode).strip().lower() == "synthetic_plus_noise":
-		entries = _list_noise_model_entries(noise_models_root)
-		for e in entries:
-			try:
-				m, sy, c = _load_noisenn_from_entry(e)
-				m.eval()
-				noise_models_loaded.append((m, sy, c))
-			except Exception:
-				continue
+		if not noise_models_loaded:
+			entries = _list_noise_model_entries(noise_models_root)
+			for e in entries:
+				try:
+					m, sy, c = _load_noisenn_from_entry(e)
+					m.eval()
+					noise_models_loaded.append((m, sy, c))
+				except Exception:
+					continue
 		if not noise_models_loaded:
 			return {
 				"ok": False,
@@ -2120,6 +2906,7 @@ def _run_roi_fitting(
 	roi_weights: List[float] = []
 	per_roi_rows: List[dict] = []
 	best_plot_payload: List[dict] = []
+	skipped_zero_observed_targets: List[float] = []
 	fit_batch_size = int(max(128, min(1024, n)))
 
 	concat_count = 0
@@ -2129,7 +2916,7 @@ def _run_roi_fitting(
 	concat_sq_err = np.zeros((n,), dtype=np.float64)
 	concat_chi_term = np.zeros((n,), dtype=np.float64)
 
-	for tf in [float(v) for v in (target_freqs or [])]:
+	for tf in target_freqs_eval:
 		tag = f"{float(tf):.6f}"
 		try:
 			mae_all = np.full((n,), np.inf, dtype=np.float64)
@@ -2202,6 +2989,14 @@ def _run_roi_fitting(
 					valid_ref = np.isfinite(y_obs_roi_ref)
 					if int(np.count_nonzero(valid_ref)) < 3:
 						warnings_out.append(f"target {tag} skipped: insufficient overlap with uploaded observational spectrum")
+						skip_target = True
+						break
+					y_obs_valid = np.asarray(y_obs_roi_ref[valid_ref], dtype=np.float64)
+					if y_obs_valid.size > 0 and np.all(np.isclose(y_obs_valid, 0.0, rtol=0.0, atol=1e-12)):
+						warnings_out.append(
+							f"target {tag} skipped: observational ROI is a continuous zero line (all points are 0), excluded from fitting"
+						)
+						skipped_zero_observed_targets.append(float(tf))
 						skip_target = True
 						break
 				else:
@@ -2284,6 +3079,11 @@ def _run_roi_fitting(
 
 			per_roi_rows.append({
 				"target_freq_ghz": float(tf),
+				"guide_freqs_ghz": list(target_meta_by_rep.get(float(tf), {}).get("guide_freqs_ghz", [float(tf)])),
+				"guide_freqs_label": str(target_meta_by_rep.get(float(tf), {}).get("guide_freqs_label", f"{float(tf):.6f}")),
+				"n_guide_freqs_in_roi": int(target_meta_by_rep.get(float(tf), {}).get("n_guide_freqs_in_roi", 1)),
+				"roi_f_min_ghz": float(target_meta_by_rep.get(float(tf), {}).get("roi_f_min_ghz", np.nan)) if target_meta_by_rep.get(float(tf), {}).get("roi_f_min_ghz", None) is not None else np.nan,
+				"roi_f_max_ghz": float(target_meta_by_rep.get(float(tf), {}).get("roi_f_max_ghz", np.nan)) if target_meta_by_rep.get(float(tf), {}).get("roi_f_max_ghz", None) is not None else np.nan,
 				"n_channels": int(roi_freq_eval.size),
 				"n_overlap_points": int(roi_n_overlap),
 				"best_MAE": float(mae[best_i]),
@@ -2314,6 +3114,11 @@ def _run_roi_fitting(
 
 			best_plot_payload.append({
 				"target_freq_ghz": float(tf),
+				"guide_freqs_ghz": list(target_meta_by_rep.get(float(tf), {}).get("guide_freqs_ghz", [float(tf)])),
+				"guide_freqs_label": str(target_meta_by_rep.get(float(tf), {}).get("guide_freqs_label", f"{float(tf):.6f}")),
+				"n_guide_freqs_in_roi": int(target_meta_by_rep.get(float(tf), {}).get("n_guide_freqs_in_roi", 1)),
+				"roi_f_min_ghz": float(target_meta_by_rep.get(float(tf), {}).get("roi_f_min_ghz", np.nan)) if target_meta_by_rep.get(float(tf), {}).get("roi_f_min_ghz", None) is not None else np.nan,
+				"roi_f_max_ghz": float(target_meta_by_rep.get(float(tf), {}).get("roi_f_max_ghz", np.nan)) if target_meta_by_rep.get(float(tf), {}).get("roi_f_max_ghz", None) is not None else np.nan,
 				"freq": ds_freq,
 				"obs_interp": ds_arrays[0],
 				"best_synthetic": ds_arrays[1],
@@ -2374,12 +3179,110 @@ def _run_roi_fitting(
 		global_mae = np.average(mae_mat, axis=0, weights=w).astype(np.float64)
 		weighting_used = str(weight_mode)
 
+	refinement_applied = False
+	refinement_used_result = False
+	refinement_span_used = float("nan")
+	refinement_n_used = 0
+	do_refine = bool(refine_after_first_fit) and int(_internal_refine_stage) == 0 and (not isinstance(x_candidates_override, np.ndarray))
+	if do_refine and n >= 2:
+		try:
+			anchor = np.asarray(X[best_global_idx], dtype=np.float64).reshape(-1)
+			if anchor.size == 4:
+				span_frac = float(np.clip(float(refine_span_fraction), 0.02, 0.95))
+				refinement_span_used = float(span_frac)
+				keys = ["logn", "tex", "velo", "fwhm"]
+				local_ranges = {}
+				for i_k, k in enumerate(keys):
+					g_lo = float(min(float(ranges[f"{k}_min"]), float(ranges[f"{k}_max"])))
+					g_hi = float(max(float(ranges[f"{k}_min"]), float(ranges[f"{k}_max"])))
+					g_span = float(max(1e-9, g_hi - g_lo))
+					half = 0.5 * g_span * span_frac
+					lo = max(g_lo, float(anchor[i_k]) - half)
+					hi = min(g_hi, float(anchor[i_k]) + half)
+					if hi <= lo:
+						lo = max(g_lo, float(anchor[i_k]) - 0.01 * g_span)
+						hi = min(g_hi, float(anchor[i_k]) + 0.01 * g_span)
+					local_ranges[f"{k}_min"] = float(lo)
+					local_ranges[f"{k}_max"] = float(max(lo + 1e-9, hi))
+
+				if refine_n_candidates is None:
+					n_ref = int(max(80, min(1200, max(100, int(n * 0.66)))))
+				else:
+					n_ref = int(max(20, int(refine_n_candidates)))
+				refinement_n_used = int(n_ref)
+
+				X_ref = _sample_fit_candidates(
+					n_samples=int(n_ref),
+					ranges=local_ranges,
+					seed=int(seed) + 7919,
+					mode=str(candidate_mode),
+				)
+				X_ref[0, :] = anchor.astype(np.float32)
+
+				refined = _run_roi_fitting(
+					signal_models_source=signal_models_source,
+					noise_models_root=noise_models_root,
+					filter_file=filter_file,
+					target_freqs=target_freqs,
+					obs_freq=obs_freq,
+					obs_intensity=obs_intensity,
+					case_mode=case_mode,
+					fit_criterion=fit_criterion,
+					global_weight_mode=global_weight_mode,
+					global_search_mode=global_search_mode,
+					candidate_mode=candidate_mode,
+					n_candidates=int(n_ref),
+					ranges=local_ranges,
+					noise_scale=noise_scale,
+					allow_nearest=allow_nearest,
+					seed=int(seed) + 7919,
+					x_candidates_override=X_ref,
+					noise_models_loaded_override=noise_models_loaded,
+					pkg_cache_override=pkg_cache,
+					refine_after_first_fit=False,
+					refine_span_fraction=refine_span_fraction,
+					refine_n_candidates=refine_n_candidates,
+					_internal_refine_stage=1,
+				)
+				refinement_applied = True
+				if isinstance(refined, dict) and bool(refined.get("ok", False)):
+					obj_ref = float(refined.get("best_global_mean_objective", np.inf))
+					obj_cur = float(global_obj[best_global_idx])
+					if np.isfinite(obj_ref) and (obj_ref <= obj_cur):
+						refinement_used_result = True
+						merged_warn = list(warnings_out)
+						for wmsg in list(refined.get("warnings", []) if isinstance(refined.get("warnings", []), list) else []):
+							merged_warn.append(wmsg)
+						refined["warnings"] = merged_warn
+						refined["refinement_applied"] = True
+						refined["refinement_used_result"] = True
+						refined["refinement_span_fraction"] = float(span_frac)
+						refined["refinement_n_candidates"] = int(n_ref)
+						refined["n_candidates_initial"] = int(n)
+						refined["best_global_params_initial"] = {
+							"logN": float(X[best_global_idx, 0]),
+							"Tex": float(X[best_global_idx, 1]),
+							"Velocity": float(X[best_global_idx, 2]),
+							"FWHM": float(X[best_global_idx, 3]),
+						}
+						refined["best_global_mean_objective_initial"] = float(global_obj[best_global_idx])
+						return refined
+					warnings_out.append(
+						f"refinement tried but kept initial solution (objective did not improve: initial={obj_cur:.6g}, refined={obj_ref:.6g})"
+					)
+				else:
+					warnings_out.append("refinement stage did not return a valid fitted result; initial solution kept")
+		except Exception as e:
+			warnings_out.append(f"refinement stage skipped due to error: {e}")
+
 	# Build global overlay using a single best parameter vector across all fitted ROIs
 	x_best = np.asarray(X[best_global_idx:best_global_idx + 1], dtype=np.float32)
 	global_overlay = []
 	global_per_roi_rows: List[dict] = []
 	global_plot_payload: List[dict] = []
-	for tf in [float(v) for v in (target_freqs or [])]:
+	for tf in target_freqs_eval:
+		if any(np.isclose(float(tf), float(v), rtol=0.0, atol=1e-9) for v in skipped_zero_observed_targets):
+			continue
 		tag = f"{float(tf):.6f}"
 		try:
 			roi_freq_g, y_syn_g, err_g = _predict_synthetic_batch_single_target(
@@ -2458,6 +3361,11 @@ def _run_roi_fitting(
 
 				global_per_roi_rows.append({
 					"target_freq_ghz": float(tf),
+					"guide_freqs_ghz": list(target_meta_by_rep.get(float(tf), {}).get("guide_freqs_ghz", [float(tf)])),
+					"guide_freqs_label": str(target_meta_by_rep.get(float(tf), {}).get("guide_freqs_label", f"{float(tf):.6f}")),
+					"n_guide_freqs_in_roi": int(target_meta_by_rep.get(float(tf), {}).get("n_guide_freqs_in_roi", 1)),
+					"roi_f_min_ghz": float(target_meta_by_rep.get(float(tf), {}).get("roi_f_min_ghz", np.nan)) if target_meta_by_rep.get(float(tf), {}).get("roi_f_min_ghz", None) is not None else np.nan,
+					"roi_f_max_ghz": float(target_meta_by_rep.get(float(tf), {}).get("roi_f_max_ghz", np.nan)) if target_meta_by_rep.get(float(tf), {}).get("roi_f_max_ghz", None) is not None else np.nan,
 					"n_channels": int(np.asarray(roi_freq_g, dtype=np.float64).size),
 					"n_overlap_points": int(np.count_nonzero(vg)),
 					"best_MAE": float(mae_g),
@@ -2477,6 +3385,11 @@ def _run_roi_fitting(
 
 				global_plot_payload.append({
 					"target_freq_ghz": float(tf),
+					"guide_freqs_ghz": list(target_meta_by_rep.get(float(tf), {}).get("guide_freqs_ghz", [float(tf)])),
+					"guide_freqs_label": str(target_meta_by_rep.get(float(tf), {}).get("guide_freqs_label", f"{float(tf):.6f}")),
+					"n_guide_freqs_in_roi": int(target_meta_by_rep.get(float(tf), {}).get("n_guide_freqs_in_roi", 1)),
+					"roi_f_min_ghz": float(target_meta_by_rep.get(float(tf), {}).get("roi_f_min_ghz", np.nan)) if target_meta_by_rep.get(float(tf), {}).get("roi_f_min_ghz", None) is not None else np.nan,
+					"roi_f_max_ghz": float(target_meta_by_rep.get(float(tf), {}).get("roi_f_max_ghz", np.nan)) if target_meta_by_rep.get(float(tf), {}).get("roi_f_max_ghz", None) is not None else np.nan,
 					"freq": ds_fg,
 					"obs_interp": ds_g[0],
 					"best_synthetic": ds_g[1],
@@ -2487,6 +3400,11 @@ def _run_roi_fitting(
 
 			global_overlay.append({
 				"target_freq_ghz": float(tf),
+				"guide_freqs_ghz": list(target_meta_by_rep.get(float(tf), {}).get("guide_freqs_ghz", [float(tf)])),
+				"guide_freqs_label": str(target_meta_by_rep.get(float(tf), {}).get("guide_freqs_label", f"{float(tf):.6f}")),
+				"n_guide_freqs_in_roi": int(target_meta_by_rep.get(float(tf), {}).get("n_guide_freqs_in_roi", 1)),
+				"roi_f_min_ghz": float(target_meta_by_rep.get(float(tf), {}).get("roi_f_min_ghz", np.nan)) if target_meta_by_rep.get(float(tf), {}).get("roi_f_min_ghz", None) is not None else np.nan,
+				"roi_f_max_ghz": float(target_meta_by_rep.get(float(tf), {}).get("roi_f_max_ghz", np.nan)) if target_meta_by_rep.get(float(tf), {}).get("roi_f_max_ghz", None) is not None else np.nan,
 				"freq": ds_fg,
 				"obs_interp": ds_g[0],
 				"best_global_synthetic": ds_g[1],
@@ -2509,6 +3427,10 @@ def _run_roi_fitting(
 		"ok": True,
 		"case_mode": str(case_mode),
 		"global_search_mode": str(search_mode),
+		"n_guide_freqs_input": int(len([float(v) for v in (target_freqs or [])])),
+		"n_unique_rois_requested": int(len(target_groups)),
+		"n_rois_skipped_zero_observed": int(len(skipped_zero_observed_targets)),
+		"skipped_zero_observed_targets_ghz": sorted([float(v) for v in skipped_zero_observed_targets]),
 		"n_candidates": int(n),
 		"best_global_index": int(best_global_idx),
 		"best_global_params": {
@@ -2526,6 +3448,10 @@ def _run_roi_fitting(
 		"per_roi": per_roi_out,
 		"plot_payload": plot_payload_out,
 		"global_overlay": global_overlay,
+		"refinement_applied": bool(refinement_applied),
+		"refinement_used_result": bool(refinement_used_result),
+		"refinement_span_fraction": (float(refinement_span_used) if np.isfinite(float(refinement_span_used)) else np.nan),
+		"refinement_n_candidates": int(refinement_n_used),
 		"warnings": warnings_out,
 	}
 
@@ -2563,6 +3489,14 @@ def _ensure_state():
 		st.session_state.sim_result_path = ""
 	if "sim_last_result" not in st.session_state:
 		st.session_state.sim_last_result = None
+	if "cubefit_proc" not in st.session_state:
+		st.session_state.cubefit_proc = None
+	if "cubefit_log_path" not in st.session_state:
+		st.session_state.cubefit_log_path = ""
+	if "cubefit_cfg_path" not in st.session_state:
+		st.session_state.cubefit_cfg_path = ""
+	if "cubefit_log_handle" not in st.session_state:
+		st.session_state.cubefit_log_handle = None
 	if "drive_cache_dir" not in st.session_state:
 		st.session_state.drive_cache_dir = ""
 	if "drive_auto_paths" not in st.session_state:
@@ -2605,6 +3539,8 @@ def _ensure_state():
 		st.session_state.p6_synth_only_results = {}
 	if "p6_synth_only_warnings" not in st.session_state:
 		st.session_state.p6_synth_only_warnings = []
+	if "p6_synth_only_group_map" not in st.session_state:
+		st.session_state.p6_synth_only_group_map = {}
 	if "p6_guide_freqs_fit_input" not in st.session_state:
 		st.session_state.p6_guide_freqs_fit_input = _freqs_to_text([float(v) for v in DEFAULT_TARGET_FREQS])
 	if "p6_guide_freqs_fit_pending" not in st.session_state:
@@ -2640,9 +3576,8 @@ def _clear_fitting_outputs():
 	except Exception:
 		pass
 	try:
-		if bool(getattr(torch, "cuda", None)) and bool(torch.cuda.is_available()):
-			torch.cuda.empty_cache()
-			torch.cuda.ipc_collect()
+		# CPU-only runtime: no GPU cache maintenance.
+		pass
 	except Exception:
 		pass
 
@@ -2654,6 +3589,11 @@ def _is_running() -> bool:
 
 def _is_sim_running() -> bool:
 	proc = st.session_state.get("sim_proc", None)
+	return proc is not None and proc.poll() is None
+
+
+def _is_cubefit_running() -> bool:
+	proc = st.session_state.get("cubefit_proc", None)
 	return proc is not None and proc.poll() is None
 
 
@@ -2711,6 +3651,34 @@ def _stop_sim_process():
 		except Exception:
 			pass
 	st.session_state.sim_cfg_path = ""
+
+
+def _stop_cubefit_process():
+	proc = st.session_state.get("cubefit_proc", None)
+	if proc is not None and proc.poll() is None:
+		try:
+			proc.terminate()
+			proc.wait(timeout=6)
+		except Exception:
+			try:
+				proc.kill()
+			except Exception:
+				pass
+	st.session_state.cubefit_proc = None
+	fh = st.session_state.get("cubefit_log_handle", None)
+	if fh is not None:
+		try:
+			fh.close()
+		except Exception:
+			pass
+	st.session_state.cubefit_log_handle = None
+	cfgp = st.session_state.get("cubefit_cfg_path", "")
+	if cfgp and os.path.isfile(cfgp):
+		try:
+			os.remove(cfgp)
+		except Exception:
+			pass
+	st.session_state.cubefit_cfg_path = ""
 
 
 def _load_uploaded_map_preview(upload_obj):
@@ -2821,6 +3789,7 @@ def _cleanup_generated_outputs_on_startup_once():
 	roots = [
 		str(DEFAULT_OUTPUT_DIR),
 		os.path.join(str(DEFAULT_OUTPUT_DIR), "cube2"),
+		os.path.join(str(DEFAULT_OUTPUT_DIR), "cube_fit"),
 	]
 	for root in roots:
 		if (not root) or (not os.path.isdir(root)):
@@ -2833,7 +3802,7 @@ def _cleanup_generated_outputs_on_startup_once():
 					is_cube_fits = str(name).startswith(f"{DEFAULT_OUT_PREFIX}_target") and ln.endswith(".fits")
 					is_progress_png = ln.endswith("_inprogress_map.png")
 					is_progress_json = ln.endswith("_inprogress_map.json")
-					is_run_log = (ln.startswith("cube_run_") or ln.startswith("cube2_run_")) and ln.endswith(".log")
+					is_run_log = (ln.startswith("cube_run_") or ln.startswith("cube2_run_") or ln.startswith("cubefit_run_")) and ln.endswith(".log")
 					if is_cube_fits or is_progress_png or is_progress_json or is_run_log:
 						os.remove(p)
 				elif os.path.isdir(p):
@@ -2863,6 +3832,24 @@ def _cleanup_generated_outputs_for_dir(out_dir: str, include_cube2_logs: bool = 
 			elif os.path.isdir(p):
 				if str(name).startswith("uploaded_maps_") or str(name).startswith("implicit_maps_"):
 					shutil.rmtree(p, ignore_errors=True)
+		except Exception:
+			pass
+
+
+def _cleanup_cubefit_outputs_for_dir(out_dir: str):
+	if (not out_dir) or (not os.path.isdir(out_dir)):
+		return
+	for name in os.listdir(out_dir):
+		p = os.path.join(out_dir, name)
+		ln = str(name).lower()
+		try:
+			if os.path.isfile(p):
+				is_cubefit_fits = ln.startswith("cubefit_") and ln.endswith(".fits")
+				is_progress_png = ln.endswith("_inprogress_map.png")
+				is_progress_json = ln.endswith("_inprogress_map.json")
+				is_run_log = ln.startswith("cubefit_run_") and ln.endswith(".log")
+				if is_cubefit_fits or is_progress_png or is_progress_json or is_run_log:
+					os.remove(p)
 		except Exception:
 			pass
 
@@ -2930,6 +3917,7 @@ def _generate_obs_payload_cached(
 
 def run_streamlit_app():
 	st.set_page_config(page_title="OBSEMULATOR", page_icon="🧪", layout="wide")
+	runtime_info = _configure_runtime_resources_cpu_only()
 	_ensure_state()
 	_cleanup_generated_outputs_on_startup_once()
 	st.title("OBSEMULATOR")
@@ -2951,6 +3939,10 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 
 	with st.sidebar:
 		st.header("Model Upload")
+		st.caption(
+			f"Runtime: CPU-only | cores={runtime_info['cpu_count']} | "
+			f"threads={runtime_info['cpu_threads']}"
+		)
 		st.markdown("**Model Upload**")
 		up_signal_h5 = st.file_uploader("Upload signal models (.h5)", type=["h5", "hdf5"], key="p6_up_signal_h5")
 		up_noise_h5 = st.file_uploader("Upload noise models (.h5 bundle or single model)", type=["h5", "hdf5"], key="p6_up_noise_h5")
@@ -3003,6 +3995,21 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		else:
 			st.caption("Active source mode: manual paths")
 
+		st.markdown("---")
+		st.markdown("**Optional: use local preset paths (D:\\4.DATASETS)**")
+		use_local_preset = st.checkbox("Use local preset models", value=False, key="p6_use_local_preset")
+		if use_local_preset:
+			signal_models_root = str(DEFAULT_LOCAL_SIGNAL_H5)
+			noise_models_root = str(DEFAULT_LOCAL_NOISE_H5)
+			filter_file = str(DEFAULT_LOCAL_FILTER_FILE)
+			st.caption("Active source mode: local preset paths")
+			if (not os.path.isfile(signal_models_root)) and (not os.path.isdir(signal_models_root)):
+				st.warning(f"Local signal source not found: {signal_models_root}")
+			if not os.path.isfile(noise_models_root):
+				st.warning(f"Local noise file not found: {noise_models_root}")
+			if not os.path.isfile(filter_file):
+				st.warning(f"Local filter file not found: {filter_file}")
+
 		st.caption(f"Signal source in use: {signal_models_root}")
 		st.caption(f"Noise source in use: {noise_models_root}")
 		st.caption(f"Filter file in use: {filter_file}")
@@ -3026,7 +4033,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		st.caption("ROI selection mode for cube generation: exact overlap only (nearest disabled).")
 		noise_scale = st.number_input("Noise scale", min_value=0.0, value=float(DEFAULT_NOISE_SCALE), step=0.1, format="%.3f")
 
-	tab_cube, tab_cube2, tab_cube3, tab_fit = st.tabs(["Cube Generator", "Simulate Single Spectrum", "Simulate Single Synthetic Spectrum", "Fitting"])
+	tab_cube, tab_cube2, tab_cube3, tab_fit, tab_cube_fit = st.tabs(["Cube Generator", "Simulate Single Spectrum", "Simulate Single Synthetic Spectrum", "Fitting", "Cube Fitting"])
 
 	try:
 		syngen_path = _resolve_local_file("4.SYNGEN_Streamlit_v1.py")
@@ -3044,11 +4051,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			st.session_state.p6_guide_main_refresh = False
 			st.session_state.p6_guide_freqs_main_pending = ""
 		if not str(st.session_state.get("p6_guide_freqs_main_input", "")).strip():
-			last_main = str(st.session_state.get("p6_guide_freqs_main_last_nonempty", "")).strip()
-			if last_main:
-				st.session_state.p6_guide_freqs_main_input = last_main
-			else:
-				st.session_state.p6_guide_freqs_main_input = _freqs_to_text([float(v) for v in target_freqs])
+			st.session_state.p6_guide_freqs_main_input = _freqs_to_text([float(v) for v in DEFAULT_TARGET_FREQS])
 		guide_freqs_text = st.text_input(
 			"Guide frequencies (GHz; main list used for Start cube generation)",
 			key="p6_guide_freqs_main_input",
@@ -3471,15 +4474,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			st.session_state.p6_guide_cube2_refresh = False
 			st.session_state.p6_guide_freqs_cube2_pending = ""
 		if not str(st.session_state.get("p6_guide_freqs_cube2_input", "")).strip():
-			last_cube2 = str(st.session_state.get("p6_guide_freqs_cube2_last_nonempty", "")).strip()
-			if last_cube2:
-				st.session_state.p6_guide_freqs_cube2_input = last_cube2
-			else:
-				last_run_cube2 = [float(v) for v in st.session_state.get("p6_cube2_last_run_target_freqs", []) if np.isfinite(float(v))]
-				if last_run_cube2:
-					st.session_state.p6_guide_freqs_cube2_input = _freqs_to_text(last_run_cube2)
-				else:
-					st.session_state.p6_guide_freqs_cube2_input = _freqs_to_text([float(v) for v in target_freqs])
+			st.session_state.p6_guide_freqs_cube2_input = _freqs_to_text([float(v) for v in DEFAULT_TARGET_FREQS])
 		guide_freqs_text2 = st.text_input(
 			"Guide frequencies (GHz; main list used for Generate Observation)",
 			key="p6_guide_freqs_cube2_input",
@@ -3807,11 +4802,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			st.session_state.p6_guide_cube3_refresh = False
 			st.session_state.p6_guide_freqs_cube3_pending = ""
 		if not str(st.session_state.get("p6_guide_freqs_cube3_input", "")).strip():
-			last_cube3 = str(st.session_state.get("p6_guide_freqs_cube3_last_nonempty", "")).strip()
-			if last_cube3:
-				st.session_state.p6_guide_freqs_cube3_input = last_cube3
-			else:
-				st.session_state.p6_guide_freqs_cube3_input = _freqs_to_text([float(v) for v in target_freqs])
+			st.session_state.p6_guide_freqs_cube3_input = _freqs_to_text([float(v) for v in DEFAULT_TARGET_FREQS])
 
 		guide_freqs_text3 = st.text_input(
 			"Guide frequencies (GHz; main list used for Generate Synthetic Spectrum)",
@@ -3886,8 +4877,37 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			st.rerun()
 
 		guide_freqs_run3 = _normalize_target_freqs_for_run(parse_freq_list(str(st.session_state.get("p6_guide_freqs_cube3_input", ""))))
+		guide_freqs_run3_effective = [float(v) for v in guide_freqs_run3]
+		guide_group_map3: Dict[str, List[float]] = {}
 		if guide_freqs_run3:
-			st.caption("Target frequencies used for Simulate Single Synthetic Spectrum: " + _freqs_to_text(guide_freqs_run3))
+			try:
+				groups3 = _group_target_freqs_by_signal_roi(
+					signal_models_source=str(signal_models_root),
+					filter_file=str(filter_file),
+					target_freqs=[float(v) for v in guide_freqs_run3],
+					allow_nearest=bool(allow_nearest),
+				)
+				reps3: List[float] = []
+				for g3 in groups3:
+					rep3 = g3.get("representative_target_freq_ghz", np.nan)
+					if not np.isfinite(float(rep3)):
+						continue
+					rep3f = float(rep3)
+					reps3.append(rep3f)
+					gf3 = [float(v) for v in g3.get("guide_freqs_ghz", []) if np.isfinite(float(v))]
+					guide_group_map3[f"{rep3f:.9f}"] = (sorted(gf3) if gf3 else [rep3f])
+				reps3 = _normalize_target_freqs_for_run(reps3)
+				if reps3:
+					guide_freqs_run3_effective = [float(v) for v in reps3]
+			except Exception:
+				guide_freqs_run3_effective = [float(v) for v in guide_freqs_run3]
+
+		if guide_freqs_run3_effective:
+			st.caption("Target frequencies used for Simulate Single Synthetic Spectrum: " + _freqs_to_text(guide_freqs_run3_effective))
+			if len(guide_freqs_run3_effective) < len(guide_freqs_run3):
+				st.info(
+					f"Plot cleanup by ROI applied: {int(len(guide_freqs_run3) - len(guide_freqs_run3_effective))} guide frequency(ies) collapsed because they fall inside ROIs already represented."
+				)
 		else:
 			st.caption("Target frequencies used for Simulate Single Synthetic Spectrum: (empty)")
 
@@ -3903,7 +4923,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 
 		generate_synth_only = st.button("Generate Synthetic Spectrum", type="primary", key="p6_start_cube3")
 		if generate_synth_only:
-			if not guide_freqs_run3:
+			if not guide_freqs_run3_effective:
 				st.error("Guide frequencies está vacío. Agrega al menos una frecuencia o usa 'Add selected ROI combination to Guide frequencies'.")
 			elif not os.path.isfile(filter_file):
 				st.error(f"Filter file not found: {filter_file}")
@@ -3914,14 +4934,20 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					res3, warn3 = _generate_synthetic_spectra_for_targets(
 						signal_models_source=str(signal_models_root),
 						filter_file=str(filter_file),
-						target_freqs=[float(v) for v in guide_freqs_run3],
+						target_freqs=[float(v) for v in guide_freqs_run3_effective],
 						x_features=[float(logn_cube3), float(tex_cube3), float(velo_cube3), float(fwhm_cube3)],
 						pred_mode=DEFAULT_PRED_MODE,
 						selected_model_name=DEFAULT_SELECTED_MODEL_NAME,
 						allow_nearest=bool(allow_nearest),
 					)
+				cleanup_warn3: List[str] = []
+				if len(guide_freqs_run3_effective) < len(guide_freqs_run3):
+					cleanup_warn3.append(
+						f"Guide-frequency ROI cleanup applied: input={len(guide_freqs_run3)} -> effective={len(guide_freqs_run3_effective)}"
+					)
 				st.session_state.p6_synth_only_results = dict(res3)
-				st.session_state.p6_synth_only_warnings = list(warn3)
+				st.session_state.p6_synth_only_warnings = list(cleanup_warn3) + list(warn3)
+				st.session_state.p6_synth_only_group_map = dict(guide_group_map3)
 				if res3:
 					st.success("Synthetic-only spectra generated.")
 				else:
@@ -3936,8 +4962,31 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		if uploaded_overlay is not None and up_err3 is not None:
 			st.warning(f"Uploaded spectrum could not be parsed: {up_err3}")
 
+		syn_shift_enabled = st.checkbox("Apply uploaded spectrum frequency shift", value=True, key="p6_syn_only_shift_enabled")
+		syn_shift_mode = st.selectbox(
+			"Shift mode",
+			options=["per_frequency", "spw_center"],
+			index=0,
+			key="p6_syn_only_shift_mode",
+		)
+		syn_shift_kms = st.number_input(
+			"Uploaded spectrum shift (km/s)",
+			value=-98.0,
+			step=0.1,
+			format="%.4f",
+			key="p6_syn_only_shift_kms",
+		)
+		up_freq3_used = None if up_freq3 is None else np.asarray(up_freq3, dtype=np.float64).copy()
+		if (up_freq3_used is not None) and bool(syn_shift_enabled):
+			if str(syn_shift_mode).strip().lower() == "spw_center":
+				up_freq3_used = _apply_velocity_shift_by_spw_center(up_freq3_used, float(syn_shift_kms))
+			else:
+				up_freq3_used = _apply_velocity_shift_to_frequency(up_freq3_used, float(syn_shift_kms))
+			st.caption(f"Uploaded overlay shifted by {float(syn_shift_kms):+.4f} km/s using mode: {str(syn_shift_mode)}")
+
 		results3 = st.session_state.get("p6_synth_only_results", {})
 		warns3 = st.session_state.get("p6_synth_only_warnings", [])
+		group_map3_state = st.session_state.get("p6_synth_only_group_map", {})
 		if isinstance(warns3, list) and warns3:
 			with st.expander("Show synthetic-only warnings"):
 				st.text("\n".join([str(w) for w in warns3]))
@@ -3970,14 +5019,14 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					)
 				)
 
-			if (up_freq3 is not None) and (up_vals3 is not None):
-				all_fmins.append(float(np.nanmin(up_freq3)))
-				all_fmaxs.append(float(np.nanmax(up_freq3)))
+			if (up_freq3_used is not None) and (up_vals3 is not None):
+				all_fmins.append(float(np.nanmin(up_freq3_used)))
+				all_fmaxs.append(float(np.nanmax(up_freq3_used)))
 				all_ymins.append(float(np.nanmin(up_vals3)))
 				all_ymaxs.append(float(np.nanmax(up_vals3)))
 				fig3_all.add_trace(
 					go.Scatter(
-						x=up_freq3,
+						x=up_freq3_used,
 						y=up_vals3,
 						mode="lines",
 						name="Uploaded synthetic",
@@ -4016,8 +5065,19 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				item3 = results3.get(k3, {})
 				f3 = np.asarray(item3.get("freq", []), dtype=np.float64)
 				y3 = np.asarray(item3.get("synthetic", []), dtype=np.float64)
+				guide_label3 = ""
+				try:
+					gvals3 = group_map3_state.get(f"{float(k3):.9f}", []) if isinstance(group_map3_state, dict) else []
+					gvals3 = [float(v) for v in gvals3 if np.isfinite(float(v))]
+					if gvals3:
+						guide_label3 = _format_freqs_short(gvals3, max_show=6)
+				except Exception:
+					guide_label3 = ""
 				with cols3[i_k % n_cols3]:
-					st.caption(f"target {float(item3.get('target_freq_ghz', float(k3))):.6f} GHz")
+					if guide_label3:
+						st.caption(f"Guide freqs in ROI: {guide_label3} GHz")
+					else:
+						st.caption(f"target {float(item3.get('target_freq_ghz', float(k3))):.6f} GHz")
 					if f3.size == 0 or y3.size == 0:
 						st.caption("No data")
 						continue
@@ -4027,13 +5087,13 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					pad3 = float(max(5e-5, 0.08 * span3))
 					fig3 = go.Figure()
 					fig3.add_trace(go.Scatter(x=f3, y=y3, mode="lines", name="Synthetic"))
-					if (up_freq3 is not None) and (up_vals3 is not None):
-						fig3.add_trace(go.Scatter(x=up_freq3, y=up_vals3, mode="lines", name="Uploaded synthetic", line=dict(dash="dot")))
+					if (up_freq3_used is not None) and (up_vals3 is not None):
+						fig3.add_trace(go.Scatter(x=up_freq3_used, y=up_vals3, mode="lines", name="Uploaded synthetic", line=dict(dash="dot")))
 
 					y_min_local = float(np.nanmin(y3))
 					y_max_local = float(np.nanmax(y3))
-					if (up_freq3 is not None) and (up_vals3 is not None):
-						m_up = (np.asarray(up_freq3, dtype=np.float64) >= (fmin3 - pad3)) & (np.asarray(up_freq3, dtype=np.float64) <= (fmax3 + pad3))
+					if (up_freq3_used is not None) and (up_vals3 is not None):
+						m_up = (np.asarray(up_freq3_used, dtype=np.float64) >= (fmin3 - pad3)) & (np.asarray(up_freq3_used, dtype=np.float64) <= (fmax3 + pad3))
 						if np.any(m_up):
 							y_up = np.asarray(up_vals3, dtype=np.float64)[m_up]
 							y_min_local = float(min(y_min_local, float(np.nanmin(y_up))))
@@ -4056,7 +5116,11 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				sel_key3 = st.selectbox(
 					"Select target frequency to export spectrum",
 					options=keys3,
-					format_func=lambda k: f"target {float(k):.6f} GHz",
+					format_func=lambda k: (
+						f"Guide freqs: {_format_freqs_short([float(v) for v in group_map3_state.get(f'{float(k):.9f}', [])], max_show=6)} GHz"
+						if isinstance(group_map3_state, dict) and group_map3_state.get(f"{float(k):.9f}", [])
+						else f"target {float(k):.6f} GHz"
+					),
 					key="p6_synthonly_download_select",
 				)
 				sel_item3 = results3.get(str(sel_key3), {})
@@ -4093,11 +5157,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			st.session_state.p6_guide_fit_refresh = False
 			st.session_state.p6_guide_freqs_fit_pending = ""
 		if not str(st.session_state.get("p6_guide_freqs_fit_input", "")).strip():
-			last_fit = str(st.session_state.get("p6_guide_freqs_fit_last_nonempty", "")).strip()
-			if last_fit:
-				st.session_state.p6_guide_freqs_fit_input = last_fit
-			else:
-				st.session_state.p6_guide_freqs_fit_input = _freqs_to_text([float(v) for v in target_freqs])
+			st.session_state.p6_guide_freqs_fit_input = _freqs_to_text([float(v) for v in DEFAULT_TARGET_FREQS])
 
 		guide_freqs_fit_text = st.text_input(
 			"Guide frequencies (GHz; defines ROIs to fit)",
@@ -4156,7 +5216,8 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			key="p6_fit_shift_kms",
 		)
 
-		obs_freq_fit_used = None if obs_freq_fit is None else np.asarray(obs_freq_fit, dtype=np.float64).copy()
+		obs_freq_fit_raw = None if obs_freq_fit is None else np.asarray(obs_freq_fit, dtype=np.float64).copy()
+		obs_freq_fit_used = None if obs_freq_fit_raw is None else np.asarray(obs_freq_fit_raw, dtype=np.float64).copy()
 		obs_vals_fit_used = None if obs_vals_fit is None else np.asarray(obs_vals_fit, dtype=np.float64).copy()
 		if (obs_freq_fit_used is not None) and bool(obs_shift_enabled):
 			if str(obs_shift_mode).strip().lower() == "spw_center":
@@ -4165,11 +5226,38 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				obs_freq_fit_used = _apply_velocity_shift_to_frequency(obs_freq_fit_used, float(obs_shift_kms))
 			st.caption(f"Observational spectrum shifted by {float(obs_shift_kms):+.4f} km/s using mode: {str(obs_shift_mode)}")
 
+		fit_shift_optimize = st.checkbox(
+			"Optimize observational shift in first round",
+			value=False,
+			key="p6_fit_shift_optimize",
+		)
+		fso1, fso2 = st.columns(2)
+		with fso1:
+			fit_shift_scan_half_window = st.number_input(
+				"Shift scan half-window (km/s)",
+				min_value=0.0,
+				value=2.0,
+				step=0.1,
+				format="%.3f",
+				key="p6_fit_shift_scan_half_window",
+				disabled=not bool(fit_shift_optimize),
+			)
+		with fso2:
+			fit_shift_scan_points = st.number_input(
+				"Shift scan points",
+				min_value=3,
+				max_value=21,
+				value=5,
+				step=2,
+				key="p6_fit_shift_scan_points",
+				disabled=not bool(fit_shift_optimize),
+			)
+
 		with st.expander("Fitting search ranges and speed settings", expanded=False):
 			fit_global_mode_ui = st.selectbox(
 				"Global fit strategy",
 				options=["Per-ROI aggregate", "Concatenated ROIs (single objective)"],
-				index=0,
+				index=1,
 				key="p6_fit_global_mode",
 			)
 			fit_global_mode_map = {
@@ -4179,7 +5267,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			fit_criterion_ui = st.selectbox(
 				"Fitting criterion",
 				options=["MAE", "RMSE", "CHI_like", "R2"],
-				index=2,
+				index=1,
 				key="p6_fit_criterion",
 			)
 			fit_candidate_mode_ui = st.selectbox(
@@ -4230,7 +5318,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 
 			cfsp1, cfsp2 = st.columns(2)
 			with cfsp1:
-				n_candidates_fit = st.number_input("Number of candidates", min_value=50, max_value=4000, value=600, step=50, key="p6_fit_n_candidates")
+				n_candidates_fit = st.number_input("Number of candidates", min_value=50, max_value=4000, value=300, step=50, key="p6_fit_n_candidates")
 			with cfsp2:
 				seed_fit = st.number_input("Random seed", min_value=0, value=42, step=1, key="p6_fit_seed")
 
@@ -4258,24 +5346,96 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					"fwhm_max": float(max(fit_fwhm_min, fit_fwhm_max)),
 				}
 				with st.spinner("Running efficient batch fitting per ROI..."):
-					fit_result = _run_roi_fitting(
-						signal_models_source=str(signal_models_root),
-						noise_models_root=str(noise_models_root),
-						filter_file=str(filter_file),
-						target_freqs=[float(v) for v in guide_freqs_fit],
-						obs_freq=np.asarray(obs_freq_fit_used, dtype=np.float64),
-						obs_intensity=np.asarray(obs_vals_fit_used, dtype=np.float64),
-						case_mode=str(fit_case_mode),
-						fit_criterion=str(fit_criterion_ui).strip().lower(),
-						global_weight_mode=str(fit_weight_mode_map.get(str(fit_weight_mode_ui), "uniform")),
-						global_search_mode=str(fit_global_mode_map.get(str(fit_global_mode_ui), "per_roi")),
-						candidate_mode=str(fit_candidate_mode_map.get(str(fit_candidate_mode_ui), "random")),
-						n_candidates=int(n_candidates_fit),
+					fit_candidate_mode_internal = str(fit_candidate_mode_map.get(str(fit_candidate_mode_ui), "random"))
+					X_shared_fit = _sample_fit_candidates(
+						n_samples=int(n_candidates_fit),
 						ranges=ranges_fit,
-						noise_scale=float(noise_scale),
-						allow_nearest=bool(allow_nearest),
 						seed=int(seed_fit),
+						mode=str(fit_candidate_mode_internal),
 					)
+
+					noise_models_shared_fit = None
+					if str(fit_case_mode).strip().lower() == "synthetic_plus_noise":
+						entries_fit = _list_noise_model_entries(str(noise_models_root))
+						nm_fit = []
+						for efit in entries_fit:
+							try:
+								mfit, syfit, cfit = _load_noisenn_from_entry(efit)
+								mfit.eval()
+								nm_fit.append((mfit, syfit, cfit))
+							except Exception:
+								continue
+						noise_models_shared_fit = nm_fit
+
+					pkg_cache_shared_fit: Dict[str, object] = {}
+
+					shift_values: List[float] = []
+					if bool(fit_shift_optimize) and bool(obs_shift_enabled) and (obs_freq_fit_raw is not None):
+						n_pts = int(max(3, min(21, int(fit_shift_scan_points))))
+						if (n_pts % 2) == 0:
+							n_pts += 1
+						half = float(max(0.0, float(fit_shift_scan_half_window)))
+						shift_values = [
+							float(v) for v in np.linspace(float(obs_shift_kms) - half, float(obs_shift_kms) + half, num=n_pts)
+						]
+					else:
+						shift_values = [float(obs_shift_kms)]
+
+					fit_result = None
+					best_result = None
+					best_shift = None
+					best_obj = np.inf
+					n_ok = 0
+					for sh in shift_values:
+						obs_freq_trial = np.asarray(obs_freq_fit_used, dtype=np.float64)
+						if (obs_freq_fit_raw is not None) and bool(obs_shift_enabled):
+							obs_freq_trial = np.asarray(obs_freq_fit_raw, dtype=np.float64).copy()
+							if str(obs_shift_mode).strip().lower() == "spw_center":
+								obs_freq_trial = _apply_velocity_shift_by_spw_center(obs_freq_trial, float(sh))
+							else:
+								obs_freq_trial = _apply_velocity_shift_to_frequency(obs_freq_trial, float(sh))
+
+						res_trial = _run_roi_fitting(
+							signal_models_source=str(signal_models_root),
+							noise_models_root=str(noise_models_root),
+							filter_file=str(filter_file),
+							target_freqs=[float(v) for v in guide_freqs_fit],
+							obs_freq=np.asarray(obs_freq_trial, dtype=np.float64),
+							obs_intensity=np.asarray(obs_vals_fit_used, dtype=np.float64),
+							case_mode=str(fit_case_mode),
+							fit_criterion=str(fit_criterion_ui).strip().lower(),
+							global_weight_mode=str(fit_weight_mode_map.get(str(fit_weight_mode_ui), "inverse_best_error")),
+							global_search_mode=str(fit_global_mode_map.get(str(fit_global_mode_ui), "concatenated")),
+							candidate_mode=str(fit_candidate_mode_internal),
+							n_candidates=int(n_candidates_fit),
+							ranges=ranges_fit,
+							noise_scale=float(noise_scale),
+							allow_nearest=bool(allow_nearest),
+							seed=int(seed_fit),
+							x_candidates_override=np.asarray(X_shared_fit, dtype=np.float32),
+							noise_models_loaded_override=noise_models_shared_fit,
+							pkg_cache_override=pkg_cache_shared_fit,
+							refine_after_first_fit=False,
+						)
+						if isinstance(res_trial, dict) and bool(res_trial.get("ok", False)):
+							n_ok += 1
+							obj = float(res_trial.get("best_global_mean_objective", np.inf))
+							if np.isfinite(obj) and (obj < best_obj):
+								best_obj = float(obj)
+								best_shift = float(sh)
+								best_result = res_trial
+						if fit_result is None:
+							fit_result = res_trial
+
+					if best_result is not None:
+						fit_result = best_result
+					if not isinstance(fit_result, dict):
+						fit_result = {"ok": False, "message": "No fitting result available.", "warnings": []}
+
+					fit_result["obs_shift_scan_enabled"] = bool(fit_shift_optimize and obs_shift_enabled)
+					fit_result["obs_shift_scan_values_kms"] = [float(v) for v in shift_values]
+					fit_result["obs_shift_scan_n_ok"] = int(n_ok)
+					fit_result["obs_shift_kms_used"] = float(best_shift if best_shift is not None else obs_shift_kms)
 				st.session_state.p6_fit_last_result = fit_result
 
 		fit_result = st.session_state.get("p6_fit_last_result", None)
@@ -4300,10 +5460,31 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					f"Mode: {fit_result.get('case_mode', '')} | "
 					f"Global strategy: {fit_result.get('global_search_mode', 'per_roi')} | "
 					f"Candidates: {int(fit_result.get('n_candidates', 0))} | "
+					f"Guide freqs input: {int(fit_result.get('n_guide_freqs_input', 0))} | "
+					f"Unique ROIs from guide freqs: {int(fit_result.get('n_unique_rois_requested', 0))} | "
 					f"ROIs fitted: {int(fit_result.get('n_rois_fitted', 0))} | "
 					f"Sampling: {fit_result.get('candidate_mode', 'ordered_grid')} | "
 					f"Weighting: {fit_result.get('global_weight_mode', 'uniform')}"
 				)
+				if "obs_shift_kms_used" in fit_result:
+					st.caption(
+						f"Observational shift used for best fit: {float(fit_result.get('obs_shift_kms_used', obs_shift_kms)):+.4f} km/s"
+					)
+					if bool(fit_result.get("obs_shift_scan_enabled", False)):
+						st.caption(
+							f"Shift scan points: {len(list(fit_result.get('obs_shift_scan_values_kms', [])))} | successful fits: {int(fit_result.get('obs_shift_scan_n_ok', 0))}"
+						)
+				if bool(fit_result.get("refinement_applied", False)):
+					if bool(fit_result.get("refinement_used_result", False)):
+						st.info(
+							f"Two-stage fitting applied: refined around initial best with ±{100.0 * float(fit_result.get('refinement_span_fraction', np.nan)):.1f}% local window | "
+							f"candidates initial/refined = {int(fit_result.get('n_candidates_initial', 0))}/{int(fit_result.get('refinement_n_candidates', 0))}"
+						)
+					else:
+						st.caption("Two-stage fitting attempted, but initial global solution was retained.")
+				n_zero_skip = int(fit_result.get("n_rois_skipped_zero_observed", 0))
+				if n_zero_skip > 0:
+					st.info(f"ROIs excluded from fitting because observed segment is all zeros: {n_zero_skip}")
 
 				global_overlay = fit_result.get("global_overlay", [])
 				if isinstance(global_overlay, list) and global_overlay:
@@ -4311,23 +5492,49 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					for gg in global_overlay:
 						fg = np.asarray(gg.get("freq", []), dtype=np.float64)
 						yg_obs = np.asarray(gg.get("obs_interp", []), dtype=np.float64)
+						yg_syn = np.asarray(gg.get("best_global_synthetic", []), dtype=np.float64)
+						yg_noise = gg.get("best_global_noise", None)
 						yg_pred = np.asarray(gg.get("best_global_pred", []), dtype=np.float64)
 						if fg.size == 0 or yg_pred.size != fg.size:
 							continue
-						segments.append((float(np.nanmin(fg)), fg, yg_obs, yg_pred, gg))
+						if yg_syn.size != fg.size:
+							yg_syn = np.full_like(fg, np.nan, dtype=np.float64)
+						if yg_noise is None:
+							yg_noise_arr = np.full_like(fg, np.nan, dtype=np.float64)
+						else:
+							yg_noise_arr = np.asarray(yg_noise, dtype=np.float64)
+							if yg_noise_arr.size != fg.size:
+								yg_noise_arr = np.full_like(fg, np.nan, dtype=np.float64)
+						segments.append((float(np.nanmin(fg)), fg, yg_obs, yg_syn, yg_noise_arr, yg_pred, gg))
 
 					if segments:
 						segments = sorted(segments, key=lambda t: t[0])
 						f_cat = []
-						o_cat = []
+						s_cat = []
+						n_cat = []
 						p_cat = []
-						for i_s, (_, fg, og, pg, _) in enumerate(segments):
+						roi_shapes = []
+						for i_s, (_, fg, og, sg, ng, pg, _) in enumerate(segments):
+							roi_shapes.append({
+								"type": "rect",
+								"xref": "x",
+								"yref": "paper",
+								"x0": float(np.nanmin(fg)),
+								"x1": float(np.nanmax(fg)),
+								"y0": 0.0,
+								"y1": 1.0,
+								"fillcolor": "rgba(140,140,140,0.18)",
+								"line": {"width": 0},
+								"layer": "below",
+							})
 							if i_s > 0:
 								f_cat.append(np.array([np.nan], dtype=np.float64))
-								o_cat.append(np.array([np.nan], dtype=np.float64))
+								s_cat.append(np.array([np.nan], dtype=np.float64))
+								n_cat.append(np.array([np.nan], dtype=np.float64))
 								p_cat.append(np.array([np.nan], dtype=np.float64))
 							f_cat.append(fg)
-							o_cat.append(og)
+							s_cat.append(sg)
+							n_cat.append(ng)
 							p_cat.append(pg)
 
 						fig_global = go.Figure()
@@ -4342,22 +5549,30 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 							))
 						fig_global.add_trace(go.Scatter(
 							x=np.concatenate(f_cat),
-							y=np.concatenate(o_cat),
+							y=np.concatenate(s_cat),
 							mode="lines",
-							name="Observed (ROI interp)",
-							line=dict(dash="dot", width=1.2, color="#2ca02c"),
+							name="Best synthetic (global)",
+							line=dict(dash="dash", width=1.6, color="#1f77b4"),
+						))
+						fig_global.add_trace(go.Scatter(
+							x=np.concatenate(f_cat),
+							y=np.concatenate(n_cat),
+							mode="lines",
+							name="Best noise (global)",
+							line=dict(dash="dot", width=1.4, color="#9467bd"),
 						))
 						fig_global.add_trace(go.Scatter(
 							x=np.concatenate(f_cat),
 							y=np.concatenate(p_cat),
 							mode="lines",
 							name="Best fit (global)",
-							line=dict(width=2.0),
+							line=dict(width=2.2, color="red"),
 						))
 						fig_global.update_layout(
 							title="Observed spectrum vs best global fit",
 							xaxis_title="Frequency (GHz)",
 							yaxis_title="Intensity",
+							shapes=roi_shapes,
 							template="plotly_white",
 							height=430,
 							margin=dict(l=40, r=20, t=45, b=40),
@@ -4381,7 +5596,22 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 						yn = pf.get("best_noise", None)
 						yp = np.asarray(pf.get("best_pred", []), dtype=np.float64)
 						with cols_fit[i_pf % n_cols_fit]:
-							st.caption(f"target {float(pf.get('target_freq_ghz', np.nan)):.6f} GHz")
+							gf_list = [float(v) for v in pf.get("guide_freqs_ghz", [])]
+							gf_label = str(pf.get("guide_freqs_label", "")).strip()
+							if (not gf_label) and gf_list:
+								gf_label = _format_freqs_short(gf_list)
+							n_gf = int(pf.get("n_guide_freqs_in_roi", max(1, len(gf_list))))
+							roi_lo = pf.get("roi_f_min_ghz", np.nan)
+							roi_hi = pf.get("roi_f_max_ghz", np.nan)
+							if np.isfinite(float(roi_lo)) and np.isfinite(float(roi_hi)):
+								st.caption(
+									f"ROI [{float(roi_lo):.6f}, {float(roi_hi):.6f}] GHz | "
+									f"Guide freqs in ROI ({int(n_gf)}): {gf_label if gf_label else f'{float(pf.get('target_freq_ghz', np.nan)):.6f}'} GHz"
+								)
+							else:
+								st.caption(
+									f"Guide freqs in ROI ({int(n_gf)}): {gf_label if gf_label else f'{float(pf.get('target_freq_ghz', np.nan)):.6f}'} GHz"
+								)
 							fig_fit = go.Figure()
 							fig_fit.add_trace(go.Scatter(x=fpf, y=yobs, mode="lines", name="Observed (interp)", line=dict(color="green")))
 							fig_fit.add_trace(go.Scatter(x=fpf, y=ys, mode="lines", name="Best synthetic", line=dict(dash="dash")))
@@ -4398,12 +5628,314 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 							st.plotly_chart(fig_fit, width="stretch", key=f"p6_fit_plot_{i_pf}")
 
 			warns_fit = fit_result.get("warnings", [])
+			rows_fit_for_map = fit_result.get("per_roi", [])
+			if isinstance(rows_fit_for_map, list) and rows_fit_for_map:
+				with st.expander("Guide frequencies mapped to fitted ROIs"):
+					for rr in rows_fit_for_map:
+						gfl = str(rr.get("guide_freqs_label", "")).strip()
+						if not gfl:
+							gfl = f"{float(rr.get('target_freq_ghz', np.nan)):.6f}"
+						lo = rr.get("roi_f_min_ghz", np.nan)
+						hi = rr.get("roi_f_max_ghz", np.nan)
+						if np.isfinite(float(lo)) and np.isfinite(float(hi)):
+							st.write(
+								f"ROI [{float(lo):.6f}, {float(hi):.6f}] GHz <- Guide freqs: {gfl} GHz"
+							)
+						else:
+							st.write(f"Guide freqs: {gfl} GHz")
 			if isinstance(warns_fit, list) and warns_fit:
 				with st.expander("Show fitting warnings"):
 					st.text("\n".join([str(w) for w in warns_fit]))
 
+	with tab_cube_fit:
+		st.subheader("Cube Fitting")
+		st.caption("Same fitting parameterization as 'Fitting', but applied pixel-by-pixel to an uploaded observational cube to produce LogN/Tex/Velocity/FWHM maps.")
+
+		guide_freqs_cfit_text = st.text_input(
+			"Guide frequencies (GHz; defines ROIs to fit in every pixel)",
+			value=_freqs_to_text([float(v) for v in target_freqs]),
+			key="p6_guide_freqs_cfit_input",
+		)
+		guide_freqs_cfit = _normalize_target_freqs_for_run(parse_freq_list(str(guide_freqs_cfit_text)))
+		if guide_freqs_cfit:
+			st.caption("Target frequencies used for cube fitting: " + _freqs_to_text(guide_freqs_cfit))
+
+		up_obs_cube_fit = st.file_uploader(
+			"Upload observational cube (.fits)",
+			type=["fits"],
+			key="p6_cubefit_upload_cube",
+		)
+		obs_cube_fit_path = _save_uploaded_file_to_temp(up_obs_cube_fit, "cubefit_obs_cube") if up_obs_cube_fit is not None else None
+
+		cubefit_out_dir = st.text_input("Output directory", value=os.path.join(DEFAULT_OUTPUT_DIR, "cube_fit"), key="p6_cubefit_out_dir")
+		cubefit_progress_every = st.number_input("Progress every N pixels", min_value=1, value=40, step=1, key="p6_cubefit_progress_every")
+		cubefit_spatial_stride = st.number_input("Spatial stride (1=all pixels, 2=every 2 pixels)", min_value=1, value=1, step=1, key="p6_cubefit_spatial_stride")
+
+		cubefit_case = st.radio(
+			"Fitting mode",
+			options=["Case 1: Synthetic only", "Case 2: Synthetic + noise"],
+			horizontal=True,
+			key="p6_cubefit_case_mode",
+		)
+		cubefit_case_mode = "synthetic_only" if "Case 1" in str(cubefit_case) else "synthetic_plus_noise"
+
+		cubefit_shift_enabled = st.checkbox("Apply observational frequency shift", value=True, key="p6_cubefit_shift_enabled")
+		cubefit_shift_mode = st.selectbox(
+			"Shift mode",
+			options=["per_frequency", "spw_center"],
+			index=0,
+			key="p6_cubefit_shift_mode",
+		)
+		cubefit_shift_kms = st.number_input(
+			"Observational shift (km/s)",
+			value=-98.0,
+			step=0.1,
+			format="%.4f",
+			key="p6_cubefit_shift_kms",
+		)
+
+		with st.expander("Fitting search ranges and speed settings", expanded=False):
+			cubefit_global_mode_ui = st.selectbox(
+				"Global fit strategy",
+				options=["Per-ROI aggregate", "Concatenated ROIs (single objective)"],
+				index=1,
+				key="p6_cubefit_global_mode",
+			)
+			cubefit_global_mode_map = {
+				"Per-ROI aggregate": "per_roi",
+				"Concatenated ROIs (single objective)": "concatenated",
+			}
+			cubefit_criterion_ui = st.selectbox(
+				"Fitting criterion",
+				options=["MAE", "RMSE", "CHI_like", "R2"],
+				index=1,
+				key="p6_cubefit_criterion",
+			)
+			cubefit_candidate_mode_ui = st.selectbox(
+				"Candidate generation",
+				options=["Smart ordered grid", "Random"],
+				index=1,
+				key="p6_cubefit_candidate_mode",
+			)
+			cubefit_candidate_mode_map = {
+				"Smart ordered grid": "ordered_grid",
+				"Random": "random",
+			}
+			cubefit_weight_mode_ui = st.selectbox(
+				"Global aggregation weighting",
+				options=[
+					"Uniform (all ROIs equal)",
+					"By overlap points per ROI",
+					"By ROI fit quality (criterion-aware)",
+				],
+				index=2,
+				key="p6_cubefit_weight_mode",
+			)
+			cubefit_weight_mode_map = {
+				"Uniform (all ROIs equal)": "uniform",
+				"By overlap points per ROI": "overlap_points",
+				"By ROI fit quality (criterion-aware)": "inverse_best_error",
+			}
+			cc1, cc2, cc3, cc4 = st.columns(4)
+			with cc1:
+				cubefit_logn_min = st.number_input("logN min", value=14.0, key="p6_cubefit_logn_min")
+				cubefit_logn_max = st.number_input("logN max", value=19.5, key="p6_cubefit_logn_max")
+			with cc2:
+				cubefit_tex_min = st.number_input("Tex min", value=100.0, key="p6_cubefit_tex_min")
+				cubefit_tex_max = st.number_input("Tex max", value=380.0, key="p6_cubefit_tex_max")
+			with cc3:
+				cubefit_velo_min = st.number_input("Velocity min", value=90.0, key="p6_cubefit_velo_min")
+				cubefit_velo_max = st.number_input("Velocity max", value=105.0, key="p6_cubefit_velo_max")
+			with cc4:
+				cubefit_fwhm_min = st.number_input("FWHM min", value=5.0, key="p6_cubefit_fwhm_min")
+				cubefit_fwhm_max = st.number_input("FWHM max", value=8.0, key="p6_cubefit_fwhm_max")
+
+			ccs1, ccs2 = st.columns(2)
+			with ccs1:
+				cubefit_n_candidates = st.number_input("Number of candidates", min_value=50, max_value=4000, value=300, step=50, key="p6_cubefit_n_candidates")
+			with ccs2:
+				cubefit_seed = st.number_input("Random seed", min_value=0, value=42, step=1, key="p6_cubefit_seed")
+
+		cbf1, cbf2 = st.columns(2)
+		with cbf1:
+			run_cubefit = st.button("Run cube fitting", type="primary", key="p6_run_cubefit_btn", disabled=_is_cubefit_running())
+		with cbf2:
+			stop_cubefit = st.button("Stop cube fitting", key="p6_stop_cubefit_btn", disabled=not _is_cubefit_running())
+
+		if run_cubefit:
+			if obs_cube_fit_path is None or (not os.path.isfile(str(obs_cube_fit_path))):
+				st.error("Upload a valid observational cube first.")
+			elif not guide_freqs_cfit:
+				st.error("Guide frequencies is empty. Add at least one frequency.")
+			elif not os.path.isfile(filter_file):
+				st.error(f"Filter file not found: {filter_file}")
+			elif (not signal_models_root) or ((not os.path.isfile(signal_models_root)) and (not os.path.isdir(signal_models_root))):
+				st.error("Signal models source invalid.")
+			elif (str(cubefit_case_mode).strip().lower() == "synthetic_plus_noise") and (not _is_valid_noise_source(noise_models_root)):
+				st.error("Noise models source invalid for Case 2.")
+			else:
+				try:
+					os.makedirs(cubefit_out_dir, exist_ok=True)
+					_cleanup_cubefit_outputs_for_dir(str(cubefit_out_dir))
+					ranges_cubefit = {
+						"logn_min": float(min(cubefit_logn_min, cubefit_logn_max)),
+						"logn_max": float(max(cubefit_logn_min, cubefit_logn_max)),
+						"tex_min": float(min(cubefit_tex_min, cubefit_tex_max)),
+						"tex_max": float(max(cubefit_tex_min, cubefit_tex_max)),
+						"velo_min": float(min(cubefit_velo_min, cubefit_velo_max)),
+						"velo_max": float(max(cubefit_velo_min, cubefit_velo_max)),
+						"fwhm_min": float(min(cubefit_fwhm_min, cubefit_fwhm_max)),
+						"fwhm_max": float(max(cubefit_fwhm_min, cubefit_fwhm_max)),
+					}
+					cfg_cfit = {
+						"out_dir": str(cubefit_out_dir),
+						"obs_cube_path": str(obs_cube_fit_path),
+						"signal_models_source": str(signal_models_root),
+						"noise_models_root": str(noise_models_root),
+						"filter_file": str(filter_file),
+						"target_freqs": [float(v) for v in guide_freqs_cfit],
+						"case_mode": str(cubefit_case_mode),
+						"fit_criterion": str(cubefit_criterion_ui).strip().lower(),
+						"global_weight_mode": str(cubefit_weight_mode_map.get(str(cubefit_weight_mode_ui), "inverse_best_error")),
+						"global_search_mode": str(cubefit_global_mode_map.get(str(cubefit_global_mode_ui), "concatenated")),
+						"candidate_mode": str(cubefit_candidate_mode_map.get(str(cubefit_candidate_mode_ui), "random")),
+						"n_candidates": int(cubefit_n_candidates),
+						"ranges": ranges_cubefit,
+						"noise_scale": float(noise_scale),
+						"allow_nearest": bool(allow_nearest),
+						"seed": int(cubefit_seed),
+						"progress_every": int(cubefit_progress_every),
+						"spatial_stride": int(cubefit_spatial_stride),
+						"obs_shift_enabled": bool(cubefit_shift_enabled),
+						"obs_shift_mode": str(cubefit_shift_mode),
+						"obs_shift_kms": float(cubefit_shift_kms),
+						"out_prefix": "CUBEFIT",
+					}
+					fdc, cfg_cfit_path = tempfile.mkstemp(prefix="predobs6_cubefit_cfg_", suffix=".json", dir=tempfile.gettempdir())
+					os.close(fdc)
+					with open(cfg_cfit_path, "w", encoding="utf-8") as f:
+						json.dump(cfg_cfit, f, ensure_ascii=False, indent=2)
+					log_cfit_path = os.path.join(cubefit_out_dir, f"cubefit_run_{time.strftime('%Y%m%d_%H%M%S')}.log")
+					log_cfit_fh = open(log_cfit_path, "a", encoding="utf-8", buffering=1)
+					proc_cfit = subprocess.Popen(
+						[sys.executable, str(Path(__file__).resolve()), "--cube-fit-worker", cfg_cfit_path],
+						cwd=str(_project_dir()),
+						stdout=log_cfit_fh,
+						stderr=subprocess.STDOUT,
+						text=True,
+					)
+					st.session_state.cubefit_proc = proc_cfit
+					st.session_state.cubefit_log_path = log_cfit_path
+					st.session_state.cubefit_cfg_path = cfg_cfit_path
+					st.session_state.cubefit_log_handle = log_cfit_fh
+					st.success("Cube fitting started.")
+				except Exception as e:
+					st.error(f"Could not start cube fitting: {e}")
+
+		if stop_cubefit:
+			_stop_cubefit_process()
+			st.warning("Cube fitting stopped by user.")
+
+		if _is_cubefit_running():
+			st.info("Cube fitting status: running")
+		else:
+			proc_cf = st.session_state.get("cubefit_proc", None)
+			if proc_cf is not None:
+				code_cf = proc_cf.poll()
+				if code_cf == 0:
+					st.success("Cube fitting status: finished successfully")
+				elif code_cf is not None:
+					st.error(f"Cube fitting status: finished with code {code_cf}")
+					log_tail_cf = _read_log_tail(str(st.session_state.get("cubefit_log_path", "")), n_lines=120)
+					if log_tail_cf:
+						with st.expander("Show last cube fitting log lines"):
+							st.text(log_tail_cf)
+				_stop_cubefit_process()
+			else:
+				st.caption("Cube fitting status: idle")
+
+		progress_png_cf = _find_latest_progress_png(str(cubefit_out_dir))
+		if progress_png_cf:
+			st.markdown("**Cube fitting progress**")
+			progress_info_cf = _read_progress_info(progress_png_cf)
+			if isinstance(progress_info_cf, dict):
+				done_steps = int(progress_info_cf.get("done_steps", 0))
+				total_steps = int(max(1, progress_info_cf.get("total_steps", 1)))
+				pct = 100.0 * float(done_steps) / float(total_steps)
+				st.success(f"**Pixels processed:** {done_steps}/{total_steps} ({pct:.1f}%)")
+			img_bytes_cf = _read_progress_png_stable_bytes(progress_png_cf)
+			if img_bytes_cf is not None:
+				st.image(img_bytes_cf, caption=os.path.basename(progress_png_cf), width=520)
+
+		progress_map_files = {
+			"logN": os.path.join(str(cubefit_out_dir), "CUBEFIT_INPROGRESS_LOGN.fits"),
+			"Tex": os.path.join(str(cubefit_out_dir), "CUBEFIT_INPROGRESS_TEX.fits"),
+			"Velocity": os.path.join(str(cubefit_out_dir), "CUBEFIT_INPROGRESS_VELOCITY.fits"),
+			"FWHM": os.path.join(str(cubefit_out_dir), "CUBEFIT_INPROGRESS_FWHM.fits"),
+		}
+		progress_maps_available = {k: v for k, v in progress_map_files.items() if os.path.isfile(v)}
+		if progress_maps_available:
+			st.markdown("**Live in-progress parameter maps (one plot per parameter)**")
+			pm1, pm2 = st.columns(2)
+			pm_cols = [pm1, pm2]
+			for i_pm, (mk, mp) in enumerate(progress_maps_available.items()):
+				with pm_cols[i_pm % 2]:
+					try:
+						arr_pm = np.asarray(fits.getdata(mp), dtype=np.float32)
+						if arr_pm.ndim == 3:
+							arr_pm = arr_pm[0]
+						_show_fits_preview(f"{mk} (in progress)", arr_pm)
+					except Exception:
+						st.caption(f"Could not render in-progress map for {mk}")
+
+		if not _is_cubefit_running():
+			map_files = {
+				"logN": os.path.join(str(cubefit_out_dir), "CUBEFIT_LOGN.fits"),
+				"Tex": os.path.join(str(cubefit_out_dir), "CUBEFIT_TEX.fits"),
+				"Velocity": os.path.join(str(cubefit_out_dir), "CUBEFIT_VELOCITY.fits"),
+				"FWHM": os.path.join(str(cubefit_out_dir), "CUBEFIT_FWHM.fits"),
+			}
+			available_maps = {k: v for k, v in map_files.items() if os.path.isfile(v)}
+			if available_maps:
+				st.markdown("**Cube fitting parameter maps (final)**")
+				mc1, mc2 = st.columns(2)
+				cols_map = [mc1, mc2]
+				for i_m, (mk, mp) in enumerate(available_maps.items()):
+					with cols_map[i_m % 2]:
+						try:
+							arr_m = np.asarray(fits.getdata(mp), dtype=np.float32)
+							if arr_m.ndim == 3:
+								arr_m = arr_m[0]
+							_show_fits_preview(mk, arr_m)
+						except Exception:
+							st.caption(f"Could not render preview for {mk}")
+						try:
+							with open(mp, "rb") as f_mp:
+								st.download_button(
+									f"Download {mk} map (.fits)",
+									data=f_mp.read(),
+									file_name=os.path.basename(mp),
+									mime="application/fits",
+									key=f"p6_cubefit_download_{mk}",
+								)
+						except Exception:
+							pass
+
+		if _is_cubefit_running():
+			st.caption("Auto-updating every 5 seconds...")
+			time.sleep(5)
+			st.rerun()
+
 
 def _worker_entry_if_needed() -> bool:
+	if "--cube-fit-worker" in sys.argv:
+		idx = sys.argv.index("--cube-fit-worker")
+		if idx + 1 >= len(sys.argv):
+			print("Missing cube-fit config path")
+			sys.exit(2)
+		cfg_path = sys.argv[idx + 1]
+		code = run_cube_fit_worker(cfg_path)
+		sys.exit(int(code))
 	if "--cube-worker" not in sys.argv:
 		if "--sim-worker" not in sys.argv:
 			return False
