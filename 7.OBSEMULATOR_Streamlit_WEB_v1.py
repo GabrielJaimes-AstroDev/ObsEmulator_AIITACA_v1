@@ -1007,6 +1007,25 @@ def predict_signal_roi_batch(
 	if not roi_entries:
 		return None, None, "No ROI entries"
 
+	def _summarize_model_errors(err_list: List[str]) -> str:
+		if not err_list:
+			return "unknown model/prediction error"
+		uniq = []
+		seen = set()
+		for e in err_list:
+			ee = str(e).strip()
+			if not ee:
+				continue
+			if ee in seen:
+				continue
+			seen.add(ee)
+			uniq.append(ee)
+			if len(uniq) >= 2:
+				break
+		if len(uniq) == 1:
+			return uniq[0]
+		return f"{uniq[0]} | {uniq[1]}"
+
 	# New hierarchy (1.4): one ROI-level model predicts all channels.
 	if isinstance(roi_entries[0], dict) and (str(roi_entries[0].get("entry_type", "")).lower() == "roi_model_v14"):
 		entry = dict(roi_entries[0])
@@ -1017,6 +1036,7 @@ def predict_signal_roi_batch(
 		pred_acc = None
 		pred_cnt = 0
 		roi_freq_ref = None
+		model_errors: List[str] = []
 		for model_name, ref in model_refs:
 			cache_key = f"{model_name}|{ref}"
 			try:
@@ -1028,6 +1048,7 @@ def predict_signal_roi_batch(
 				pkg = pkg_cache[cache_key]
 				roi_freq = _estimate_roi_frequency_axis(pkg, entry.get("roi_lo_ghz", None), entry.get("roi_hi_ghz", None))
 				if roi_freq is None or roi_freq.size <= 0:
+					model_errors.append(f"{model_name}: invalid ROI frequency axis")
 					continue
 				pred2d = predict_with_joblib_roi_package_batch(pkg, x_features_2d, roi_freq)
 				if pred_acc is None:
@@ -1035,14 +1056,16 @@ def predict_signal_roi_batch(
 					roi_freq_ref = np.asarray(roi_freq, dtype=np.float64)
 				else:
 					if pred_acc.shape != pred2d.shape:
+						model_errors.append(f"{model_name}: shape mismatch {pred_acc.shape} vs {np.asarray(pred2d).shape}")
 						continue
 					pred_acc += np.asarray(pred2d, dtype=np.float64)
 				pred_cnt += 1
-			except Exception:
+			except Exception as e:
+				model_errors.append(f"{model_name}: {e}")
 				continue
 
 		if pred_cnt <= 0 or pred_acc is None or roi_freq_ref is None:
-			return None, None, "No valid predictions for selected ROI"
+			return None, None, f"No valid predictions for selected ROI ({_summarize_model_errors(model_errors)})"
 
 		y_mean = (pred_acc / float(pred_cnt)).astype(np.float32)
 		return np.asarray(roi_freq_ref, dtype=np.float64), y_mean, None
@@ -1051,6 +1074,7 @@ def predict_signal_roi_batch(
 	n_spec = int(np.asarray(x_features_2d).shape[0])
 	freqs: List[float] = []
 	cols: List[np.ndarray] = []
+	model_errors: List[str] = []
 	for _, fch, model_refs in roi_entries:
 		pred_acc = np.zeros((n_spec,), dtype=np.float64)
 		pred_cnt = 0
@@ -1066,14 +1090,15 @@ def predict_signal_roi_batch(
 				pred = predict_with_joblib_package_batch(pkg, x_features_2d)
 				pred_acc += np.asarray(pred, dtype=np.float64)
 				pred_cnt += 1
-			except Exception:
+			except Exception as e:
+				model_errors.append(f"{model_name}: {e}")
 				continue
 		if pred_cnt > 0:
 			freqs.append(float(fch))
 			cols.append((pred_acc / float(pred_cnt)).astype(np.float32))
 
 	if not cols:
-		return None, None, "No valid synthetic predictions in selected ROI"
+		return None, None, f"No valid synthetic predictions in selected ROI ({_summarize_model_errors(model_errors)})"
 
 	roi_freq = np.asarray(freqs, dtype=np.float64)
 	Y = np.stack(cols, axis=1).astype(np.float32)
