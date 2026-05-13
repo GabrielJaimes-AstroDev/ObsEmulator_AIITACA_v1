@@ -16,6 +16,10 @@ import collections
 import shutil
 import zipfile
 import tarfile
+import urllib.request
+import urllib.parse
+import urllib.error
+import http.cookiejar
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 from urllib.parse import urlparse, parse_qs
@@ -270,6 +274,108 @@ def _extract_archive_to_dir(archive_path: str, dst_dir: str) -> bool:
 	except Exception:
 		pass
 	return False
+
+
+def _filename_from_content_disposition(cd_header: str, fallback_name: str) -> str:
+	cd = str(cd_header or "")
+	if not cd:
+		return str(fallback_name)
+	# filename*=UTF-8''...
+	m = re.search(r"filename\*=(?:UTF-8''|)([^;]+)", cd, flags=re.IGNORECASE)
+	if m:
+		try:
+			name = urllib.parse.unquote(str(m.group(1)).strip().strip('"'))
+			if name:
+				return os.path.basename(name)
+		except Exception:
+			pass
+	# filename="..."
+	m = re.search(r"filename=\"([^\"]+)\"", cd, flags=re.IGNORECASE)
+	if m:
+		return os.path.basename(str(m.group(1)))
+	m = re.search(r"filename=([^;]+)", cd, flags=re.IGNORECASE)
+	if m:
+		return os.path.basename(str(m.group(1)).strip().strip('"'))
+	return str(fallback_name)
+
+
+def _stream_response_to_file(resp, out_path: str) -> None:
+	with open(out_path, "wb") as f:
+		while True:
+			chunk = resp.read(8 * 1024 * 1024)
+			if not chunk:
+				break
+			f.write(chunk)
+
+
+def _download_gdrive_file_direct(file_id: str, dst_dir: str) -> Tuple[Optional[str], Optional[str]]:
+	"""Fallback direct download for public Google Drive files when gdown fails."""
+	fid = str(file_id or "").strip()
+	if not fid:
+		return None, "Missing Google Drive file id."
+	if not os.path.isdir(dst_dir):
+		os.makedirs(dst_dir, exist_ok=True)
+
+	cj = http.cookiejar.CookieJar()
+	opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
+	headers = {
+		"User-Agent": "Mozilla/5.0",
+	}
+
+	base_url = f"https://drive.google.com/uc?export=download&id={fid}"
+
+	def _open(url: str):
+		req = urllib.request.Request(url, headers=headers)
+		return opener.open(req, timeout=120)
+
+	try:
+		resp = _open(base_url)
+		ctype = str(getattr(resp, "headers", {}).get("Content-Type", "")).lower()
+		cd = str(getattr(resp, "headers", {}).get("Content-Disposition", ""))
+
+		# If not HTML, it is likely already the file.
+		if "text/html" not in ctype:
+			name = _filename_from_content_disposition(cd, f"gdrive_file_{fid}.bin")
+			out_path = os.path.join(dst_dir, name)
+			_stream_response_to_file(resp, out_path)
+			if os.path.isfile(out_path) and os.path.getsize(out_path) > 0:
+				return out_path, None
+			return None, "Direct download returned empty file."
+
+		# HTML interstitial (virus scan/confirm). Parse confirm token.
+		html = resp.read(1024 * 1024).decode("utf-8", errors="ignore")
+		confirm_token = None
+		m = re.search(r"confirm=([0-9A-Za-z_\-]+)&amp;id=", html)
+		if m:
+			confirm_token = str(m.group(1))
+		if not confirm_token:
+			m = re.search(r"name=\"confirm\"\s+value=\"([^\"]+)\"", html)
+			if m:
+				confirm_token = str(m.group(1))
+
+		if not confirm_token:
+			return None, "Direct download could not get confirm token (file may be private or quota-limited)."
+
+		confirm_url = f"https://drive.google.com/uc?export=download&confirm={urllib.parse.quote(confirm_token)}&id={fid}"
+		resp2 = _open(confirm_url)
+		ctype2 = str(getattr(resp2, "headers", {}).get("Content-Type", "")).lower()
+		cd2 = str(getattr(resp2, "headers", {}).get("Content-Disposition", ""))
+
+		if "text/html" in ctype2 and ("attachment" not in cd2.lower()):
+			return None, "Direct download still returned HTML (likely permission/quota restriction)."
+
+		name2 = _filename_from_content_disposition(cd2, f"gdrive_file_{fid}.bin")
+		out_path2 = os.path.join(dst_dir, name2)
+		_stream_response_to_file(resp2, out_path2)
+		if os.path.isfile(out_path2) and os.path.getsize(out_path2) > 0:
+			return out_path2, None
+		return None, "Direct download wrote an empty file."
+	except urllib.error.HTTPError as e:
+		return None, f"HTTP error during direct download: {e}"
+	except urllib.error.URLError as e:
+		return None, f"Network error during direct download: {e}"
+	except Exception as e:
+		return None, f"Direct download error: {e}"
 
 
 def _h5_has_groups_or_datasets(h5_path: str, keys: List[str]) -> bool:
@@ -649,6 +755,13 @@ def _download_gdrive_folder_temp(folder_url_or_id: str) -> Tuple[Optional[str], 
 						downloaded_path = gdown.download(url=file_url, output=download_target, quiet=True, use_cookies=True)
 				except Exception as e4:
 					last_errors.append(f"file(with-cookies): {e4}")
+
+			if (not downloaded_path) or (not os.path.isfile(str(downloaded_path))):
+				direct_path, direct_err = _download_gdrive_file_direct(file_id=file_id, dst_dir=dst)
+				if direct_path and os.path.isfile(str(direct_path)):
+					downloaded_path = str(direct_path)
+				elif direct_err:
+					last_errors.append(f"file(direct): {direct_err}")
 
 			if downloaded_path and os.path.isfile(str(downloaded_path)):
 				# If the downloaded object is an archive, extract it so auto-detection can find model files.
