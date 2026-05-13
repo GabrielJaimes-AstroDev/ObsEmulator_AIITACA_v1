@@ -136,6 +136,7 @@ DEFAULT_CUBEFIT_GUIDE_FREQS = [
 
 DEFAULT_CUBEFIT_OUTDIR = os.path.join(tempfile.gettempdir(), "predobs_outputs", "cube_C2H5OH_v3")
 DEFAULT_INVERSE_CUBEPRED_OUTDIR = os.path.join(tempfile.gettempdir(), "predobs_outputs", "inverse_cube_C2H5OH_v1")
+DEFAULT_HYBRID_FIT_OUTDIR = r"C:\Users\Usuario\AppData\Local\Temp\predobs_outputs\hybrid_fit_tex_guided_CH3OCHO_v10"
 DEFAULT_OBS_CUBE_PATH = r"D:\4.DATASETS\3.W51\MAD_CUB_MOD_member.uid___A001_X879_X36f.W51_sci.spw29.cube.I.pbcor_kelvins.fits"
 
 DEFAULT_ALLOW_NEAREST = True
@@ -9747,9 +9748,17 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			else:
 				try:
 					predcube_out_dir_user = str(predcube_out_dir).strip()
-					predcube_out_dir_resolved = str(predcube_out_dir_user) if os.path.isdir(str(predcube_out_dir_user)) else str(DEFAULT_INVERSE_CUBEPRED_OUTDIR)
-					if (not predcube_out_dir_user) or (not os.path.isdir(str(predcube_out_dir_user))):
-						st.warning(f"Output directory not found. Using temporary directory: {predcube_out_dir_resolved}")
+					predcube_out_dir_default = str(DEFAULT_INVERSE_CUBEPRED_OUTDIR)
+					if predcube_out_dir_user:
+						try:
+							os.makedirs(predcube_out_dir_user, exist_ok=True)
+							predcube_out_dir_resolved = str(predcube_out_dir_user)
+						except Exception:
+							predcube_out_dir_resolved = str(predcube_out_dir_default)
+							st.warning(f"Could not create output directory. Using temporary directory: {predcube_out_dir_resolved}")
+					else:
+						predcube_out_dir_resolved = str(predcube_out_dir_default)
+						st.warning(f"Output directory not set. Using temporary directory: {predcube_out_dir_resolved}")
 
 					os.makedirs(predcube_out_dir_resolved, exist_ok=True)
 					_cleanup_invcubepred_outputs_for_dir(str(predcube_out_dir_resolved))
@@ -10817,6 +10826,9 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			st.session_state.p6_hybrid_guide_freqs_input = _freqs_to_text([float(v) for v in DEFAULT_CUBEFIT_GUIDE_FREQS])
 		guide_freqs_hybrid_text = st.text_input("Guide frequencies (GHz)", key="p6_hybrid_guide_freqs_input")
 		guide_freqs_hybrid = _normalize_target_freqs_for_run(parse_freq_list(str(guide_freqs_hybrid_text)))
+		guide_freqs_hybrid_run = [float(v) for v in guide_freqs_hybrid]
+		if not guide_freqs_hybrid_run:
+			guide_freqs_hybrid_run = [float(v) for v in _normalize_target_freqs_for_run(parse_freq_list(str(st.session_state.get("p6_hybrid_guide_freqs_input", ""))))]
 
 		st.markdown("**ROI overview (Signal vs Residuals (Noise))**")
 		signal_rois_h = _collect_signal_rois_for_ui(signal_models_root, filter_file)
@@ -10856,7 +10868,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			_plot_roi_overview(
 				signal_rois_h,
 				noise_rois_h,
-				guide_freqs_ghz=guide_freqs_hybrid,
+				guide_freqs_ghz=guide_freqs_hybrid_run,
 				selected_combo_freqs_ghz=combo_freqs_h,
 				selected_signal_index=sel_sig_idx_h,
 				selected_noise_index=sel_noi_idx_h,
@@ -10928,7 +10940,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		with hf1:
 			hybrid_out_dir = st.text_input(
 				"Output directory",
-				value=str(os.path.join(tempfile.gettempdir(), "predobs_outputs", "hybrid_fit_tex_guided_C2H5OH_v1")),
+				value=str(DEFAULT_HYBRID_FIT_OUTDIR),
 				key="p6_hybrid_out_dir",
 			)
 		with hf2:
@@ -10957,7 +10969,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 
 		hybrid_shift_enabled = st.checkbox("Apply observational frequency shift", value=True, key="p6_hybrid_shift_enabled")
 		hybrid_shift_mode = st.selectbox("Shift mode", options=["per_frequency", "spw_center"], index=0, key="p6_hybrid_shift_mode")
-		hybrid_shift_kms = st.number_input("Observational shift (km/s)", value=-55.0, step=0.1, format="%.4f", key="p6_hybrid_shift_kms")
+		hybrid_shift_kms = st.number_input("Observational shift (km/s)", value=-98.0, step=0.1, format="%.4f", key="p6_hybrid_shift_kms")
 		hybrid_resume_enabled = st.checkbox("Resume from previous checkpoint", value=True, key="p6_hybrid_resume_enabled")
 		st.session_state.p6_hybrid_obs_shift_enabled_live = bool(hybrid_shift_enabled)
 		st.session_state.p6_hybrid_obs_shift_mode_live = str(hybrid_shift_mode)
@@ -11178,7 +11190,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		if run_hybrid:
 			if len(obs_cube_hybrid_paths) <= 0:
 				st.error("Upload or set at least one valid observational cube first.")
-			elif not guide_freqs_hybrid:
+			elif not guide_freqs_hybrid_run:
 				st.error("Guide frequencies is empty. Add at least one frequency.")
 			elif not os.path.isfile(filter_file):
 				st.error(f"Filter file not found: {filter_file}")
@@ -11193,10 +11205,17 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			else:
 				try:
 					hybrid_out_dir_user = str(hybrid_out_dir).strip()
-					hybrid_out_dir_default = str(os.path.join(tempfile.gettempdir(), "predobs_outputs", "hybrid_fit_tex_guided_C2H5OH_v1"))
-					hybrid_out_dir_resolved = str(hybrid_out_dir_user) if os.path.isdir(str(hybrid_out_dir_user)) else str(hybrid_out_dir_default)
-					if (not hybrid_out_dir_user) or (not os.path.isdir(str(hybrid_out_dir_user))):
-						st.warning(f"Output directory not found. Using temporary directory: {hybrid_out_dir_resolved}")
+					hybrid_out_dir_default = str(DEFAULT_HYBRID_FIT_OUTDIR)
+					if hybrid_out_dir_user:
+						try:
+							os.makedirs(hybrid_out_dir_user, exist_ok=True)
+							hybrid_out_dir_resolved = str(hybrid_out_dir_user)
+						except Exception:
+							hybrid_out_dir_resolved = str(hybrid_out_dir_default)
+							st.warning(f"Could not create output directory. Using temporary directory: {hybrid_out_dir_resolved}")
+					else:
+						hybrid_out_dir_resolved = str(hybrid_out_dir_default)
+						st.warning(f"Output directory not set. Using temporary directory: {hybrid_out_dir_resolved}")
 
 					os.makedirs(hybrid_out_dir_resolved, exist_ok=True)
 					if not bool(hybrid_resume_enabled):
@@ -11218,7 +11237,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 						"signal_models_source": str(signal_models_root),
 						"noise_models_root": str(noise_models_root),
 						"filter_file": str(filter_file),
-						"target_freqs": [float(v) for v in guide_freqs_hybrid],
+						"target_freqs": [float(v) for v in guide_freqs_hybrid_run],
 						"case_mode": str(hybrid_case_mode),
 						"fit_criterion": str(hybrid_criterion_ui).strip().lower(),
 						"global_weight_mode": str(hybrid_weight_mode_map.get(str(hybrid_weight_mode_ui), "inverse_best_error")),
@@ -11274,6 +11293,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					st.session_state.hybridfit_log_handle = log_hybrid_fh
 					st.session_state.hybridfit_start_ts = float(time.time())
 					st.session_state.p6_hybrid_last_out_dir = str(hybrid_out_dir_resolved)
+					st.session_state.p6_hybrid_last_run_target_freqs = [float(v) for v in guide_freqs_hybrid_run]
 					st.success("Hybrid fast fitting started.")
 				except Exception as e:
 					st.error(f"Could not start hybrid fitting: {e}")
@@ -11416,6 +11436,10 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 								target_freqs_live_hf = [float(v) for v in cfg_live_hf.get("target_freqs", []) if np.isfinite(float(v))]
 						except Exception:
 							target_freqs_live_hf = []
+						if not target_freqs_live_hf:
+							target_freqs_live_hf = [float(v) for v in st.session_state.get("p6_hybrid_last_run_target_freqs", []) if np.isfinite(float(v))]
+						if not target_freqs_live_hf:
+							target_freqs_live_hf = [float(v) for v in guide_freqs_hybrid_run if np.isfinite(float(v))]
 
 						sel_x_plot_hf = int(st.session_state.get("p6_hybrid_live_sel_x", px_hf))
 						sel_y_plot_hf = int(st.session_state.get("p6_hybrid_live_sel_y", py_hf))
