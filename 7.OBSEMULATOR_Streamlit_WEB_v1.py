@@ -65,6 +65,11 @@ try:
 except Exception:
 	fits = None
 
+try:
+	from astropy.wcs import WCS
+except Exception:
+	WCS = None
+
 
 # ======================================================
 # DEFAULT CONFIG (single-file, no 4.SYNGEN dependency)
@@ -80,17 +85,58 @@ DEFAULT_LOCAL_SIGNAL_H5 = r"D:\4.DATASETS\CH3OCHO_MODELS_COMPRESSED_v2_PER_ROI.h
 DEFAULT_LOCAL_NOISE_H5 = r"D:\4.DATASETS\NOISE_MODELS_CH3OCHO_NN_GUAPOS_v12plotstyle_roi_bundle.h5"
 DEFAULT_LOCAL_FILTER_FILE = r"D:\4.DATASETS\filter_reference_CH3OCHO_100spectra.txt"
 DEFAULT_LOCAL_ROI_RANK_MODEL_DIR = r"D:\4.DATASETS\RANKING_MODELS\ROI_RANKING_MODELS_CH3OCHO_v3\roi_rank_model_bundle.h5"
+DEFAULT_LOCAL_INVERSE_PARAM_MODELS_DIR = r"D:\4.DATASETS\INVERSE_MODELS_FROM_SYNTH_ROI_CH3OCHO_v3"
+DEFAULT_LOCAL_INVERSE_CUBE_MODELS_DIR = r"D:\4.DATASETS\MODELS_CH3OCHO_NN_CUSTOMROI_TARGETFREQ_W51_Lines_ENSEMBLES_TEST10"
 
 
-#DEFAULT_LOCAL_SIGNAL_H5 = r"D:\4.DATASETS\MODELS_C2H5OH_ENSEMBLES_PERCHANNEL_ROI_dynamicrange_v2_PER_ROI.h5"
-#DEFAULT_LOCAL_NOISE_H5 = r"D:\4.DATASETS\RANKING_MODELS\NOISE_MODELS_C2H5OH_NN_GUAPOS_v12plotstyle_roi.h5"
-#DEFAULT_LOCAL_FILTER_FILE = r"D:\4.DATASETS\filter_reference_C2H5OH_100spectra.txt"
-#DEFAULT_LOCAL_ROI_RANK_MODEL_DIR = r"D:\4.DATASETS\RANKING_MODELS\ROI_RANKING_MODELS_C2H5OH_v3\roi_rank_model_bundle.h5"
+# DEFAULT_LOCAL_SIGNAL_H5 = r"D:\4.DATASETS\MODELS_C2H5OH_ENSEMBLES_PERCHANNEL_ROI_dynamicrange_v2_PER_ROI.h5"
+# DEFAULT_LOCAL_NOISE_H5 = r"D:\4.DATASETS\RANKING_MODELS\NOISE_MODELS_C2H5OH_NN_GUAPOS_v12plotstyle_roi.h5"
+# DEFAULT_LOCAL_FILTER_FILE = r"D:\4.DATASETS\filter_reference_C2H5OH_100spectra.txt"
+# DEFAULT_LOCAL_ROI_RANK_MODEL_DIR = r"D:\4.DATASETS\RANKING_MODELS\ROI_RANKING_MODELS_C2H5OH_v3\RANKING.h5"
+# DEFAULT_LOCAL_INVERSE_PARAM_MODELS_DIR = r"D:\4.DATASETS\INVERSE_MODELS_FROM_SYNTH_ROI_CH3OCHO_v3"
+# DEFAULT_LOCAL_INVERSE_CUBE_MODELS_DIR = r"D:\4.DATASETS\MODELS_C2H5OH_NN_CUSTOMROI_TARGETFREQ_W51_Lines_ENSEMBLES_TEST9\ROI_TARGET_001_ch524_ch550_f106p924926to106p937624GHz"
+
+
+# DEFAULT_LOCAL_SIGNAL_H5 = r"D:\4.DATASETS\MODELS_C2H5OH_ENSEMBLES_PERCHANNEL_ROI_dynamicrange_v3_PER_ROI_TEST_v1.h5"
+# DEFAULT_LOCAL_NOISE_H5 = r"D:\4.DATASETS\NOISE_MODELS_C2H5OH_NN_GUAPOS_v12plotstyle_roi_TEST1.h5"
+# DEFAULT_LOCAL_FILTER_FILE = r"D:\4.DATASETS\filter_reference_C2H5OH_100spectra.txt"
+# DEFAULT_LOCAL_ROI_RANK_MODEL_DIR = r"D:\4.DATASETS\RANKING_MODELS\ROI_RANKING_MODELS_CH3OCHO_v3\roi_rank_model_bundle.h5"
+# DEFAULT_LOCAL_INVERSE_PARAM_MODELS_DIR = r"D:\4.DATASETS\INVERSE_MODELS_FROM_SYNTH_ROI_CH3OCHO_v3"
+# DEFAULT_LOCAL_INVERSE_CUBE_MODELS_DIR = r"D:\4.DATASETS\MODELS_C2H5OH_NN_FROM_SYNTHDB_CUSTOMROI_TARGETFREQ_v1"
+
+
+# DEFAULT_LOCAL_SIGNAL_H5 = r"D:\4.DATASETS\2.ObsEmu_C2H5OH_Models\SYNTHETIC.h5"
+# DEFAULT_LOCAL_NOISE_H5 = r"D:\4.DATASETS\2.ObsEmu_C2H5OH_Models\NOISE.h5"
+# DEFAULT_LOCAL_FILTER_FILE = r"D:\4.DATASETS\2.ObsEmu_C2H5OH_Models\filter_reference_C2H5OH_100spectra.txt"
+# DEFAULT_LOCAL_ROI_RANK_MODEL_DIR = r"D:\4.DATASETS\2.ObsEmu_C2H5OH_Models\roi_rank_model_bundle.h5"
+# DEFAULT_LOCAL_INVERSE_PARAM_MODELS_DIR = r"D:\4.DATASETS\INVERSE_MODELS_FROM_SYNTH_ROI_CH3OCHO_v3"
+# DEFAULT_LOCAL_INVERSE_CUBE_MODELS_DIR = r"D:\4.DATASETS\MODELS_C2H5OH_NN_CUSTOMROI_TARGETFREQ_W51_Lines_ENSEMBLES_TEST9\ROI_TARGET_001_ch524_ch550_f106p924926to106p937624GHz"
+
+
+
+# DEFAULT_LOCAL_SIGNAL_H5 = r"D:\4.DATASETS\MODELS_CH3OCHO_ENSEMBLES_PERCHANNEL_ROI_dynamicrange_SYN_PER_ROI.h5"
+# DEFAULT_LOCAL_NOISE_H5 = r"D:\4.DATASETS\NOISE_MODELS_CH3OCHO_NN_GUAPOS_v12plotstyle_roi_W51_Lines_TEST1.h5"
+# DEFAULT_LOCAL_FILTER_FILE = r"D:\4.DATASETS\filter_reference_CH3OCHO_100spectra.txt"
+# DEFAULT_LOCAL_ROI_RANK_MODEL_DIR = r"D:\4.DATASETS\2.ObsEmu_C2H5OH_Models\roi_rank_model_bundle.h5"
+# DEFAULT_LOCAL_INVERSE_PARAM_MODELS_DIR = r"D:\4.DATASETS\INVERSE_MODELS_FROM_SYNTH_ROI_CH3OCHO_v3"
+# DEFAULT_LOCAL_INVERSE_CUBE_MODELS_DIR = r"D:\4.DATASETS\MODELS_CH3OCHO_NN_CUSTOMROI_TARGETFREQ_W51_Lines_ENSEMBLES_TEST10"
+
+
+
 
 DEFAULT_TARGET_FREQS = [
 	84.299,
 	110.855,
 ]
+
+DEFAULT_CUBEFIT_GUIDE_FREQS = [
+	108.4385616,
+	106.9312289,
+]
+
+DEFAULT_CUBEFIT_OUTDIR = os.path.join(tempfile.gettempdir(), "predobs_outputs", "cube_C2H5OH_v3")
+DEFAULT_INVERSE_CUBEPRED_OUTDIR = os.path.join(tempfile.gettempdir(), "predobs_outputs", "inverse_cube_C2H5OH_v1")
+DEFAULT_OBS_CUBE_PATH = r"D:\4.DATASETS\3.W51\MAD_CUB_MOD_member.uid___A001_X879_X36f.W51_sci.spw29.cube.I.pbcor_kelvins.fits"
 
 DEFAULT_ALLOW_NEAREST = True
 DEFAULT_NOISE_SCALE = 1.0
@@ -108,6 +154,7 @@ DEFAULT_PARAM_MAP_FILES = {
 
 DEFAULT_PRED_MODE = "ensemble_mean"
 DEFAULT_SELECTED_MODEL_NAME = "XGBoost"
+DEFAULT_CANDIDATE_VELOCITY_SHIFTS_KMS = [-3.0, -2.0, -1.5, -1.0, -0.5, -0.25, -0.1, 0.0, 0.1, 0.25, 0.5, 1.0, 1.5, 3.0, 2.0]
 
 GUIDE_FREQS_EMPTY_ERROR = (
 	"Guide frequencies is empty. Add at least one frequency or use "
@@ -456,7 +503,7 @@ def _validate_local_preset_sources(
 		warnings.append(f"Local noise file not found: {noise_models_root}")
 	if not os.path.isfile(filter_file):
 		warnings.append(f"Local filter file not found: {filter_file}")
-	if (not os.path.isdir(roi_rank_model_dir)) and (not os.path.isfile(roi_rank_model_dir)):
+	if str(roi_rank_model_dir).strip() and (not os.path.isdir(roi_rank_model_dir)) and (not os.path.isfile(roi_rank_model_dir)):
 		warnings.append(f"Local ROI ranking model directory not found: {roi_rank_model_dir}")
 	return warnings
 
@@ -516,18 +563,61 @@ def _save_uploaded_file_to_temp(upload_obj, prefix: str) -> Optional[str]:
 	if upload_obj is None:
 		return None
 	try:
-		raw = bytes(upload_obj.getbuffer())
-		if not raw:
-			return None
 		safe_name = os.path.basename(str(getattr(upload_obj, "name", "upload.bin")))
 		ext = os.path.splitext(safe_name)[1]
-		h = hashlib.md5(raw).hexdigest()[:16]
+		if hasattr(upload_obj, "seek"):
+			try:
+				upload_obj.seek(0)
+			except Exception:
+				pass
+		hash_md5 = hashlib.md5()
+		total = 0
 		root = os.path.join(tempfile.gettempdir(), "predobs_manual_uploads")
 		os.makedirs(root, exist_ok=True)
+		tmp_dst = os.path.join(root, f"{prefix}_{int(time.time() * 1000)}_{os.getpid()}{ext if ext else ''}.tmp")
+		_read_once_without_size = False
+		with open(tmp_dst, "wb") as f:
+			while True:
+				try:
+					chunk = upload_obj.read(8 * 1024 * 1024)
+				except TypeError:
+					if _read_once_without_size:
+						chunk = b""
+					else:
+						chunk = upload_obj.read()
+						_read_once_without_size = True
+				if not chunk:
+					break
+				if isinstance(chunk, str):
+					chunk = chunk.encode("utf-8", errors="ignore")
+				f.write(chunk)
+				hash_md5.update(chunk)
+				total += int(len(chunk))
+		if int(total) <= 0 and hasattr(upload_obj, "getbuffer"):
+			try:
+				raw = bytes(upload_obj.getbuffer())
+				if raw:
+					with open(tmp_dst, "wb") as f:
+						f.write(raw)
+					hash_md5 = hashlib.md5(raw)
+					total = int(len(raw))
+			except Exception:
+				pass
+		if int(total) <= 0:
+			try:
+				os.remove(tmp_dst)
+			except Exception:
+				pass
+			return None
+		h = hash_md5.hexdigest()[:16]
 		dst = os.path.join(root, f"{prefix}_{h}{ext if ext else ''}")
 		if not os.path.isfile(dst):
-			with open(dst, "wb") as f:
-				f.write(raw)
+			os.replace(tmp_dst, dst)
+		else:
+			try:
+				os.remove(tmp_dst)
+			except Exception:
+				pass
 		return dst
 	except Exception:
 		return None
@@ -543,6 +633,38 @@ def parse_freq_list(text: str) -> List[float]:
 		except Exception:
 			pass
 	return vals
+
+
+def _parse_candidate_velocity_shifts(value, default_values: Optional[List[float]] = None) -> List[float]:
+	if default_values is None:
+		default_values = [float(v) for v in DEFAULT_CANDIDATE_VELOCITY_SHIFTS_KMS]
+
+	if value is None:
+		raw = [float(v) for v in (default_values or [])]
+	elif isinstance(value, (list, tuple, np.ndarray)):
+		raw = []
+		for v in value:
+			try:
+				raw.append(float(v))
+			except Exception:
+				continue
+	else:
+		raw = parse_freq_list(str(value))
+		if len(raw) == 0:
+			raw = [float(v) for v in (default_values or [])]
+
+	out: List[float] = []
+	seen = set()
+	for v in raw:
+		vv = float(v)
+		if not np.isfinite(vv):
+			continue
+		k = round(float(vv), 9)
+		if k in seen:
+			continue
+		seen.add(k)
+		out.append(float(vv))
+	return out
 
 
 def parse_channel_freq_from_dirname(channel_dir_name: str) -> Optional[float]:
@@ -682,6 +804,49 @@ def _apply_velocity_shift_by_spw_center(freq_ghz: np.ndarray, velocity_kms: floa
 	c_kms = 299792.458
 	delta_f = -float(spw_center_ghz) * (float(velocity_kms) / c_kms)
 	return f + delta_f
+
+
+def _apply_velocity_shift_by_spw_centers_segmented(freq_ghz: np.ndarray, velocity_kms: float, gap_factor: float = 20.0) -> np.ndarray:
+	"""Apply SPW-center shift per contiguous spectral segment.
+	Useful for concatenated multi-SPW spectra where a single global center is incorrect.
+	"""
+	f = np.asarray(freq_ghz, dtype=np.float64).reshape(-1)
+	if f.size == 0:
+		return f
+	out = np.asarray(f, dtype=np.float64).copy()
+
+	if f.size == 1:
+		return _apply_velocity_shift_by_spw_center(out, float(velocity_kms))
+
+	d = np.abs(np.diff(f))
+	d_valid = d[np.isfinite(d) & (d > 0.0)]
+	if d_valid.size == 0:
+		return _apply_velocity_shift_by_spw_center(out, float(velocity_kms))
+
+	base_step = float(np.nanmedian(d_valid))
+	th_gap = float(max(base_step * float(max(2.0, gap_factor)), base_step * 5.0))
+	split_after = np.where(d > th_gap)[0].astype(int)
+
+	starts = [0]
+	ends = []
+	for k in split_after:
+		ends.append(int(k))
+		starts.append(int(k) + 1)
+	ends.append(int(f.size - 1))
+
+	c_kms = 299792.458
+	for a, b in zip(starts, ends):
+		idx = np.arange(int(a), int(b) + 1, dtype=int)
+		if idx.size <= 0:
+			continue
+		seg = out[idx]
+		if not np.any(np.isfinite(seg)):
+			continue
+		spw_center_ghz = float(0.5 * (np.nanmin(seg) + np.nanmax(seg)))
+		delta_f = -float(spw_center_ghz) * (float(velocity_kms) / c_kms)
+		out[idx] = seg + delta_f
+
+	return out
 
 
 def load_filter_data(path: str) -> Tuple[Optional[np.ndarray], np.ndarray]:
@@ -1436,12 +1601,16 @@ def save_progress_png(cube_partial: np.ndarray, target_freq: float, done_steps: 
 		pass
 
 
-def _spiral_pixel_order_valid(valid_mask: np.ndarray) -> List[Tuple[int, int]]:
+def _spiral_pixel_order_valid(valid_mask: np.ndarray, center_y: Optional[int] = None, center_x: Optional[int] = None) -> List[Tuple[int, int]]:
 	vm = np.asarray(valid_mask, dtype=bool)
 	if vm.ndim != 2:
 		return []
 	h, w = int(vm.shape[0]), int(vm.shape[1])
-	cy, cx = int(h // 2), int(w // 2)
+	if center_y is None or center_x is None:
+		cy, cx = int(h // 2), int(w // 2)
+	else:
+		cy = int(max(0, min(h - 1, int(center_y))))
+		cx = int(max(0, min(w - 1, int(center_x))))
 	need = int(h * w)
 	seen = set()
 	coords_all: List[Tuple[int, int]] = []
@@ -1893,6 +2062,8 @@ def _propagate_selected_freqs_to_all_guides(selected_freqs: List[float]):
 
 	# Cube fitting tab (now using pending/refresh too).
 	_merge_to_input_key("p6_guide_freqs_cfit_input", pending_key="p6_guide_freqs_cfit_pending", refresh_key="p6_guide_cfit_refresh")
+	# Inverse cube prediction tab.
+	_merge_to_input_key("p6_guide_freqs_icp_input", pending_key="p6_guide_freqs_icp_pending", refresh_key="p6_guide_icp_refresh")
 
 
 def _normalize_target_freqs_for_run(freqs: List[float]) -> List[float]:
@@ -1945,9 +2116,9 @@ def _plot_roi_overview(signal_rois: List[dict], noise_rois: List[dict], guide_fr
 			mode="lines+markers",
 			line=dict(color=color, width=width),
 			marker=dict(size=6, color=color),
-			name="Noise ROI",
+			name="Residuals (Noise) ROI",
 			showlegend=False,
-			hovertemplate=f"Noise ROI {int(r['index'])}<br>{float(r['lo']):.6f} - {float(r['hi']):.6f} GHz<extra></extra>",
+			hovertemplate=f"Residuals (Noise) ROI {int(r['index'])}<br>{float(r['lo']):.6f} - {float(r['hi']):.6f} GHz<extra></extra>",
 		))
 	if guide_freqs_ghz:
 		for gf in guide_freqs_ghz:
@@ -1956,12 +2127,12 @@ def _plot_roi_overview(signal_rois: List[dict], noise_rois: List[dict], guide_fr
 		for cf in selected_combo_freqs_ghz:
 			fig.add_vline(x=float(cf), line=dict(color="#ff7f0e", dash="dash"))
 	fig.update_layout(
-		title="ROI overview (Signal vs Noise)",
+		title="ROI overview (Signal vs Residuals (Noise))",
 		xaxis_title="Frequency (GHz)",
 		yaxis=dict(
 			tickmode="array",
 			tickvals=[0.0, 1.0],
-			ticktext=["Noise ROIs", "Synthetic ROIs"],
+			ticktext=["Residuals (Noise) ROIs", "Synthetic ROIs"],
 			range=[-0.5, 1.5],
 		),
 		template="plotly_white",
@@ -2144,6 +2315,56 @@ def _write_map_fits_2d(out_fits_path: str, map_2d: np.ndarray, ref_hdr: Optional
 	fits.writeto(out_fits_path, arr, header=hdr, overwrite=True)
 
 
+def _write_done_mask_fits_2d(out_fits_path: str, done_mask: np.ndarray, ref_hdr: Optional[object], history_text: str):
+	if fits is None:
+		return
+	arr = np.asarray(done_mask, dtype=np.uint8)
+	hdr = fits.Header()
+	hdr["WCSAXES"] = 2
+	hdr["BUNIT"] = "mask"
+	if ref_hdr is not None:
+		for k in ["CTYPE1", "CTYPE2", "CUNIT1", "CUNIT2", "CRPIX1", "CRPIX2", "CRVAL1", "CRVAL2", "CDELT1", "CDELT2", "CROTA1", "CROTA2", "RADESYS", "EQUINOX", "LONPOLE", "LATPOLE"]:
+			if k in ref_hdr:
+				hdr[k] = ref_hdr[k]
+		for k in ref_hdr.keys():
+			ks = str(k)
+			if ks.startswith("CD1_") or ks.startswith("CD2_") or ks.startswith("PC1_") or ks.startswith("PC2_"):
+				hdr[ks] = ref_hdr[ks]
+	hdr["HISTORY"] = str(history_text)
+	fits.writeto(out_fits_path, arr, header=hdr, overwrite=True)
+
+
+def _header_to_celestial_wcs(ref_hdr: Optional[object]):
+	if (WCS is None) or (ref_hdr is None):
+		return None
+	try:
+		w = WCS(ref_hdr)
+		wc = w.celestial
+		if wc is None:
+			return None
+		return wc
+	except Exception:
+		return None
+
+
+def _compute_zoom_limits_from_mask(mask_2d: Optional[np.ndarray], pad_frac: float = 0.08):
+	if mask_2d is None:
+		return None
+	pm = np.asarray(mask_2d, dtype=bool)
+	if pm.ndim != 2 or (not np.any(pm)):
+		return None
+	yy, xx = np.where(pm)
+	h, w = int(pm.shape[0]), int(pm.shape[1])
+	span_y = int(np.max(yy) - np.min(yy) + 1)
+	span_x = int(np.max(xx) - np.min(xx) + 1)
+	pad = int(max(2, round(float(pad_frac) * max(span_y, span_x))))
+	y0 = max(0, int(np.min(yy)) - pad)
+	y1 = min(h - 1, int(np.max(yy)) + pad)
+	x0 = max(0, int(np.min(xx)) - pad)
+	x1 = min(w - 1, int(np.max(xx)) + pad)
+	return (int(x0), int(x1), int(y0), int(y1))
+
+
 def _save_cubefit_progress_png(
 	logn_map: np.ndarray,
 	tex_map: np.ndarray,
@@ -2152,45 +2373,332 @@ def _save_cubefit_progress_png(
 	done_steps: int,
 	total_steps: int,
 	out_png: str,
+	ref_hdr: Optional[object] = None,
+	processed_mask: Optional[np.ndarray] = None,
 ):
-	fig, axes = plt.subplots(2, 2, figsize=(8.6, 7.4))
+	wcs2d = _header_to_celestial_wcs(ref_hdr)
+	if wcs2d is not None:
+		fig = plt.figure(figsize=(10.8, 8.6))
+		axes = [
+			fig.add_subplot(2, 2, 1, projection=wcs2d),
+			fig.add_subplot(2, 2, 2, projection=wcs2d),
+			fig.add_subplot(2, 2, 3, projection=wcs2d),
+			fig.add_subplot(2, 2, 4, projection=wcs2d),
+		]
+	else:
+		fig, ax_grid = plt.subplots(2, 2, figsize=(10.8, 8.6))
+		axes = list(ax_grid.ravel())
 	items = [
 		("logN", np.asarray(logn_map, dtype=np.float32), "viridis"),
 		("Tex", np.asarray(tex_map, dtype=np.float32), "magma"),
 		("Velocity", np.asarray(velo_map, dtype=np.float32), "coolwarm"),
 		("FWHM", np.asarray(fwhm_map, dtype=np.float32), "plasma"),
 	]
-	for ax, (ttl, arr, cmap) in zip(axes.ravel(), items):
+	zoom_lim = _compute_zoom_limits_from_mask(processed_mask, pad_frac=0.08)
+	for ax, (ttl, arr, cmap) in zip(axes, items):
 		fin = np.isfinite(arr)
 		if np.any(fin):
-			v = arr[fin]
-			vmin = float(np.nanpercentile(v, 1.0))
-			vmax = float(np.nanpercentile(v, 99.0))
-			if vmax <= vmin:
-				vmax = vmin + 1e-6
+			vmin, vmax = _compute_display_limits(arr)
 			im = ax.imshow(arr, origin="lower", cmap=cmap, vmin=vmin, vmax=vmax)
 			plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
 		else:
 			im = ax.imshow(np.zeros_like(arr, dtype=np.float32), origin="lower", cmap=cmap)
 			plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
 		ax.set_title(ttl)
-		ax.set_xlabel("x")
-		ax.set_ylabel("y")
+		if wcs2d is not None:
+			ax.set_xlabel("RA")
+			ax.set_ylabel("Dec")
+		else:
+			ax.set_xlabel("x")
+			ax.set_ylabel("y")
+		if zoom_lim is not None:
+			x0, x1, y0, y1 = zoom_lim
+			ax.set_xlim(float(x0) - 0.5, float(x1) + 0.5)
+			ax.set_ylim(float(y0) - 0.5, float(y1) + 0.5)
 	fig.suptitle(f"Cube Fitting progress | pixels processed: {int(done_steps)}/{int(total_steps)}", y=0.98)
 	plt.tight_layout()
-	fig.savefig(out_png, dpi=170)
+	fig.savefig(out_png, dpi=180)
 	plt.close(fig)
 	info_path = os.path.splitext(out_png)[0] + ".json"
 	info = {
 		"title": f"Cube fitting parameter maps | pixels processed: {int(done_steps)}/{int(total_steps)}",
 		"done_steps": int(done_steps),
 		"total_steps": int(total_steps),
+		"has_wcs": bool(wcs2d is not None),
 	}
+	if zoom_lim is not None:
+		info["zoom_bbox"] = {
+			"x0": int(zoom_lim[0]),
+			"x1": int(zoom_lim[1]),
+			"y0": int(zoom_lim[2]),
+			"y1": int(zoom_lim[3]),
+		}
 	try:
 		with open(info_path, "w", encoding="utf-8") as f:
 			json.dump(info, f, ensure_ascii=False, indent=2)
 	except Exception:
 		pass
+
+
+def _compute_display_limits(arr: np.ndarray, q_low: float = 1.0, q_high: float = 99.0):
+	v = np.asarray(arr, dtype=np.float32)
+	fin = np.isfinite(v)
+	if not np.any(fin):
+		return 0.0, 1.0
+	vf = v[fin]
+	vmin = float(np.nanpercentile(vf, float(q_low)))
+	vmax = float(np.nanpercentile(vf, float(q_high)))
+	if vmax <= vmin:
+		vmax = vmin + 1e-6
+	return vmin, vmax
+
+
+def _append_cubefit_progress_log(log_txt_path: str, msg: str):
+	if not log_txt_path:
+		return
+	try:
+		ts = time.strftime("%Y-%m-%d %H:%M:%S")
+		with open(log_txt_path, "a", encoding="utf-8") as f:
+			f.write(f"[{ts}] {str(msg)}\n")
+	except Exception:
+		pass
+
+
+def _load_resume_map2d(path: str, expected_shape: Tuple[int, int]) -> Optional[np.ndarray]:
+	if (not path) or (not os.path.isfile(path)) or (fits is None):
+		return None
+	try:
+		arr = np.asarray(fits.getdata(path), dtype=np.float32)
+		if arr.ndim == 3:
+			arr = arr[0]
+		if arr.ndim != 2:
+			return None
+		if (int(arr.shape[0]), int(arr.shape[1])) != (int(expected_shape[0]), int(expected_shape[1])):
+			return None
+		arr = np.asarray(arr, dtype=np.float32)
+		arr[~np.isfinite(arr)] = np.nan
+		return arr
+	except Exception:
+		return None
+
+
+def _build_region_mask_from_cfg(ny: int, nx: int, cfg: dict):
+	mode = str(cfg.get("region_mode", "full")).strip().lower()
+	if mode != "bbox":
+		return np.ones((int(ny), int(nx)), dtype=bool), {
+			"mode": "full",
+			"x_min": 0,
+			"x_max": int(nx) - 1,
+			"y_min": 0,
+			"y_max": int(ny) - 1,
+			"center_x": int(nx // 2),
+			"center_y": int(ny // 2),
+		}
+
+	x0 = int(cfg.get("region_x_min", 0))
+	x1 = int(cfg.get("region_x_max", int(nx) - 1))
+	y0 = int(cfg.get("region_y_min", 0))
+	y1 = int(cfg.get("region_y_max", int(ny) - 1))
+
+	x0 = int(max(0, min(int(nx) - 1, x0)))
+	x1 = int(max(0, min(int(nx) - 1, x1)))
+	y0 = int(max(0, min(int(ny) - 1, y0)))
+	y1 = int(max(0, min(int(ny) - 1, y1)))
+
+	if x1 < x0:
+		x0, x1 = x1, x0
+	if y1 < y0:
+		y0, y1 = y1, y0
+
+	mask = np.zeros((int(ny), int(nx)), dtype=bool)
+	mask[int(y0):int(y1)+1, int(x0):int(x1)+1] = True
+	meta = {
+		"mode": "bbox",
+		"x_min": int(x0),
+		"x_max": int(x1),
+		"y_min": int(y0),
+		"y_max": int(y1),
+		"center_x": int((x0 + x1) // 2),
+		"center_y": int((y0 + y1) // 2),
+	}
+	return mask, meta
+
+
+def _build_checkpoint_overlay_vectors(res: dict, obs_freq_sorted: np.ndarray, y_obs: np.ndarray):
+	"""Build concatenated checkpoint vectors (freq/obs/syn/noise/pred) from fit result.
+
+	Returns
+	-------
+	(freq_cat, obs_cat, syn_cat, noise_cat, pred_cat, fit_ok)
+	All arrays are float64 1-D.
+	"""
+	last_fit_ok = bool(isinstance(res, dict) and bool(res.get("ok", False)))
+	if not last_fit_ok:
+		freq_cat = np.asarray(obs_freq_sorted, dtype=np.float64)
+		obs_cat = np.asarray(np.where(np.isfinite(y_obs), y_obs, 0.0), dtype=np.float64)
+		return freq_cat, obs_cat, np.asarray([], dtype=np.float64), np.asarray([], dtype=np.float64), np.asarray([], dtype=np.float64), False
+
+	overlay = res.get("global_overlay", []) if isinstance(res.get("global_overlay", []), list) else []
+	freq_parts = []
+	obs_parts = []
+	syn_parts = []
+	noise_parts = []
+	pred_parts = []
+	has_noise = False
+
+	for seg in overlay:
+		if not isinstance(seg, dict):
+			continue
+		ff = np.asarray(seg.get("freq", []), dtype=np.float64).reshape(-1)
+		oo = np.asarray(seg.get("obs_interp", []), dtype=np.float64).reshape(-1)
+		sy = np.asarray(seg.get("best_global_synthetic", []), dtype=np.float64).reshape(-1)
+		pp = np.asarray(seg.get("best_global_pred", []), dtype=np.float64).reshape(-1)
+		nn_raw = seg.get("best_global_noise", None)
+		nn = np.asarray(nn_raw, dtype=np.float64).reshape(-1) if nn_raw is not None else np.asarray([], dtype=np.float64)
+		if ff.size < 2:
+			continue
+		if oo.size != ff.size or sy.size != ff.size or pp.size != ff.size:
+			continue
+		if nn.size not in (0, ff.size):
+			continue
+		freq_parts.append(np.asarray(ff, dtype=np.float64))
+		obs_parts.append(np.asarray(np.where(np.isfinite(oo), oo, 0.0), dtype=np.float64))
+		syn_parts.append(np.asarray(np.where(np.isfinite(sy), sy, 0.0), dtype=np.float64))
+		pred_parts.append(np.asarray(np.where(np.isfinite(pp), pp, 0.0), dtype=np.float64))
+		if nn.size == ff.size:
+			has_noise = True
+			noise_parts.append(np.asarray(np.where(np.isfinite(nn), nn, 0.0), dtype=np.float64))
+		else:
+			noise_parts.append(np.zeros((ff.size,), dtype=np.float64))
+
+	if freq_parts:
+		freq_cat, obs_cat = concat_segments_with_zero_gaps(freq_parts, obs_parts, insert_zero_gaps=True)
+		_, syn_cat = concat_segments_with_zero_gaps(freq_parts, syn_parts, insert_zero_gaps=True)
+		_, pred_cat = concat_segments_with_zero_gaps(freq_parts, pred_parts, insert_zero_gaps=True)
+		if has_noise:
+			_, noise_cat = concat_segments_with_zero_gaps(freq_parts, noise_parts, insert_zero_gaps=True)
+		else:
+			noise_cat = np.asarray([], dtype=np.float64)
+		return (
+			np.asarray(freq_cat, dtype=np.float64),
+			np.asarray(obs_cat, dtype=np.float64),
+			np.asarray(syn_cat, dtype=np.float64),
+			np.asarray(noise_cat, dtype=np.float64),
+			np.asarray(pred_cat, dtype=np.float64),
+			True,
+		)
+
+	freq_cat = np.asarray(obs_freq_sorted, dtype=np.float64)
+	obs_cat = np.asarray(np.where(np.isfinite(y_obs), y_obs, 0.0), dtype=np.float64)
+	return freq_cat, obs_cat, np.asarray([], dtype=np.float64), np.asarray([], dtype=np.float64), np.asarray([], dtype=np.float64), True
+
+
+def _extract_pixel_spectra_from_named_cubes(adjusted_cube_path: str, synthetic_cube_path: Optional[str], noise_cube_path: Optional[str], ypix: int, xpix: int):
+	"""Extract spectra for one pixel from explicit adjusted/synthetic/noise cube paths."""
+	if fits is None or (not adjusted_cube_path) or (not os.path.isfile(adjusted_cube_path)):
+		return None, None, None, None, "Missing adjusted cube"
+	try:
+		with fits.open(adjusted_cube_path, memmap=True) as hdul:
+			arr_adj = hdul[0].data
+			hdr_adj = hdul[0].header
+			if arr_adj is None or arr_adj.ndim != 3:
+				return None, None, None, None, "Unexpected adjusted cube shape"
+			nchan, ny, nx = int(arr_adj.shape[0]), int(arr_adj.shape[1]), int(arr_adj.shape[2])
+			yc = int(max(0, min(ny - 1, int(ypix))))
+			xc = int(max(0, min(nx - 1, int(xpix))))
+			y_adj = np.asarray(arr_adj[:, yc, xc], dtype=np.float32)
+			freq = _build_freq_axis_from_header(hdr_adj, nchan)
+
+		y_syn = None
+		if synthetic_cube_path and os.path.isfile(str(synthetic_cube_path)):
+			with fits.open(str(synthetic_cube_path), memmap=True) as hdul_s:
+				arr_s = hdul_s[0].data
+				if arr_s is not None and arr_s.ndim == 3 and tuple(arr_s.shape) == tuple(arr_adj.shape):
+					y_syn = np.asarray(arr_s[:, yc, xc], dtype=np.float32)
+
+		y_noise = None
+		if noise_cube_path and os.path.isfile(str(noise_cube_path)):
+			with fits.open(str(noise_cube_path), memmap=True) as hdul_n:
+				arr_n = hdul_n[0].data
+				if arr_n is not None and arr_n.ndim == 3 and tuple(arr_n.shape) == tuple(arr_adj.shape):
+					y_noise = np.asarray(arr_n[:, yc, xc], dtype=np.float32)
+		if y_noise is None and y_syn is not None:
+			y_noise = (y_adj - y_syn).astype(np.float32)
+
+		return np.asarray(freq, dtype=np.float64), y_syn, y_noise, y_adj, None
+	except Exception as e:
+		return None, None, None, None, str(e)
+
+
+def _extract_observed_pixel_from_obs_cubes(
+	obs_cube_paths: List[str],
+	ypix: int,
+	xpix: int,
+	target_freq_axis_ghz: Optional[np.ndarray] = None,
+	obs_shift_enabled: bool = False,
+	obs_shift_mode: str = "per_frequency",
+	obs_shift_kms: float = 0.0,
+):
+	"""Extract observed spectrum from one/multiple input observational cubes for a pixel.
+
+	If ``target_freq_axis_ghz`` is provided, output is interpolated to that axis.
+	Returns ``(freq, y_obs, err_msg)``.
+	"""
+	if fits is None:
+		return None, None, "FITS backend unavailable"
+	if not obs_cube_paths:
+		return None, None, "No observational cube paths"
+
+	freq_parts: List[np.ndarray] = []
+	val_parts: List[np.ndarray] = []
+
+	for cp in (obs_cube_paths or []):
+		cps = str(cp or "").strip()
+		if (not cps) or (not os.path.isfile(cps)):
+			continue
+		try:
+			with fits.open(cps, memmap=True) as hdul:
+				arr = np.asarray(hdul[0].data, dtype=np.float32)
+				hdr = hdul[0].header
+			if arr.ndim == 4:
+				arr = arr[0]
+			if arr.ndim != 3:
+				continue
+			nchan, ny, nx = int(arr.shape[0]), int(arr.shape[1]), int(arr.shape[2])
+			yc = int(max(0, min(ny - 1, int(ypix))))
+			xc = int(max(0, min(nx - 1, int(xpix))))
+			f = _build_freq_axis_from_header(hdr, nchan)
+			if bool(obs_shift_enabled):
+				if str(obs_shift_mode).strip().lower() == "spw_center":
+					f = _apply_velocity_shift_by_spw_center(f, float(obs_shift_kms))
+				else:
+					f = _apply_velocity_shift_to_frequency(f, float(obs_shift_kms))
+			y = np.asarray(arr[:, yc, xc], dtype=np.float64)
+			m = np.isfinite(f) & np.isfinite(y)
+			if int(np.count_nonzero(m)) < 2:
+				continue
+			freq_parts.append(np.asarray(f[m], dtype=np.float64))
+			val_parts.append(np.asarray(y[m], dtype=np.float64))
+		except Exception:
+			continue
+
+	if not freq_parts:
+		return None, None, "Could not extract observed spectrum"
+
+	f_all = np.concatenate(freq_parts, axis=0)
+	y_all = np.concatenate(val_parts, axis=0)
+	ord_idx = np.argsort(np.asarray(f_all, dtype=np.float64))
+	f_sorted = np.asarray(f_all, dtype=np.float64)[ord_idx]
+	y_sorted = np.asarray(y_all, dtype=np.float64)[ord_idx]
+	f_u, idx_u = np.unique(f_sorted, return_index=True)
+	y_u = y_sorted[idx_u]
+
+	if (target_freq_axis_ghz is not None) and (np.asarray(target_freq_axis_ghz).size >= 2):
+		f_t = np.asarray(target_freq_axis_ghz, dtype=np.float64).reshape(-1)
+		y_t = np.interp(f_t, f_u, y_u, left=np.nan, right=np.nan)
+		return np.asarray(f_t, dtype=np.float64), np.asarray(y_t, dtype=np.float64), None
+
+	return np.asarray(f_u, dtype=np.float64), np.asarray(y_u, dtype=np.float64), None
 
 
 def run_cube_fit_worker(cfg_path: str) -> int:
@@ -2202,7 +2710,14 @@ def run_cube_fit_worker(cfg_path: str) -> int:
 
 	out_dir = str(cfg["out_dir"])
 	os.makedirs(out_dir, exist_ok=True)
-	obs_cube_path = str(cfg["obs_cube_path"])
+	obs_cube_paths_cfg = cfg.get("obs_cube_paths", None)
+	if isinstance(obs_cube_paths_cfg, (list, tuple)):
+		obs_cube_paths = [str(p).strip() for p in obs_cube_paths_cfg if str(p).strip()]
+	else:
+		obs_cube_paths = []
+	if not obs_cube_paths:
+		obs_cube_paths = [str(cfg.get("obs_cube_path", "")).strip()]
+	obs_cube_paths = [p for p in obs_cube_paths if p]
 	signal_models_source = str(cfg["signal_models_source"])
 	noise_models_root = str(cfg["noise_models_root"])
 	filter_file = str(cfg["filter_file"])
@@ -2220,30 +2735,153 @@ def run_cube_fit_worker(cfg_path: str) -> int:
 	independent_pixel_candidates = bool(cfg.get("independent_pixel_candidates", False))
 	local_optimizer_method = str(cfg.get("local_optimizer_method", "none"))
 	local_optimizer_max_nfev = int(max(8, int(cfg.get("local_optimizer_max_nfev", 24))))
+	refine_after_first_fit = bool(cfg.get("refine_after_first_fit", True))
+	refine_span_fraction = float(cfg.get("refine_span_fraction", 0.20))
+	refine_n_candidates_cfg = cfg.get("refine_n_candidates", None)
+	refine_n_candidates = (None if refine_n_candidates_cfg in (None, "", False) else int(max(20, int(refine_n_candidates_cfg))))
+	peak_emphasis_alpha = float(cfg.get("peak_emphasis_alpha", 0.8))
 	progress_every = int(max(1, int(cfg.get("progress_every", 40))))
 	spatial_stride = int(max(1, int(cfg.get("spatial_stride", 1))))
 	obs_shift_enabled = bool(cfg.get("obs_shift_enabled", True))
 	obs_shift_mode = str(cfg.get("obs_shift_mode", "per_frequency"))
 	obs_shift_kms = float(cfg.get("obs_shift_kms", 0.0))
 	out_prefix = str(cfg.get("out_prefix", "CUBEFIT"))
+	save_spectral_cubes = bool(cfg.get("save_spectral_cubes", False))
+	resume_enabled = bool(cfg.get("resume_enabled", True))
+	tex_prior_enabled = bool(cfg.get("tex_prior_enabled", False))
+	tex_prior_map_path = str(cfg.get("tex_prior_map_path", "")).strip()
+	tex_prior_half_window = float(cfg.get("tex_prior_half_window", 15.0))
+	tex_prior_min_candidates = int(max(1, int(cfg.get("tex_prior_min_candidates", 48))))
+	tex_prior_hard_fix = bool(cfg.get("tex_prior_hard_fix", False))
+	tex_prior_quant_step = float(cfg.get("tex_prior_quant_step", 1.0))
+	candidate_velocity_shifts_kms = _parse_candidate_velocity_shifts(
+		cfg.get("candidate_velocity_shifts_kms", DEFAULT_CANDIDATE_VELOCITY_SHIFTS_KMS),
+		default_values=[float(v) for v in DEFAULT_CANDIDATE_VELOCITY_SHIFTS_KMS],
+	)
 
-	if not os.path.isfile(obs_cube_path):
-		raise FileNotFoundError(f"Observational cube not found: {obs_cube_path}")
+	log_txt_path = os.path.join(out_dir, "Log.txt")
+	status_json_path = os.path.join(out_dir, f"{out_prefix}_RUN_STATUS.json")
+	state_json_path = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_STATE.json")
+	done_mask_fits_path = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_DONE_MASK.fits")
+	inprog_logn_path = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_LOGN.fits")
+	inprog_tex_path = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_TEX.fits")
+	inprog_velo_path = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_VELOCITY.fits")
+	inprog_fwhm_path = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_FWHM.fits")
+	inprog_obj_path = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_OBJECTIVE.fits")
+	inprog_mae_path = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_MAE.fits")
+	run_t0 = float(time.time())
+	try:
+		elapsed_accum_seconds = float(cfg.get("elapsed_accum_seconds", 0.0))
+	except Exception:
+		elapsed_accum_seconds = 0.0
+	if (elapsed_accum_seconds <= 0.0) and bool(resume_enabled) and os.path.isfile(state_json_path):
+		try:
+			with open(state_json_path, "r", encoding="utf-8") as f_prev_state:
+				_prev_state = json.load(f_prev_state)
+			if isinstance(_prev_state, dict):
+				elapsed_accum_seconds = float(_prev_state.get("elapsed_total_seconds", 0.0))
+		except Exception:
+			pass
+	if not np.isfinite(elapsed_accum_seconds) or elapsed_accum_seconds < 0.0:
+		elapsed_accum_seconds = 0.0
 
-	with fits.open(obs_cube_path, memmap=True) as hdul:
-		arr = np.asarray(hdul[0].data, dtype=np.float32)
-		ref_hdr = hdul[0].header.copy()
-	if arr.ndim == 4:
-		arr = arr[0]
-	if arr.ndim != 3:
-		raise RuntimeError(f"Unexpected observational cube shape: {arr.shape}")
-	nchan, ny, nx = int(arr.shape[0]), int(arr.shape[1]), int(arr.shape[2])
-	obs_freq = _build_freq_axis_from_header(ref_hdr, nchan)
-	if obs_shift_enabled:
-		if str(obs_shift_mode).strip().lower() == "spw_center":
-			obs_freq = _apply_velocity_shift_by_spw_center(obs_freq, float(obs_shift_kms))
+	if not obs_cube_paths:
+		raise FileNotFoundError("No observational cube paths were provided.")
+
+	cube_arrays: List[np.ndarray] = []
+	cube_freqs: List[np.ndarray] = []
+	ref_hdr = None
+	ny = nx = None
+	total_channels = 0
+	integ_map_accum = None
+	lastpixel_npz_path = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_LASTPIXEL_SPECTRA.npz")
+	integ_map_fits_path = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_INTEG_MAP.fits")
+	inprog_adjusted_cube_path = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_ADJUSTED.fits")
+	inprog_synthetic_cube_path = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_SYNTHETIC.fits")
+	inprog_noise_cube_path = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_NOISE.fits")
+	final_adjusted_cube_path = os.path.join(out_dir, f"{out_prefix}_ADJUSTED.fits")
+	final_synthetic_cube_path = os.path.join(out_dir, f"{out_prefix}_SYNTHETIC.fits")
+	final_noise_cube_path = os.path.join(out_dir, f"{out_prefix}_NOISE.fits")
+	spec_axis = None
+	cube_adjusted = None
+	cube_synthetic = None
+	cube_noise = None
+
+	for i_c, cp in enumerate(obs_cube_paths, start=1):
+		if not os.path.isfile(cp):
+			raise FileNotFoundError(f"Observational cube not found: {cp}")
+		with fits.open(cp, memmap=True) as hdul:
+			arr_i = np.asarray(hdul[0].data, dtype=np.float32)
+			hdr_i = hdul[0].header.copy()
+		if arr_i.ndim == 4:
+			arr_i = arr_i[0]
+		if arr_i.ndim != 3:
+			raise RuntimeError(f"Unexpected observational cube shape in '{cp}': {arr_i.shape}")
+
+		nchan_i, ny_i, nx_i = int(arr_i.shape[0]), int(arr_i.shape[1]), int(arr_i.shape[2])
+		if ny is None or nx is None:
+			ny, nx = int(ny_i), int(nx_i)
+			ref_hdr = hdr_i.copy()
+		elif int(ny_i) != int(ny) or int(nx_i) != int(nx):
+			raise RuntimeError(
+				"All cubes must share the same spatial shape (ny, nx). "
+				f"Got first=({ny},{nx}) vs '{cp}'=({ny_i},{nx_i})."
+			)
+
+		freq_i = _build_freq_axis_from_header(hdr_i, nchan_i)
+		if obs_shift_enabled:
+			if str(obs_shift_mode).strip().lower() == "spw_center":
+				freq_i = _apply_velocity_shift_by_spw_center(freq_i, float(obs_shift_kms))
+			else:
+				freq_i = _apply_velocity_shift_to_frequency(freq_i, float(obs_shift_kms))
+
+		cube_arrays.append(np.asarray(arr_i, dtype=np.float32))
+		cube_freqs.append(np.asarray(freq_i, dtype=np.float64))
+		map_i = np.asarray(np.nansum(np.where(np.isfinite(arr_i), arr_i, 0.0), axis=0), dtype=np.float64)
+		if integ_map_accum is None:
+			integ_map_accum = np.asarray(map_i, dtype=np.float64)
+		elif np.asarray(integ_map_accum).shape == np.asarray(map_i).shape:
+			integ_map_accum = np.asarray(integ_map_accum + map_i, dtype=np.float64)
+		total_channels += int(nchan_i)
+		_append_cubefit_progress_log(
+			log_txt_path,
+			f"Input cube {i_c}/{len(obs_cube_paths)} | path='{cp}' | shape=({nchan_i},{ny_i},{nx_i})",
+		)
+
+	if integ_map_accum is not None:
+		try:
+			_write_map_fits_2d(integ_map_fits_path, np.asarray(integ_map_accum, dtype=np.float32), ref_hdr, "Cube-fitting integrated intensity preview map")
+		except Exception:
+			pass
+
+	_append_cubefit_progress_log(
+		log_txt_path,
+		f"Start cube fitting | n_cubes={len(obs_cube_paths)} | total_channels={int(total_channels)} | spatial_shape=({int(ny)},{int(nx)}) | resume_enabled={bool(resume_enabled)}",
+	)
+	region_mask, region_meta = _build_region_mask_from_cfg(ny, nx, cfg)
+	_append_cubefit_progress_log(
+		log_txt_path,
+		f"Region mode={region_meta.get('mode')} | x=[{region_meta.get('x_min')},{region_meta.get('x_max')}] | y=[{region_meta.get('y_min')},{region_meta.get('y_max')}]",
+	)
+	obs_freq_concat = np.concatenate([np.asarray(ff, dtype=np.float64) for ff in cube_freqs], axis=0)
+	sort_idx_freq = np.argsort(np.asarray(obs_freq_concat, dtype=np.float64))
+	obs_freq_sorted = np.asarray(obs_freq_concat, dtype=np.float64)[sort_idx_freq]
+
+	tex_prior_map = None
+	if bool(tex_prior_enabled):
+		if (not tex_prior_map_path) or (not os.path.isfile(str(tex_prior_map_path))):
+			_append_cubefit_progress_log(log_txt_path, "[WARN] Tex-guided mode requested but tex_prior_map_path is missing/invalid. Falling back to standard fitting.")
+			tex_prior_enabled = False
 		else:
-			obs_freq = _apply_velocity_shift_to_frequency(obs_freq, float(obs_shift_kms))
+			tex_prior_map = _load_resume_map2d(str(tex_prior_map_path), (int(ny), int(nx)))
+			if tex_prior_map is None:
+				_append_cubefit_progress_log(log_txt_path, "[WARN] Tex-guided mode requested but Tex prior map shape/content is invalid. Falling back to standard fitting.")
+				tex_prior_enabled = False
+			else:
+				_append_cubefit_progress_log(
+					log_txt_path,
+					f"Tex-guided mode enabled | map='{tex_prior_map_path}' | half_window={float(tex_prior_half_window):.4g} | min_candidates={int(tex_prior_min_candidates)} | hard_fix={bool(tex_prior_hard_fix)}",
+				)
 
 	X_shared = None
 	if not bool(independent_pixel_candidates):
@@ -2276,20 +2914,124 @@ def run_cube_fit_worker(cfg_path: str) -> int:
 	map_fwhm = np.full((ny, nx), np.nan, dtype=np.float32)
 	map_obj = np.full((ny, nx), np.nan, dtype=np.float32)
 	map_mae = np.full((ny, nx), np.nan, dtype=np.float32)
+	processed_mask = np.zeros((ny, nx), dtype=bool)
 
-	valid_mask = np.any(np.isfinite(arr), axis=0)
-	pixel_order = _spiral_pixel_order_valid(valid_mask)
+	valid_mask = np.zeros((int(ny), int(nx)), dtype=bool)
+	for arr_i in cube_arrays:
+		valid_mask |= np.any(np.isfinite(arr_i), axis=0)
+	valid_mask = np.asarray(valid_mask, dtype=bool) & np.asarray(region_mask, dtype=bool)
+	pixel_order = _spiral_pixel_order_valid(
+		valid_mask,
+		center_y=int(region_meta.get("center_y", ny // 2)),
+		center_x=int(region_meta.get("center_x", nx // 2)),
+	)
 	if int(spatial_stride) > 1:
 		pixel_order = [(yy, xx) for (yy, xx) in pixel_order if (int(yy) % int(spatial_stride) == 0) and (int(xx) % int(spatial_stride) == 0)]
 	total_pixels = int(len(pixel_order))
 	if total_pixels <= 0:
 		raise RuntimeError("No valid observational pixels in cube")
 
+	tex_prior_idx_by_key: Dict[int, np.ndarray] = {}
+	tex_prior_step_eff = float(max(1e-6, abs(float(tex_prior_quant_step))))
+	if bool(tex_prior_enabled) and (not bool(independent_pixel_candidates)) and (not bool(tex_prior_hard_fix)) and (X_shared is not None):
+		try:
+			tx = np.asarray(X_shared[:, 1], dtype=np.float64).reshape(-1)
+			ord_tx = np.argsort(tx)
+			tx_sorted = np.asarray(tx[ord_tx], dtype=np.float64)
+			idx_sorted = np.asarray(ord_tx, dtype=np.int64)
+
+			if tex_prior_map is not None and len(pixel_order) > 0:
+				py = np.asarray([int(v[0]) for v in pixel_order], dtype=np.int64)
+				px = np.asarray([int(v[1]) for v in pixel_order], dtype=np.int64)
+				tex_vals_px = np.asarray(tex_prior_map[py, px], dtype=np.float64)
+				m_tex = np.isfinite(tex_vals_px)
+				if np.any(m_tex):
+					keys = np.unique(np.rint(tex_vals_px[m_tex] / float(tex_prior_step_eff)).astype(np.int64))
+					for kk in keys:
+						center_k = float(int(kk)) * float(tex_prior_step_eff)
+						idx_k = _tex_guided_indices_from_sorted(
+							tex_sorted_values=tx_sorted,
+							tex_sorted_indices=idx_sorted,
+							tex_center=float(center_k),
+							tex_half_window=float(tex_prior_half_window),
+							min_candidates=int(tex_prior_min_candidates),
+						)
+						if idx_k.size > 0:
+							tex_prior_idx_by_key[int(kk)] = np.asarray(idx_k, dtype=np.int64)
+					_append_cubefit_progress_log(
+						log_txt_path,
+						f"Tex-guided cache: precomputed {len(tex_prior_idx_by_key)} Tex-key candidate pools (step={float(tex_prior_step_eff):.4g} K).",
+					)
+			else:
+				_append_cubefit_progress_log(log_txt_path, "Tex-guided cache: no valid Tex prior pixels available for precomputation.")
+		except Exception as e:
+			_append_cubefit_progress_log(log_txt_path, f"[WARN] Tex-guided cache precompute failed. Using per-pixel filtering. Reason: {e}")
+			tex_prior_idx_by_key = {}
+
+	if bool(resume_enabled):
+		dm = _load_resume_map2d(done_mask_fits_path, (ny, nx))
+		if dm is not None:
+			processed_mask = np.asarray(dm > 0.5, dtype=bool)
+			m_logn = _load_resume_map2d(inprog_logn_path, (ny, nx))
+			m_tex = _load_resume_map2d(inprog_tex_path, (ny, nx))
+			m_vel = _load_resume_map2d(inprog_velo_path, (ny, nx))
+			m_fwhm = _load_resume_map2d(inprog_fwhm_path, (ny, nx))
+			m_obj = _load_resume_map2d(inprog_obj_path, (ny, nx))
+			m_mae = _load_resume_map2d(inprog_mae_path, (ny, nx))
+			if m_logn is not None:
+				map_logn = m_logn
+			if m_tex is not None:
+				map_tex = m_tex
+			if m_vel is not None:
+				map_velo = m_vel
+			if m_fwhm is not None:
+				map_fwhm = m_fwhm
+			if m_obj is not None:
+				map_obj = m_obj
+			if m_mae is not None:
+				map_mae = m_mae
+			done_prev = int(np.sum([1 for (yy, xx) in pixel_order if bool(processed_mask[yy, xx])]))
+			_append_cubefit_progress_log(log_txt_path, f"Resume detected | previously processed pixels: {done_prev}/{total_pixels}")
+
 	progress_png = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_MAP.png")
-	fit_count = 0
+	fit_count = int(np.count_nonzero(np.isfinite(map_logn) & processed_mask))
+	done_steps = int(np.sum([1 for (yy, xx) in pixel_order if bool(processed_mask[yy, xx])]))
 	for p_done, (y, x) in enumerate(pixel_order, start=1):
-		y_obs = np.asarray(arr[:, y, x], dtype=np.float64)
+		if bool(processed_mask[y, x]):
+			continue
+		processed_mask[y, x] = True
+		done_steps += 1
+
+		y_obs = np.concatenate([
+			np.asarray(arr_i[:, y, x], dtype=np.float64)
+			for arr_i in cube_arrays
+		], axis=0)
+		y_obs = np.asarray(y_obs, dtype=np.float64)[sort_idx_freq]
 		if int(np.count_nonzero(np.isfinite(y_obs))) < 3:
+			if (done_steps % progress_every) == 0 or done_steps == total_pixels:
+				elapsed_total_seconds = float(elapsed_accum_seconds + max(0.0, float(time.time()) - run_t0))
+				_write_map_fits_2d(inprog_logn_path, map_logn, ref_hdr, f"Checkpoint: {done_steps}/{total_pixels}")
+				_write_map_fits_2d(inprog_tex_path, map_tex, ref_hdr, f"Checkpoint: {done_steps}/{total_pixels}")
+				_write_map_fits_2d(inprog_velo_path, map_velo, ref_hdr, f"Checkpoint: {done_steps}/{total_pixels}")
+				_write_map_fits_2d(inprog_fwhm_path, map_fwhm, ref_hdr, f"Checkpoint: {done_steps}/{total_pixels}")
+				_write_map_fits_2d(inprog_obj_path, map_obj, ref_hdr, f"Checkpoint: {done_steps}/{total_pixels}")
+				_write_map_fits_2d(inprog_mae_path, map_mae, ref_hdr, f"Checkpoint: {done_steps}/{total_pixels}")
+				_write_done_mask_fits_2d(done_mask_fits_path, processed_mask, ref_hdr, f"Checkpoint: {done_steps}/{total_pixels}")
+				_save_cubefit_progress_png(map_logn, map_tex, map_velo, map_fwhm, done_steps, total_pixels, progress_png, ref_hdr=ref_hdr, processed_mask=processed_mask)
+				try:
+					with open(state_json_path, "w", encoding="utf-8") as f_state:
+						json.dump({
+							"done_steps": int(done_steps),
+							"total_steps": int(total_pixels),
+							"fit_count": int(fit_count),
+							"elapsed_total_seconds": float(elapsed_total_seconds),
+							"elapsed_hms": _format_elapsed_hms(float(elapsed_total_seconds)),
+							"last_pixel": [int(y), int(x)],
+							"timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+						}, f_state, ensure_ascii=False, indent=2)
+				except Exception:
+					pass
+				_append_cubefit_progress_log(log_txt_path, f"Checkpoint {done_steps}/{total_pixels} | fit_count={fit_count}")
 			continue
 
 		if bool(independent_pixel_candidates):
@@ -2304,12 +3046,42 @@ def run_cube_fit_worker(cfg_path: str) -> int:
 			seed_px = int(seed)
 			X_fit = np.asarray(X_shared, dtype=np.float32)
 
+		if bool(tex_prior_enabled) and (tex_prior_map is not None):
+			tex_px = float(tex_prior_map[int(y), int(x)]) if np.isfinite(float(tex_prior_map[int(y), int(x)])) else np.nan
+			if np.isfinite(tex_px):
+				used_fast_cache = False
+				if (not bool(independent_pixel_candidates)) and (not bool(tex_prior_hard_fix)) and (X_shared is not None):
+					key_px = int(np.rint(float(tex_px) / float(tex_prior_step_eff)))
+					idx_cached = tex_prior_idx_by_key.get(int(key_px), None)
+					if idx_cached is not None and np.asarray(idx_cached).size > 0:
+						X_fit = np.asarray(X_shared[np.asarray(idx_cached, dtype=np.int64)], dtype=np.float32)
+						used_fast_cache = True
+
+				if not bool(used_fast_cache):
+					X_fit = _apply_tex_guided_candidate_filter(
+						X_candidates=np.asarray(X_fit, dtype=np.float32),
+						tex_prior_value=float(tex_px),
+						tex_half_window=float(tex_prior_half_window),
+						min_candidates=int(tex_prior_min_candidates),
+						hard_fix_tex=bool(tex_prior_hard_fix),
+					)
+				if int(np.asarray(X_fit).shape[0]) <= 0:
+					X_fit = np.asarray(
+						[[
+							0.5 * (float(ranges["logn_min"]) + float(ranges["logn_max"])),
+							float(tex_px),
+							0.5 * (float(ranges["velo_min"]) + float(ranges["velo_max"])),
+							0.5 * (float(ranges["fwhm_min"]) + float(ranges["fwhm_max"])),
+						]],
+						dtype=np.float32,
+					)
+
 		res = _run_roi_fitting(
 			signal_models_source=signal_models_source,
 			noise_models_root=noise_models_root,
 			filter_file=filter_file,
 			target_freqs=target_freqs,
-			obs_freq=np.asarray(obs_freq, dtype=np.float64),
+			obs_freq=np.asarray(obs_freq_sorted, dtype=np.float64),
 			obs_intensity=np.asarray(y_obs, dtype=np.float64),
 			case_mode=case_mode,
 			fit_criterion=fit_criterion,
@@ -2326,9 +3098,14 @@ def run_cube_fit_worker(cfg_path: str) -> int:
 			pkg_cache_override=pkg_cache_shared,
 			local_optimizer_method=str(local_optimizer_method),
 			local_optimizer_max_nfev=int(local_optimizer_max_nfev),
-			refine_after_first_fit=False,
+			candidate_velocity_shifts_kms=[float(v) for v in candidate_velocity_shifts_kms],
+			refine_after_first_fit=bool(refine_after_first_fit),
+			refine_span_fraction=float(refine_span_fraction),
+			refine_n_candidates=refine_n_candidates,
+			peak_emphasis_alpha=float(peak_emphasis_alpha),
 		)
-		if isinstance(res, dict) and bool(res.get("ok", False)):
+		last_fit_ok = bool(isinstance(res, dict) and bool(res.get("ok", False)))
+		if last_fit_ok:
 			bp = res.get("best_global_params", {}) if isinstance(res.get("best_global_params", {}), dict) else {}
 			map_logn[y, x] = float(bp.get("logN", np.nan))
 			map_tex[y, x] = float(bp.get("Tex", np.nan))
@@ -2338,12 +3115,100 @@ def run_cube_fit_worker(cfg_path: str) -> int:
 			map_mae[y, x] = float(res.get("best_global_mean_MAE", np.nan))
 			fit_count += 1
 
-		if (p_done % progress_every) == 0 or p_done == total_pixels:
-			_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_INPROGRESS_LOGN.fits"), map_logn, ref_hdr, f"Checkpoint: {p_done}/{total_pixels}")
-			_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_INPROGRESS_TEX.fits"), map_tex, ref_hdr, f"Checkpoint: {p_done}/{total_pixels}")
-			_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_INPROGRESS_VELOCITY.fits"), map_velo, ref_hdr, f"Checkpoint: {p_done}/{total_pixels}")
-			_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_INPROGRESS_FWHM.fits"), map_fwhm, ref_hdr, f"Checkpoint: {p_done}/{total_pixels}")
-			_save_cubefit_progress_png(map_logn, map_tex, map_velo, map_fwhm, p_done, total_pixels, progress_png)
+		freq_cat, obs_cat, syn_cat, noise_cat, pred_cat, _ = _build_checkpoint_overlay_vectors(
+			res,
+			np.asarray(obs_freq_sorted, dtype=np.float64),
+			np.asarray(y_obs, dtype=np.float64),
+		)
+
+		if bool(save_spectral_cubes) and bool(last_fit_ok):
+			if spec_axis is None and int(np.asarray(freq_cat).size) >= 2 and int(np.asarray(pred_cat).size) == int(np.asarray(freq_cat).size):
+				spec_axis = np.asarray(freq_cat, dtype=np.float64).reshape(-1)
+				n_spec = int(spec_axis.size)
+				cube_adjusted = np.full((n_spec, ny, nx), np.nan, dtype=np.float32)
+				cube_synthetic = np.full((n_spec, ny, nx), np.nan, dtype=np.float32)
+				cube_noise = np.full((n_spec, ny, nx), np.nan, dtype=np.float32)
+
+			if spec_axis is not None:
+				ff = np.asarray(freq_cat, dtype=np.float64).reshape(-1)
+				yp = np.asarray(pred_cat, dtype=np.float64).reshape(-1)
+				ys = np.asarray(syn_cat, dtype=np.float64).reshape(-1)
+				yn = np.asarray(noise_cat, dtype=np.float64).reshape(-1)
+				if ff.size >= 2 and yp.size == ff.size:
+					if ff.size == spec_axis.size and np.allclose(ff, spec_axis, rtol=0.0, atol=1e-8):
+						yp_use = yp
+						ys_use = ys if ys.size == ff.size else np.full_like(ff, np.nan)
+						yn_use = yn if yn.size == ff.size else (yp_use - ys_use if ys.size == ff.size else np.full_like(ff, np.nan))
+					else:
+						ord_ff = np.argsort(ff)
+						ff_u, idx_u = np.unique(ff[ord_ff], return_index=True)
+						yp_u = yp[ord_ff][idx_u]
+						ys_u = ys[ord_ff][idx_u] if ys.size == ff.size else np.full_like(ff_u, np.nan)
+						yn_u = yn[ord_ff][idx_u] if yn.size == ff.size else np.full_like(ff_u, np.nan)
+						yp_use = np.interp(spec_axis, ff_u, yp_u, left=np.nan, right=np.nan)
+						ys_use = np.interp(spec_axis, ff_u, ys_u, left=np.nan, right=np.nan)
+						yn_use = np.interp(spec_axis, ff_u, yn_u, left=np.nan, right=np.nan)
+						if not np.any(np.isfinite(yn_use)) and np.any(np.isfinite(yp_use)) and np.any(np.isfinite(ys_use)):
+							yn_use = yp_use - ys_use
+
+					cube_adjusted[:, y, x] = np.asarray(yp_use, dtype=np.float32)
+					if ys_use.size == spec_axis.size:
+						cube_synthetic[:, y, x] = np.asarray(ys_use, dtype=np.float32)
+					if yn_use.size == spec_axis.size:
+						cube_noise[:, y, x] = np.asarray(yn_use, dtype=np.float32)
+
+		if (done_steps % progress_every) == 0 or done_steps == total_pixels:
+			elapsed_total_seconds = float(elapsed_accum_seconds + max(0.0, float(time.time()) - run_t0))
+			try:
+				np.savez_compressed(
+					lastpixel_npz_path,
+					x=np.asarray([int(x)], dtype=np.int32),
+					y=np.asarray([int(y)], dtype=np.int32),
+					done_steps=np.asarray([int(done_steps)], dtype=np.int32),
+					total_steps=np.asarray([int(total_pixels)], dtype=np.int32),
+					fit_ok=np.asarray([1 if bool(last_fit_ok) else 0], dtype=np.int32),
+					freq=np.asarray(freq_cat, dtype=np.float32),
+					obs=np.asarray(obs_cat, dtype=np.float32),
+					syn=np.asarray(syn_cat, dtype=np.float32),
+					noise=np.asarray(noise_cat, dtype=np.float32),
+					pred=np.asarray(pred_cat, dtype=np.float32),
+				)
+			except Exception:
+				pass
+
+			if bool(save_spectral_cubes) and (spec_axis is not None) and (cube_adjusted is not None) and (cube_synthetic is not None):
+				try:
+					write_cube_fits(inprog_adjusted_cube_path, cube_adjusted, np.asarray(spec_axis, dtype=np.float64), ref_hdr, f"Checkpoint adjusted cube: {done_steps}/{total_pixels}")
+					write_cube_fits(inprog_synthetic_cube_path, cube_synthetic, np.asarray(spec_axis, dtype=np.float64), ref_hdr, f"Checkpoint synthetic cube: {done_steps}/{total_pixels}")
+					if (str(case_mode).strip().lower() == "synthetic_plus_noise") and (cube_noise is not None):
+						write_cube_fits(inprog_noise_cube_path, cube_noise, np.asarray(spec_axis, dtype=np.float64), ref_hdr, f"Checkpoint noise cube: {done_steps}/{total_pixels}")
+				except Exception:
+					pass
+
+			_write_map_fits_2d(inprog_logn_path, map_logn, ref_hdr, f"Checkpoint: {done_steps}/{total_pixels}")
+			_write_map_fits_2d(inprog_tex_path, map_tex, ref_hdr, f"Checkpoint: {done_steps}/{total_pixels}")
+			_write_map_fits_2d(inprog_velo_path, map_velo, ref_hdr, f"Checkpoint: {done_steps}/{total_pixels}")
+			_write_map_fits_2d(inprog_fwhm_path, map_fwhm, ref_hdr, f"Checkpoint: {done_steps}/{total_pixels}")
+			_write_map_fits_2d(inprog_obj_path, map_obj, ref_hdr, f"Checkpoint: {done_steps}/{total_pixels}")
+			_write_map_fits_2d(inprog_mae_path, map_mae, ref_hdr, f"Checkpoint: {done_steps}/{total_pixels}")
+			_write_done_mask_fits_2d(done_mask_fits_path, processed_mask, ref_hdr, f"Checkpoint: {done_steps}/{total_pixels}")
+			_save_cubefit_progress_png(map_logn, map_tex, map_velo, map_fwhm, done_steps, total_pixels, progress_png, ref_hdr=ref_hdr, processed_mask=processed_mask)
+			try:
+				with open(state_json_path, "w", encoding="utf-8") as f_state:
+					json.dump({
+						"done_steps": int(done_steps),
+						"total_steps": int(total_pixels),
+						"fit_count": int(fit_count),
+						"elapsed_total_seconds": float(elapsed_total_seconds),
+						"elapsed_hms": _format_elapsed_hms(float(elapsed_total_seconds)),
+						"last_pixel": [int(y), int(x)],
+						"region": dict(region_meta),
+						"region": dict(region_meta),
+						"timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+					}, f_state, ensure_ascii=False, indent=2)
+			except Exception:
+				pass
+			_append_cubefit_progress_log(log_txt_path, f"Checkpoint {done_steps}/{total_pixels} | fit_count={fit_count}")
 
 	if fit_count <= 0:
 		raise RuntimeError("Cube fitting produced no valid fitted pixels")
@@ -2354,6 +3219,15 @@ def run_cube_fit_worker(cfg_path: str) -> int:
 	_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_FWHM.fits"), map_fwhm, ref_hdr, "Final cube fitting map")
 	_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_OBJECTIVE.fits"), map_obj, ref_hdr, "Final cube fitting objective map")
 	_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_MAE.fits"), map_mae, ref_hdr, "Final cube fitting MAE map")
+	if bool(save_spectral_cubes) and (spec_axis is not None) and (cube_adjusted is not None) and (cube_synthetic is not None):
+		try:
+			write_cube_fits(final_adjusted_cube_path, cube_adjusted, np.asarray(spec_axis, dtype=np.float64), ref_hdr, "Final adjusted cube (synthetic + noise)")
+			write_cube_fits(final_synthetic_cube_path, cube_synthetic, np.asarray(spec_axis, dtype=np.float64), ref_hdr, "Final synthetic cube")
+			if (str(case_mode).strip().lower() == "synthetic_plus_noise") and (cube_noise is not None):
+				write_cube_fits(final_noise_cube_path, cube_noise, np.asarray(spec_axis, dtype=np.float64), ref_hdr, "Final noise-only cube")
+		except Exception as e:
+			_append_cubefit_progress_log(log_txt_path, f"[WARN] Could not write final spectral cubes: {e}")
+	_append_cubefit_progress_log(log_txt_path, f"Completed cube fitting | valid fitted pixels: {fit_count}/{total_pixels}")
 	print(f"[INFO] Cube fitting completed | valid fitted pixels: {fit_count}/{total_pixels}")
 	return 0
 
@@ -2482,6 +3356,17 @@ def _read_progress_info(progress_png_path: Optional[str]) -> Optional[dict]:
 def _read_log_tail(log_path: str, n_lines: int = 60) -> str:
 	if (not log_path) or (not os.path.isfile(log_path)):
 		return ""
+
+
+def _format_elapsed_hms(seconds: float) -> str:
+	try:
+		t = int(max(0, round(float(seconds))))
+	except Exception:
+		t = 0
+	h = t // 3600
+	m = (t % 3600) // 60
+	s = t % 60
+	return f"{h:02d}:{m:02d}:{s:02d}"
 	try:
 		with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
 			lines = f.readlines()
@@ -2605,15 +3490,108 @@ def _read_target_failure_reasons(log_path: str) -> Dict[float, List[str]]:
 	return out
 
 
+def _extract_xy_from_plotly_event(
+	event_obj,
+	preferred_curve_numbers: Optional[List[int]] = None,
+	nx: Optional[int] = None,
+	ny: Optional[int] = None,
+) -> Optional[Tuple[int, int]]:
+	"""Extract (x,y) pixel from a Streamlit Plotly selection event object."""
+	if event_obj is None:
+		return None
+	pts = None
+	try:
+		if isinstance(event_obj, dict):
+			sel = event_obj.get("selection", event_obj)
+			if isinstance(sel, dict):
+				pts = sel.get("points", None)
+		if pts is None:
+			sel_obj = getattr(event_obj, "selection", None)
+			if sel_obj is not None:
+				pts = getattr(sel_obj, "points", None)
+		if pts is None:
+			pts = getattr(event_obj, "points", None)
+		if pts is None:
+			return None
+		pts_list = list(pts)
+		if not pts_list:
+			return None
+
+		def _pt_get(p, keys: List[str], attrs: List[str]):
+			if isinstance(p, dict):
+				for kk in keys:
+					if kk in p and p.get(kk) is not None:
+						return p.get(kk)
+				return None
+			for aa in attrs:
+				vv = getattr(p, aa, None)
+				if vv is not None:
+					return vv
+			return None
+
+		def _decode_point(p) -> Optional[Tuple[int, int]]:
+			xv = _pt_get(p, ["x"], ["x"])
+			yv = _pt_get(p, ["y"], ["y"])
+			if xv is not None and yv is not None:
+				return int(round(float(xv))), int(round(float(yv)))
+
+			if nx is None or ny is None:
+				return None
+			idx_v = _pt_get(p, ["pointIndex", "point_index", "pointNumber", "point_number", "point"], ["pointIndex", "point_index", "pointNumber", "point_number", "point"])
+			if idx_v is None:
+				return None
+			idx = int(idx_v)
+			if idx < 0:
+				return None
+			xd = int(idx % int(nx))
+			yd = int(idx // int(nx))
+			if yd < 0 or yd >= int(ny):
+				return None
+			return xd, yd
+
+		pref_set = set(int(v) for v in (preferred_curve_numbers or []))
+		if pref_set:
+			for p in reversed(pts_list):
+				curve_v = _pt_get(p, ["curveNumber", "curve_number", "curve"], ["curveNumber", "curve_number", "curve"])
+				if curve_v is None:
+					continue
+				try:
+					if int(curve_v) not in pref_set:
+						continue
+				except Exception:
+					continue
+				xy = _decode_point(p)
+				if xy is not None:
+					return xy
+
+		for p in reversed(pts_list):
+			xy = _decode_point(p)
+			if xy is not None:
+				return xy
+		return None
+	except Exception:
+		return None
+
+
 def _get_cube_ny_nx(cube_fits_path: str):
 	if fits is None or (not cube_fits_path) or (not os.path.isfile(cube_fits_path)):
 		return None
 	try:
-		with fits.open(cube_fits_path, memmap=True) as hdul:
+		with fits.open(cube_fits_path, memmap=True, lazy_load_hdus=True) as hdul:
+			hdr = hdul[0].header
+			naxis = int(hdr.get("NAXIS", 0))
+			nx = int(hdr.get("NAXIS1", 0))
+			ny = int(hdr.get("NAXIS2", 0))
+			if naxis >= 3 and nx > 0 and ny > 0:
+				return int(ny), int(nx)
 			arr = hdul[0].data
-			if arr is None or arr.ndim != 3:
-				return None
-			return int(arr.shape[1]), int(arr.shape[2])
+			if arr is not None:
+				shape = tuple(arr.shape)
+				if len(shape) == 3:
+					return int(shape[1]), int(shape[2])
+				if len(shape) == 4:
+					return int(shape[2]), int(shape[3])
+			return None
 	except Exception:
 		return None
 
@@ -2623,9 +3601,21 @@ def _build_freq_axis_from_header(hdr, nchan: int) -> np.ndarray:
 		crval = float(hdr.get("CRVAL3", 0.0))
 		cdelt = float(hdr.get("CDELT3", 1.0))
 		crpix = float(hdr.get("CRPIX3", 1.0))
+		cunit = str(hdr.get("CUNIT3", "Hz")).strip().lower()
 		idx = np.arange(int(nchan), dtype=np.float64)
-		freq_hz = crval + (idx + 1.0 - crpix) * cdelt
-		return (freq_hz / 1e9).astype(np.float64)
+		f = crval + (idx + 1.0 - crpix) * cdelt
+		if "ghz" in cunit:
+			freq_ghz = f
+		elif "mhz" in cunit:
+			freq_ghz = f / 1e3
+		elif "khz" in cunit:
+			freq_ghz = f / 1e6
+		elif "hz" in cunit:
+			freq_ghz = f / 1e9
+		else:
+			# Conservative fallback: most ALMA cubes store spectral axis in Hz.
+			freq_ghz = f / 1e9
+		return np.asarray(freq_ghz, dtype=np.float64)
 	except Exception:
 		return np.arange(int(nchan), dtype=np.float64)
 
@@ -2831,6 +3821,1173 @@ def _uploaded_file_signature(upload_obj) -> str:
 		return str(getattr(upload_obj, "name", ""))
 
 
+class _InverseParamNNLite(nn.Module):
+	def __init__(self, input_size: int, hidden_sizes: List[int], output_size: int = 4, dropout_rate: float = 0.2):
+		super().__init__()
+		layers = []
+		prev = int(input_size)
+		for h in (hidden_sizes or []):
+			hh = int(max(8, int(h)))
+			layers.append(nn.Linear(prev, hh))
+			layers.append(nn.BatchNorm1d(hh))
+			layers.append(nn.ReLU())
+			layers.append(nn.Dropout(float(dropout_rate)))
+			prev = hh
+		layers.append(nn.Linear(prev, int(output_size)))
+		self.model = nn.Sequential(*layers)
+
+	def forward(self, x):
+		return self.model(x)
+
+
+def _load_standard_scaler_from_h5_group(grp) -> StandardScaler:
+	sc = StandardScaler()
+	sc.mean_ = np.asarray(grp["mean_"], dtype=np.float64)
+	sc.scale_ = np.asarray(grp["scale_"], dtype=np.float64)
+	sc.var_ = np.asarray(grp.get("var_", sc.scale_ ** 2), dtype=np.float64)
+	nfi = np.asarray(grp.get("n_features_in_", np.array([sc.mean_.shape[0]], dtype=np.int64)))
+	sc.n_features_in_ = int(nfi[0]) if np.ndim(nfi) > 0 else int(nfi)
+	return sc
+
+
+def _normalize_inverse_state_dict_keys(sd: "collections.OrderedDict") -> "collections.OrderedDict":
+	"""Normalize checkpoint key prefixes so loader accepts both net.* and model.* formats."""
+	if not sd:
+		return sd
+	keys = list(sd.keys())
+	has_model = any(str(k).startswith("model.") for k in keys)
+	has_net = any(str(k).startswith("net.") for k in keys)
+	if has_model and (not has_net):
+		return sd
+	if has_net and (not has_model):
+		sd2 = collections.OrderedDict()
+		for k, v in sd.items():
+			kk = str(k)
+			if kk.startswith("net."):
+				kk = "model." + kk[len("net."):]
+			sd2[kk] = v
+		return sd2
+	return sd
+
+
+def _load_inverse_param_model_h5(model_h5_path: str):
+	with h5py.File(model_h5_path, "r") as hf:
+		cfg_raw = hf["config_json"][()]
+		cfg_json = cfg_raw.decode("utf-8") if isinstance(cfg_raw, (bytes, bytearray)) else str(cfg_raw)
+		cfg = json.loads(cfg_json)
+		roi_freq_axis = None
+		if "roi_freq_axis_ghz" in hf:
+			try:
+				roi_freq_axis = np.asarray(hf["roi_freq_axis_ghz"], dtype=np.float64).reshape(-1)
+			except Exception:
+				roi_freq_axis = None
+
+		input_size = int(cfg.get("input_size", 0))
+		hidden_sizes = [int(v) for v in list(cfg.get("hidden_sizes", [256, 128, 64]))]
+		output_size = int(cfg.get("output_size", 4))
+		dropout_rate = float(cfg.get("dropout_rate", 0.2))
+
+		model = _InverseParamNNLite(
+			input_size=input_size,
+			hidden_sizes=hidden_sizes,
+			output_size=output_size,
+			dropout_rate=dropout_rate,
+		).cpu()
+
+		sd = collections.OrderedDict()
+		for k in hf["state_dict"].keys():
+			sd[k] = torch.from_numpy(np.asarray(hf["state_dict"][k]))
+		sd = _normalize_inverse_state_dict_keys(sd)
+		model.load_state_dict(sd)
+		model.eval()
+
+		scaler_x = _load_standard_scaler_from_h5_group(hf["scaler_x"])
+		scaler_y = _load_standard_scaler_from_h5_group(hf["scaler_y"])
+
+	return model, scaler_x, scaler_y, cfg, roi_freq_axis
+
+
+def _load_inverse_param_models_cached(models_root: str):
+	root = str(models_root or "").strip()
+	if (not root) or (not os.path.isdir(root)):
+		return [], [f"Inverse models directory not found: {root}"]
+
+	# Flexible discovery: accept any .h5 inside a "Model" folder.
+	# Some runs may not use the exact filename "final_inverse_model.h5".
+	paths_primary = sorted(glob.glob(os.path.join(root, "**", "Model", "*.h5"), recursive=True))
+	paths_fallback = sorted(glob.glob(os.path.join(root, "**", "final_inverse_model*.h5"), recursive=True))
+	paths = sorted({str(p) for p in (paths_primary + paths_fallback) if os.path.isfile(p)})
+	if not paths:
+		return [], [f"No inverse model files found under: {root}"]
+
+	entries: List[dict] = []
+	warnings: List[str] = []
+	for p in paths:
+		try:
+			m, sx, sy, cfg, roi_freq_axis = _load_inverse_param_model_h5(p)
+			lo = float(cfg.get("roi_f_min_ghz", np.nan))
+			hi = float(cfg.get("roi_f_max_ghz", np.nan))
+
+			# Fallback: infer ROI bounds from roi_name / folder name pattern *_fLO-HIGHz
+			if (not np.isfinite(lo)) or (not np.isfinite(hi)):
+				roi_name_cfg = str(cfg.get("roi_name", "")).strip()
+				lo2, hi2 = parse_roi_freq_bounds_from_dirname(roi_name_cfg)
+				if (lo2 is None) or (hi2 is None):
+					folder_roi_name = os.path.basename(os.path.dirname(os.path.dirname(p)))
+					lo2, hi2 = parse_roi_freq_bounds_from_dirname(folder_roi_name)
+				if (lo2 is not None) and (hi2 is not None):
+					lo, hi = float(lo2), float(hi2)
+
+			if not np.isfinite(lo) or not np.isfinite(hi):
+				warnings.append(f"Skipping model without finite ROI bounds: {p}")
+				continue
+			if hi < lo:
+				lo, hi = hi, lo
+			entries.append(
+				{
+					"path": str(p),
+					"roi_name": str(cfg.get("roi_name", os.path.basename(os.path.dirname(os.path.dirname(p))))),
+					"f_min_ghz": float(lo),
+					"f_max_ghz": float(hi),
+					"input_size": int(cfg.get("input_size", 0)),
+					"collapse_any": bool(cfg.get("collapse_any", False)),
+					"improvement_vs_baseline_pct": float(cfg.get("improvement_vs_baseline_pct", 0.0)),
+					"model": m,
+					"scaler_x": sx,
+					"scaler_y": sy,
+					"cfg": cfg,
+					"roi_freq_axis_ghz": None if roi_freq_axis is None else np.asarray(roi_freq_axis, dtype=np.float64),
+				}
+			)
+		except Exception as e:
+			warnings.append(f"Could not load inverse model {p}: {e}")
+
+	entries = sorted(entries, key=lambda d: (float(d.get("f_min_ghz", np.inf)), float(d.get("f_max_ghz", np.inf))))
+	if not entries:
+		warnings.append("No valid inverse models could be loaded.")
+	return entries, warnings
+
+
+def _prepare_inverse_input_segment(
+	f_obs: np.ndarray,
+	y_obs: np.ndarray,
+	roi_lo_ghz: float,
+	roi_hi_ghz: float,
+	n_in: int,
+	roi_freq_axis_ghz: Optional[np.ndarray] = None,
+) -> Tuple[Optional[np.ndarray], int]:
+	"""Build model input segment for an ROI using frequency-aware interpolation when possible.
+
+	Returns (segment, n_overlap_channels). segment is float64 shape (n_in,) or None.
+	"""
+	f = np.asarray(f_obs, dtype=np.float64).reshape(-1)
+	y = np.asarray(y_obs, dtype=np.float64).reshape(-1)
+	if f.size != y.size or f.size <= 1 or n_in <= 0:
+		return None, 0
+
+	valid = np.isfinite(f) & np.isfinite(y)
+	f = f[valid]
+	y = y[valid]
+	if f.size <= 1:
+		return None, 0
+
+	order = np.argsort(f)
+	f = f[order]
+	y = y[order]
+	fu, idx_u = np.unique(f, return_index=True)
+	yu = y[idx_u]
+	if fu.size <= 1:
+		return None, 0
+
+	lo = float(min(float(roi_lo_ghz), float(roi_hi_ghz)))
+	hi = float(max(float(roi_lo_ghz), float(roi_hi_ghz)))
+	idx_overlap = np.where((fu >= lo) & (fu <= hi))[0]
+	n_overlap = int(idx_overlap.size)
+
+	rf = None if roi_freq_axis_ghz is None else np.asarray(roi_freq_axis_ghz, dtype=np.float64).reshape(-1)
+	if (rf is not None) and (rf.size >= 2) and np.all(np.isfinite(rf)):
+		rf_ord = np.sort(rf)
+		seg = np.interp(rf_ord, fu, yu, left=np.nan, right=np.nan)
+		if np.any(np.isfinite(seg)):
+			if not np.all(np.isfinite(seg)):
+				first = int(np.where(np.isfinite(seg))[0][0])
+				last = int(np.where(np.isfinite(seg))[0][-1])
+				seg[:first] = seg[first]
+				seg[last + 1:] = seg[last]
+				nan_mid = ~np.isfinite(seg)
+				if np.any(nan_mid):
+					seg[nan_mid] = float(np.nanmedian(seg[np.isfinite(seg)]))
+			if seg.size != int(n_in):
+				seg = _resample_1d_by_index_float64(seg, int(n_in))
+			return np.asarray(seg, dtype=np.float64).reshape(-1), n_overlap
+
+	# Fallback legacy behavior when model has no stored ROI axis
+	idx = np.where((f >= lo) & (f <= hi))[0]
+	if idx.size <= 1:
+		return None, n_overlap
+	seg = np.asarray(y[idx], dtype=np.float64)
+	if seg.size != int(n_in):
+		seg = _resample_1d_by_index_float64(seg, int(n_in))
+	return np.asarray(seg, dtype=np.float64).reshape(-1), n_overlap
+
+
+def _get_inverse_bounds_from_cfg(cfg: dict) -> Tuple[np.ndarray, np.ndarray]:
+	"""Return low/high bounds for [logn, tex, fwhm, velo]."""
+	# Safe fallback bounds to avoid extreme out-of-distribution values.
+	lo = np.asarray([8.0, 5.0, 0.1, -300.0], dtype=np.float64)
+	hi = np.asarray([22.0, 800.0, 30.0, 300.0], dtype=np.float64)
+	if not isinstance(cfg, dict):
+		return lo, hi
+
+	rng = cfg.get("target_train_ranges", None)
+	if isinstance(rng, dict):
+		order = ["logn", "tex", "fwhm", "velo"]
+		for i, nm in enumerate(order):
+			it = rng.get(str(nm), None)
+			if not isinstance(it, dict):
+				continue
+			try:
+				mn = float(it.get("min", np.nan))
+				mx = float(it.get("max", np.nan))
+			except Exception:
+				continue
+			if np.isfinite(mn) and np.isfinite(mx) and mx > mn:
+				pad = 0.10 * float(mx - mn)
+				lo[i] = float(mn - pad)
+				hi[i] = float(mx + pad)
+
+	# Ensure valid interval after overrides.
+	for i in range(4):
+		if not (np.isfinite(lo[i]) and np.isfinite(hi[i])) or (hi[i] <= lo[i]):
+			lo[i], hi[i] = float(lo[i]), float(max(lo[i] + 1.0, hi[i]))
+	return lo, hi
+
+
+def _predict_inverse_params_from_models(freq_ghz: np.ndarray, intensity: np.ndarray, inverse_models: List[dict], min_overlap_channels: int = 8):
+	f = np.asarray(freq_ghz, dtype=np.float64).reshape(-1)
+	y = np.asarray(intensity, dtype=np.float64).reshape(-1)
+	if f.size != y.size or f.size == 0:
+		return [], None
+
+	rows: List[dict] = []
+	for ent in (inverse_models or []):
+		lo = float(ent.get("f_min_ghz", np.nan))
+		hi = float(ent.get("f_max_ghz", np.nan))
+		if (not np.isfinite(lo)) or (not np.isfinite(hi)):
+			continue
+		n_in = int(ent.get("input_size", 0))
+		if n_in <= 0:
+			continue
+		seg, n_overlap = _prepare_inverse_input_segment(
+			f_obs=f,
+			y_obs=y,
+			roi_lo_ghz=float(lo),
+			roi_hi_ghz=float(hi),
+			n_in=int(n_in),
+			roi_freq_axis_ghz=ent.get("roi_freq_axis_ghz", None),
+		)
+		if seg is None or int(n_overlap) < int(max(4, min_overlap_channels)):
+			continue
+		if not np.any(np.isfinite(seg)):
+			continue
+		seg = np.where(np.isfinite(seg), seg, np.nanmedian(seg[np.isfinite(seg)]) if np.any(np.isfinite(seg)) else 0.0)
+		if seg.size != int(n_in):
+			seg = _resample_1d_by_index_float64(seg, int(n_in))
+
+		sx = ent.get("scaler_x", None)
+		sy = ent.get("scaler_y", None)
+		mdl = ent.get("model", None)
+		if sx is None or sy is None or mdl is None:
+			continue
+
+		try:
+			x = np.asarray(seg, dtype=np.float32).reshape(1, -1)
+			xn = sx.transform(x).astype(np.float32)
+			with torch.no_grad():
+				pred_s = mdl(torch.from_numpy(xn)).cpu().numpy().astype(np.float64)
+			pred = sy.inverse_transform(pred_s).reshape(-1)
+			if pred.size < 4:
+				continue
+			cfg = ent.get("cfg", {}) if isinstance(ent.get("cfg", {}), dict) else {}
+			b_lo, b_hi = _get_inverse_bounds_from_cfg(cfg)
+			pred_clipped = np.clip(np.asarray(pred[:4], dtype=np.float64), b_lo, b_hi)
+			n_clipped = int(np.count_nonzero(np.abs(pred_clipped - np.asarray(pred[:4], dtype=np.float64)) > 1e-12))
+			imp = float(ent.get("improvement_vs_baseline_pct", 0.0))
+			w = float(max(1e-6, imp + 1.0))
+			if bool(ent.get("collapse_any", False)):
+				w *= 0.25
+			if n_clipped > 0:
+				w *= float(0.7 ** n_clipped)
+			rows.append(
+				{
+					"roi_name": str(ent.get("roi_name", "")),
+					"roi_f_min_ghz": float(lo),
+					"roi_f_max_ghz": float(hi),
+					"n_overlap_channels": int(n_overlap),
+					"collapse_any": bool(ent.get("collapse_any", False)),
+					"improvement_vs_baseline_pct": float(imp),
+					"n_clipped_dims": int(n_clipped),
+					"weight": float(w),
+					"pred_logn": float(pred_clipped[0]),
+					"pred_tex": float(pred_clipped[1]),
+					"pred_fwhm": float(pred_clipped[2]),
+					"pred_velo": float(pred_clipped[3]),
+				}
+			)
+		except Exception:
+			continue
+
+	if not rows:
+		return rows, None
+
+	arr = np.asarray([[r["pred_logn"], r["pred_tex"], r["pred_fwhm"], r["pred_velo"]] for r in rows], dtype=np.float64)
+	w = np.asarray([max(1e-9, float(r.get("weight", 1.0))) for r in rows], dtype=np.float64)
+
+	# Robust row-level outlier filtering before final aggregation.
+	outlier_removed = 0
+	if arr.shape[0] >= 5:
+		med = np.median(arr, axis=0)
+		mad = np.median(np.abs(arr - med.reshape(1, -1)), axis=0)
+		scale = np.maximum(1e-6, 1.4826 * mad)
+		z = np.abs(arr - med.reshape(1, -1)) / scale.reshape(1, -1)
+		keep = ~np.any(z > 6.0, axis=1)
+		if int(np.count_nonzero(keep)) >= int(max(2, round(0.4 * arr.shape[0]))):
+			outlier_removed = int(arr.shape[0] - np.count_nonzero(keep))
+			arr = arr[keep]
+			w = w[keep]
+
+	w = w / max(1e-12, float(np.sum(w)))
+
+	weighted = np.sum(arr * w.reshape(-1, 1), axis=0)
+	median = np.median(arr, axis=0)
+	best_idx = int(np.argmax(np.asarray([float(r.get("weight", 0.0)) for r in rows], dtype=np.float64)))
+
+	summary = {
+		"n_rois_used": int(arr.shape[0]),
+		"n_rois_total_before_filter": int(len(rows)),
+		"n_outlier_rows_removed": int(outlier_removed),
+		"n_clipped_rows": int(np.count_nonzero(np.asarray([int(r.get("n_clipped_dims", 0)) for r in rows], dtype=np.int64) > 0)),
+		"weighted_logn": float(weighted[0]),
+		"weighted_tex": float(weighted[1]),
+		"weighted_fwhm": float(weighted[2]),
+		"weighted_velo": float(weighted[3]),
+		"median_logn": float(median[0]),
+		"median_tex": float(median[1]),
+		"median_fwhm": float(median[2]),
+		"median_velo": float(median[3]),
+		"best_roi_name": str(rows[best_idx].get("roi_name", "")),
+	}
+	return rows, summary
+
+
+def _decode_freq_token_customroi(tok: str) -> Optional[float]:
+	t = str(tok or "").strip().lower()
+	if not t:
+		return None
+	neg = False
+	if t.startswith("m"):
+		neg = True
+		t = t[1:]
+	t = t.replace("p", ".")
+	try:
+		v = float(t)
+		return float(-v if neg else v)
+	except Exception:
+		return None
+
+
+def _parse_customroi_freq_bounds_from_name(name: str) -> Tuple[Optional[float], Optional[float]]:
+	s = str(name or "").strip()
+	m = re.search(r"_f([mp0-9]+)to([mp0-9]+)ghz", s, flags=re.IGNORECASE)
+	if m is None:
+		return None, None
+	lo = _decode_freq_token_customroi(str(m.group(1)))
+	hi = _decode_freq_token_customroi(str(m.group(2)))
+	if (lo is None) or (hi is None):
+		return None, None
+	return float(min(lo, hi)), float(max(lo, hi))
+
+
+def _load_synthdb_roi_model_h5(model_h5_path: str):
+	if h5py is None:
+		raise RuntimeError("h5py is required to load inverse cube models")
+	with h5py.File(model_h5_path, "r") as hf:
+		cfg_raw = hf["config_json"][()]
+		cfg_json = cfg_raw.decode("utf-8") if isinstance(cfg_raw, (bytes, bytearray)) else str(cfg_raw)
+		cfg = json.loads(cfg_json)
+
+		input_size = int(cfg.get("input_size", 0))
+		hidden_sizes = [int(v) for v in list(cfg.get("hidden_sizes", [512, 256, 128]))]
+		target_columns = [str(v).strip().lower() for v in list(cfg.get("target_columns", ["logn", "tex", "velo", "fwhm"]))]
+		output_size = int(max(1, len(target_columns)))
+		dropout_rate = float(cfg.get("dropout_rate", 0.2))
+
+		model = _InverseParamNNLite(
+			input_size=input_size,
+			hidden_sizes=hidden_sizes,
+			output_size=output_size,
+			dropout_rate=dropout_rate,
+		).cpu()
+
+		sd = collections.OrderedDict()
+		for k in hf["state_dict"].keys():
+			sd[k] = torch.from_numpy(np.asarray(hf["state_dict"][k]))
+		sd = _normalize_inverse_state_dict_keys(sd)
+		model.load_state_dict(sd)
+		model.eval()
+
+		scaler_y = _load_standard_scaler_from_h5_group(hf["scaler"])
+
+	return model, scaler_y, cfg, target_columns
+
+
+def _extract_roi_name_from_inverse_h5_path(model_h5_path: str) -> str:
+	p = os.path.normpath(str(model_h5_path or ""))
+	parts = p.split(os.sep)
+	# Supported layouts:
+	# - <root>/<ROI>/NN/models/final_model.h5
+	# - <root>/<ROI>/models/final_model.h5 (legacy)
+	if len(parts) >= 4 and str(parts[-1]).lower() == "final_model.h5" and str(parts[-2]).lower() == "models":
+		parent = str(parts[-3])
+		if parent.lower() == "nn" and len(parts) >= 5:
+			return str(parts[-4])
+		return str(parent)
+
+	for i, tok in enumerate(parts):
+		if str(tok).lower() == "nn" and i - 1 >= 0:
+			return str(parts[i - 1])
+
+	return os.path.basename(os.path.dirname(os.path.dirname(p)))
+
+
+def _extract_roi_name_family_from_inverse_pkl_path(model_pkl_path: str) -> Tuple[str, str]:
+	p = os.path.normpath(str(model_pkl_path or ""))
+	parts = p.split(os.sep)
+	# Expected: <root>/<ROI>/<family>/models/final_model.pkl
+	if len(parts) >= 5 and str(parts[-1]).lower() == "final_model.pkl" and str(parts[-2]).lower() == "models":
+		family = str(parts[-3]).strip().lower()
+		roi_name = str(parts[-4])
+		return roi_name, family
+	models_dir = os.path.dirname(p)
+	family_dir = os.path.dirname(models_dir)
+	region_dir = os.path.dirname(family_dir)
+	return str(os.path.basename(region_dir)), str(os.path.basename(family_dir)).strip().lower()
+
+
+def _load_synthdb_roi_models_cached(models_root: str, model_family: str = "all"):
+	root = str(models_root or "").strip()
+	if (not root) or (not os.path.isdir(root)):
+		return [], [f"Synthetic ROI models directory not found: {root}"]
+
+	fam_sel = str(model_family or "all").strip().lower()
+	allowed = {"all", "nn", "gradient_boosting", "random_forest", "xgboost", "lightgbm"}
+	if fam_sel not in allowed:
+		fam_sel = "all"
+
+	h5_paths = sorted(glob.glob(os.path.join(root, "**", "models", "final_model.h5"), recursive=True))
+	h5_paths = [str(p) for p in h5_paths if os.path.isfile(p)]
+	pkl_paths = sorted(glob.glob(os.path.join(root, "**", "models", "final_model.pkl"), recursive=True))
+	pkl_paths = [str(p) for p in pkl_paths if os.path.isfile(p)]
+
+	entries: List[dict] = []
+	warnings: List[str] = []
+
+	if fam_sel in {"all", "nn"}:
+		for p in h5_paths:
+			try:
+				model, scaler_y, cfg, target_columns = _load_synthdb_roi_model_h5(p)
+				roi_dir_name = _extract_roi_name_from_inverse_h5_path(p)
+				lo, hi = _parse_customroi_freq_bounds_from_name(roi_dir_name)
+				if (lo is None) or (hi is None):
+					lo2, hi2 = parse_roi_freq_bounds_from_dirname(roi_dir_name)
+					if (lo2 is not None) and (hi2 is not None):
+						lo, hi = float(lo2), float(hi2)
+				if (lo is None) or (hi is None):
+					warnings.append(f"Skipping model without ROI frequency bounds in folder name: {p}")
+					continue
+
+				entries.append(
+					{
+						"path": str(p),
+						"model_kind": "nn",
+						"model_family": "nn",
+						"roi_name": str(roi_dir_name),
+						"f_min_ghz": float(min(lo, hi)),
+						"f_max_ghz": float(max(lo, hi)),
+						"input_size": int(cfg.get("input_size", 0)),
+						"target_columns": [str(v).strip().lower() for v in target_columns],
+						"model": model,
+						"scaler_y": scaler_y,
+					}
+				)
+			except Exception as e:
+				warnings.append(f"Could not load synthetic ROI model {p}: {e}")
+
+	if fam_sel != "nn":
+		for p in pkl_paths:
+			try:
+				roi_dir_name, fam = _extract_roi_name_family_from_inverse_pkl_path(p)
+				if fam_sel != "all" and str(fam) != fam_sel:
+					continue
+				if str(fam) not in {"gradient_boosting", "random_forest", "xgboost", "lightgbm"}:
+					continue
+
+				lo, hi = _parse_customroi_freq_bounds_from_name(roi_dir_name)
+				if (lo is None) or (hi is None):
+					lo2, hi2 = parse_roi_freq_bounds_from_dirname(roi_dir_name)
+					if (lo2 is not None) and (hi2 is not None):
+						lo, hi = float(lo2), float(hi2)
+				if (lo is None) or (hi is None):
+					warnings.append(f"Skipping classical model without ROI frequency bounds in folder name: {p}")
+					continue
+
+				est = joblib.load(str(p))
+				n_in = int(getattr(est, "n_features_in_", 0))
+				if n_in <= 0:
+					n_in = int(getattr(getattr(est, "estimator", None), "n_features_in_", 0)) if hasattr(est, "estimator") else 0
+
+				entries.append(
+					{
+						"path": str(p),
+						"model_kind": "classical",
+						"model_family": str(fam),
+						"roi_name": str(roi_dir_name),
+						"f_min_ghz": float(min(lo, hi)),
+						"f_max_ghz": float(max(lo, hi)),
+						"input_size": int(max(0, n_in)),
+						"target_columns": ["logn", "tex", "velo", "fwhm"],
+						"model": est,
+						"scaler_y": None,
+					}
+				)
+			except Exception as e:
+				warnings.append(f"Could not load classical ROI model {p}: {e}")
+
+	entries = sorted(entries, key=lambda d: (float(d.get("f_min_ghz", np.inf)), float(d.get("f_max_ghz", np.inf))))
+	if not entries:
+		if fam_sel == "nn":
+			warnings.append("No valid NN ROI models could be loaded.")
+		elif fam_sel == "all":
+			warnings.append("No valid ROI models (NN or classical) could be loaded.")
+		else:
+			warnings.append(f"No valid ROI models could be loaded for family: {fam_sel}")
+	return entries, warnings
+
+
+def _list_available_inverse_model_families(models_root: str) -> List[str]:
+	"""Return available model families found in root (including NN) for selector UI."""
+	root = str(models_root or "").strip()
+	if (not root) or (not os.path.isdir(root)):
+		return ["all", "nn", "gradient_boosting", "random_forest", "xgboost", "lightgbm"]
+
+	families = set()
+
+	# Recursive discovery supports both:
+	# - root with many ROI folders
+	# - a single ROI folder selected directly
+	h5_paths = glob.glob(os.path.join(root, "**", "models", "final_model.h5"), recursive=True)
+	h5_paths = [str(p) for p in h5_paths if os.path.isfile(str(p))]
+	if len(h5_paths) > 0:
+		families.add("nn")
+
+	# Classical layout: <root>/<ROI>/<family>/models/final_model.pkl
+	pkl_paths = glob.glob(os.path.join(root, "**", "models", "final_model.pkl"), recursive=True)
+	for p in pkl_paths:
+		if not os.path.isfile(str(p)):
+			continue
+		_, fam = _extract_roi_name_family_from_inverse_pkl_path(str(p))
+		fam = str(fam).strip().lower()
+		if fam:
+			families.add(str(fam))
+
+	preferred = ["nn", "gradient_boosting", "random_forest", "xgboost", "lightgbm"]
+	out = ["all"]
+	for f in preferred:
+		if f in families:
+			out.append(str(f))
+	for f in sorted(list(families)):
+		if f not in out:
+			out.append(str(f))
+
+	if len(out) == 1:
+		# No models detected yet; keep stable fallback options.
+		return ["all", "nn", "gradient_boosting", "random_forest", "xgboost", "lightgbm"]
+	return out
+
+
+def _select_synthdb_models_by_guides(models: List[dict], guide_freqs_ghz: List[float], allow_nearest: bool = True) -> List[dict]:
+	mods = [m for m in (models or []) if isinstance(m, dict)]
+	freqs = [float(v) for v in (guide_freqs_ghz or []) if np.isfinite(float(v))]
+	if not mods or not freqs:
+		return []
+
+	selected: List[dict] = []
+	selected_paths = set()
+	for g in freqs:
+		matches = []
+		for m in mods:
+			lo = float(m.get("f_min_ghz", np.nan))
+			hi = float(m.get("f_max_ghz", np.nan))
+			if np.isfinite(lo) and np.isfinite(hi) and (min(lo, hi) <= float(g) <= max(lo, hi)):
+				matches.append(m)
+		if matches:
+			for m in matches:
+				p = str(m.get("path", ""))
+				if p not in selected_paths:
+					selected.append(m)
+					selected_paths.add(p)
+			continue
+
+		if bool(allow_nearest):
+			best = None
+			for m in mods:
+				lo = float(m.get("f_min_ghz", np.nan))
+				hi = float(m.get("f_max_ghz", np.nan))
+				if not (np.isfinite(lo) and np.isfinite(hi)):
+					continue
+				c = 0.5 * (float(lo) + float(hi))
+				d = abs(float(c) - float(g))
+				if (best is None) or (d < best[0]):
+					best = (d, m)
+			if best is not None:
+				m = best[1]
+				p = str(m.get("path", ""))
+				if p not in selected_paths:
+					selected.append(m)
+					selected_paths.add(p)
+
+	return selected
+
+
+def _predict_pixel_params_from_synthdb_models(
+	obs_freq_ghz: np.ndarray,
+	obs_intensity: np.ndarray,
+	models: List[dict],
+	min_overlap_channels: int = 2,
+):
+	f = np.asarray(obs_freq_ghz, dtype=np.float64).reshape(-1)
+	y = np.asarray(obs_intensity, dtype=np.float64).reshape(-1)
+	if f.size != y.size or f.size <= 1:
+		return None
+
+	rows = []
+	for ent in (models or []):
+		lo = float(ent.get("f_min_ghz", np.nan))
+		hi = float(ent.get("f_max_ghz", np.nan))
+		n_in = int(ent.get("input_size", 0))
+		if (not np.isfinite(lo)) or (not np.isfinite(hi)) or n_in <= 1:
+			continue
+		seg, n_overlap = _prepare_inverse_input_segment(
+			f_obs=f,
+			y_obs=y,
+			roi_lo_ghz=float(lo),
+			roi_hi_ghz=float(hi),
+			n_in=int(n_in),
+			roi_freq_axis_ghz=None,
+		)
+		if (seg is None) or (int(n_overlap) < int(max(1, min_overlap_channels))):
+			continue
+
+		x = np.asarray(seg, dtype=np.float32).reshape(1, -1)
+		mn = np.nanmin(x, axis=1, keepdims=True)
+		mx = np.nanmax(x, axis=1, keepdims=True)
+		den = np.maximum(mx - mn, 1e-8)
+		xn = np.where(np.isfinite(x), (x - mn) / den, 0.0).astype(np.float32)
+
+		mdl = ent.get("model", None)
+		sy = ent.get("scaler_y", None)
+		tcols = [str(v).strip().lower() for v in list(ent.get("target_columns", []))]
+		if mdl is None or (not tcols):
+			continue
+
+		model_kind = str(ent.get("model_kind", "nn")).strip().lower()
+
+		try:
+			if model_kind == "classical":
+				pred_raw = np.asarray(mdl.predict(xn), dtype=np.float64)
+				if pred_raw.ndim == 2:
+					pred = pred_raw.reshape(pred_raw.shape[0], -1)[0]
+				else:
+					pred = pred_raw.reshape(-1)
+			else:
+				if sy is None:
+					continue
+				with torch.no_grad():
+					pred_s = mdl(torch.from_numpy(xn)).cpu().numpy().astype(np.float64)
+				pred = sy.inverse_transform(pred_s).reshape(-1)
+			idx = {k: i for i, k in enumerate(tcols)}
+			if not all(k in idx for k in ["logn", "tex", "velo", "fwhm"]):
+				continue
+			rows.append(
+				{
+					"n_overlap": int(n_overlap),
+					"pred_logn": float(pred[int(idx["logn"])]),
+					"pred_tex": float(pred[int(idx["tex"])]),
+					"pred_velo": float(pred[int(idx["velo"])]),
+					"pred_fwhm": float(pred[int(idx["fwhm"])]),
+				}
+			)
+		except Exception:
+			continue
+
+	if not rows:
+		return None
+
+	arr = np.asarray([[r["pred_logn"], r["pred_tex"], r["pred_velo"], r["pred_fwhm"]] for r in rows], dtype=np.float64)
+	w = np.asarray([max(1.0, float(r.get("n_overlap", 1))) for r in rows], dtype=np.float64)
+	w = w / max(1e-12, float(np.sum(w)))
+	mu = np.sum(arr * w.reshape(-1, 1), axis=0)
+	sig = np.sqrt(np.sum(((arr - mu.reshape(1, -1)) ** 2) * w.reshape(-1, 1), axis=0))
+
+	return {
+		"logn": float(mu[0]),
+		"tex": float(mu[1]),
+		"velo": float(mu[2]),
+		"fwhm": float(mu[3]),
+		"objective": float(np.nanmean(sig)),
+		"mae_proxy": float(np.nanmean(np.abs(arr - mu.reshape(1, -1)))),
+		"n_models_used": int(arr.shape[0]),
+	}
+
+
+def run_inverse_cube_pred_worker(cfg_path: str) -> int:
+	if fits is None:
+		raise RuntimeError("astropy is required for inverse cube prediction")
+	if h5py is None:
+		raise RuntimeError("h5py is required for inverse cube prediction")
+	with open(cfg_path, "r", encoding="utf-8") as f:
+		cfg = json.load(f)
+
+	# Multi-cube mode: run one standard single-cube prediction per uploaded path
+	# and save outputs in per-cube subdirectories under out_dir.
+	obs_cube_paths_cfg = cfg.get("obs_cube_paths", None)
+	if isinstance(obs_cube_paths_cfg, (list, tuple)):
+		obs_paths = []
+		for p in obs_cube_paths_cfg:
+			sp = str(p or "").strip()
+			if sp:
+				obs_paths.append(sp)
+		if len(obs_paths) > 1:
+			out_root = str(cfg.get("out_dir", "")).strip()
+			if not out_root:
+				raise RuntimeError("Output directory is required for inverse cube prediction")
+			os.makedirs(out_root, exist_ok=True)
+			ok_runs = 0
+			err_msgs: List[str] = []
+			for i_cp, cube_path_i in enumerate(obs_paths, start=1):
+				cube_stem = os.path.splitext(os.path.basename(str(cube_path_i)))[0]
+				cube_tag = re.sub(r"[^a-zA-Z0-9_.-]+", "_", str(cube_stem)).strip("._")
+				if not cube_tag:
+					cube_tag = f"cube_{int(i_cp):02d}"
+				out_subdir = os.path.join(out_root, f"{int(i_cp):02d}_{cube_tag}")
+
+				cfg_i = dict(cfg)
+				cfg_i["obs_cube_path"] = str(cube_path_i)
+				cfg_i.pop("obs_cube_paths", None)
+				cfg_i["out_dir"] = str(out_subdir)
+
+				fd_i, cfg_i_path = tempfile.mkstemp(prefix="predobs6_invcube_multi_", suffix=".json", dir=tempfile.gettempdir())
+				os.close(fd_i)
+				try:
+					with open(cfg_i_path, "w", encoding="utf-8") as f_i:
+						json.dump(cfg_i, f_i, ensure_ascii=False, indent=2)
+					run_inverse_cube_pred_worker(cfg_i_path)
+					ok_runs += 1
+				except Exception as e:
+					err_msgs.append(f"[{int(i_cp)}/{len(obs_paths)}] {cube_path_i} -> {e}")
+				finally:
+					try:
+						os.remove(cfg_i_path)
+					except Exception:
+						pass
+
+			if ok_runs <= 0:
+				raise RuntimeError("All inverse cube predictions failed. " + (" | ".join(err_msgs[:5]) if err_msgs else ""))
+			if err_msgs:
+				print("[WARN] Some inverse-cube runs failed:")
+				for msg in err_msgs[:20]:
+					print("  - " + str(msg))
+			return 0
+
+		if (len(obs_paths) == 1) and (not str(cfg.get("obs_cube_path", "")).strip()):
+			cfg["obs_cube_path"] = str(obs_paths[0])
+
+	out_dir = str(cfg["out_dir"])
+	os.makedirs(out_dir, exist_ok=True)
+	obs_cube_path = str(cfg["obs_cube_path"])
+	inverse_models_root = str(cfg["inverse_models_root"])
+	model_family = str(cfg.get("model_family", "all")).strip().lower()
+	use_all_models = bool(cfg.get("use_all_models", True))
+	target_freqs = [float(v) for v in cfg.get("target_freqs", [])]
+	allow_nearest = bool(cfg.get("allow_nearest", True))
+	progress_every = int(max(1, int(cfg.get("progress_every", 40))))
+	spatial_stride = int(max(1, int(cfg.get("spatial_stride", 1))))
+	obs_shift_enabled = bool(cfg.get("obs_shift_enabled", True))
+	obs_shift_mode = str(cfg.get("obs_shift_mode", "per_frequency"))
+	obs_shift_kms = float(cfg.get("obs_shift_kms", 0.0))
+	resume_enabled = bool(cfg.get("resume_enabled", True))
+	min_overlap_channels = int(max(1, int(cfg.get("min_overlap_channels", 2))))
+	out_prefix = str(cfg.get("out_prefix", "INVCUBEPRED"))
+
+	log_txt_path = os.path.join(out_dir, "Log.txt")
+	status_json_path = os.path.join(out_dir, f"{out_prefix}_RUN_STATUS.json")
+	state_json_path = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_STATE.json")
+	done_mask_fits_path = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_DONE_MASK.fits")
+	inprog_logn_path = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_LOGN.fits")
+	inprog_tex_path = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_TEX.fits")
+	inprog_velo_path = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_VELOCITY.fits")
+	inprog_fwhm_path = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_FWHM.fits")
+	inprog_obj_path = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_OBJECTIVE.fits")
+	inprog_mae_path = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_MAE.fits")
+
+	if not os.path.isfile(obs_cube_path):
+		raise RuntimeError(f"Observational cube not found: {obs_cube_path}")
+
+	with fits.open(obs_cube_path, memmap=True) as hdul:
+		arr = np.asarray(hdul[0].data, dtype=np.float32)
+		ref_hdr = hdul[0].header.copy()
+	if arr.ndim == 4:
+		arr = arr[0]
+	if arr.ndim != 3:
+		raise RuntimeError(f"Unsupported cube shape: {arr.shape}")
+	nchan, ny, nx = int(arr.shape[0]), int(arr.shape[1]), int(arr.shape[2])
+
+	_append_cubefit_progress_log(log_txt_path, f"Start inverse cube prediction | cube='{obs_cube_path}' | shape=({nchan},{ny},{nx}) | resume_enabled={bool(resume_enabled)}")
+	region_mask, region_meta = _build_region_mask_from_cfg(ny, nx, cfg)
+	_append_cubefit_progress_log(
+		log_txt_path,
+		f"Region mode={region_meta.get('mode')} | x=[{region_meta.get('x_min')},{region_meta.get('x_max')}] | y=[{region_meta.get('y_min')},{region_meta.get('y_max')}]",
+	)
+
+	obs_freq = _build_freq_axis_from_header(ref_hdr, nchan)
+	if obs_shift_enabled:
+		if str(obs_shift_mode).strip().lower() == "spw_center":
+			obs_freq = _apply_velocity_shift_by_spw_center(obs_freq, float(obs_shift_kms))
+		else:
+			obs_freq = _apply_velocity_shift_to_frequency(obs_freq, float(obs_shift_kms))
+
+	models_all, load_warns = _load_synthdb_roi_models_cached(str(inverse_models_root), model_family=str(model_family))
+	for w in (load_warns or []):
+		_append_cubefit_progress_log(log_txt_path, f"[WARN] {w}")
+	if not models_all:
+		raise RuntimeError("No valid synthetic ROI models available")
+	_append_cubefit_progress_log(log_txt_path, f"Model family selection: {str(model_family)} | loaded models: {len(models_all)}")
+
+	if bool(use_all_models):
+		models_sel = list(models_all)
+		_append_cubefit_progress_log(log_txt_path, f"Using all ROI models (script4 mode): {len(models_sel)}/{len(models_all)}")
+	else:
+		models_sel = _select_synthdb_models_by_guides(models_all, target_freqs, allow_nearest=bool(allow_nearest))
+		if not models_sel:
+			raise RuntimeError("No ROI models selected by Guide frequencies")
+		_append_cubefit_progress_log(log_txt_path, f"Selected ROI models by guides: {len(models_sel)}/{len(models_all)}")
+
+	# Keep only ROI models whose frequency window intersects the current cube.
+	f_cube_min = float(np.nanmin(obs_freq))
+	f_cube_max = float(np.nanmax(obs_freq))
+	models_intersected: List[dict] = []
+	for m in list(models_sel):
+		try:
+			lo = float(m.get("f_min_ghz", np.nan))
+			hi = float(m.get("f_max_ghz", np.nan))
+			if (not np.isfinite(lo)) or (not np.isfinite(hi)):
+				continue
+			lo2 = float(min(lo, hi))
+			hi2 = float(max(lo, hi))
+			n_ov = int(np.count_nonzero((obs_freq >= lo2) & (obs_freq <= hi2)))
+			if n_ov < int(max(1, min_overlap_channels)):
+				continue
+			ov = max(0.0, min(float(f_cube_max), float(hi2)) - max(float(f_cube_min), float(lo2)))
+			if ov <= 0.0:
+				continue
+			models_intersected.append(m)
+		except Exception:
+			continue
+
+	if not models_intersected:
+		try:
+			with open(status_json_path, "w", encoding="utf-8") as f_status:
+				json.dump(
+					{
+						"success": False,
+						"obs_cube_path": str(obs_cube_path),
+						"obs_cube_name": str(os.path.basename(str(obs_cube_path))),
+						"reason": "No selected ROI models intersect this cube in frequency range",
+						"n_models_selected": int(len(models_sel)),
+						"n_models_intersected": 0,
+						"n_valid_fitted_pixels": 0,
+					},
+					f_status,
+					ensure_ascii=False,
+					indent=2,
+				)
+		except Exception:
+			pass
+		_append_cubefit_progress_log(log_txt_path, "[WARN] No selected ROI models intersect this cube in frequency range")
+		return 0
+	models_sel = list(models_intersected)
+	_append_cubefit_progress_log(log_txt_path, f"ROI models intersecting current cube: {len(models_sel)}")
+
+	# Save metadata for UI labeling (cube + ROI models used).
+	try:
+		meta_out_path = os.path.join(out_dir, f"{out_prefix}_RUN_META.json")
+		meta_obj = {
+			"obs_cube_path": str(obs_cube_path),
+			"obs_cube_name": str(os.path.basename(str(obs_cube_path))),
+			"inverse_models_root": str(inverse_models_root),
+			"model_family": str(model_family),
+			"use_all_models": bool(use_all_models),
+			"n_models_selected": int(len(models_sel)),
+			"selected_models": [
+				{
+					"roi_name": str(m.get("roi_name", "")),
+					"model_kind": str(m.get("model_kind", "nn")),
+					"model_family": str(m.get("model_family", "nn")),
+					"f_min_ghz": float(m.get("f_min_ghz", np.nan)),
+					"f_max_ghz": float(m.get("f_max_ghz", np.nan)),
+					"path": str(m.get("path", "")),
+				}
+				for m in list(models_sel)
+			],
+		}
+		with open(meta_out_path, "w", encoding="utf-8") as f_meta:
+			json.dump(meta_obj, f_meta, ensure_ascii=False, indent=2)
+	except Exception:
+		pass
+
+	# Build per-ROI parameter maps (4 params) for each intersecting ROI model.
+	roi_pred_maps: Dict[str, dict] = {}
+	roi_model_labels: Dict[str, dict] = {}
+	for i_roi, ent_roi in enumerate(models_sel, start=1):
+		roi_name_raw = str(ent_roi.get("roi_name", f"roi_{int(i_roi):03d}"))
+		roi_tag = re.sub(r"[^a-zA-Z0-9_.-]+", "_", roi_name_raw).strip("._")
+		if not roi_tag:
+			roi_tag = f"roi_{int(i_roi):03d}"
+		roi_key = str(roi_tag)
+		if roi_key in roi_pred_maps:
+			roi_key = f"{roi_key}_{int(i_roi):03d}"
+
+		roi_pred_maps[roi_key] = {
+			"logn": np.full((ny, nx), np.nan, dtype=np.float32),
+			"tex": np.full((ny, nx), np.nan, dtype=np.float32),
+			"velo": np.full((ny, nx), np.nan, dtype=np.float32),
+			"fwhm": np.full((ny, nx), np.nan, dtype=np.float32),
+			"model": ent_roi,
+		}
+		roi_model_labels[roi_key] = {
+			"roi_name": str(roi_name_raw),
+			"f_min_ghz": float(ent_roi.get("f_min_ghz", np.nan)),
+			"f_max_ghz": float(ent_roi.get("f_max_ghz", np.nan)),
+		}
+
+	map_logn = np.full((ny, nx), np.nan, dtype=np.float32)
+	map_tex = np.full((ny, nx), np.nan, dtype=np.float32)
+	map_velo = np.full((ny, nx), np.nan, dtype=np.float32)
+	map_fwhm = np.full((ny, nx), np.nan, dtype=np.float32)
+	map_obj = np.full((ny, nx), np.nan, dtype=np.float32)
+	map_mae = np.full((ny, nx), np.nan, dtype=np.float32)
+	processed_mask = np.zeros((ny, nx), dtype=bool)
+
+	valid_mask = np.any(np.isfinite(arr), axis=0)
+	valid_mask = np.asarray(valid_mask, dtype=bool) & np.asarray(region_mask, dtype=bool)
+	pixel_order = _spiral_pixel_order_valid(
+		valid_mask,
+		center_y=int(region_meta.get("center_y", ny // 2)),
+		center_x=int(region_meta.get("center_x", nx // 2)),
+	)
+	if int(spatial_stride) > 1:
+		pixel_order = pixel_order[:: int(spatial_stride)]
+	total_pixels = int(len(pixel_order))
+	if total_pixels <= 0:
+		raise RuntimeError("No valid pixels selected for inverse cube prediction")
+
+	if bool(resume_enabled):
+		rm = _load_resume_map2d(inprog_logn_path, (ny, nx))
+		if rm is not None:
+			map_logn = rm
+		rm = _load_resume_map2d(inprog_tex_path, (ny, nx))
+		if rm is not None:
+			map_tex = rm
+		rm = _load_resume_map2d(inprog_velo_path, (ny, nx))
+		if rm is not None:
+			map_velo = rm
+		rm = _load_resume_map2d(inprog_fwhm_path, (ny, nx))
+		if rm is not None:
+			map_fwhm = rm
+		rm = _load_resume_map2d(inprog_obj_path, (ny, nx))
+		if rm is not None:
+			map_obj = rm
+		rm = _load_resume_map2d(inprog_mae_path, (ny, nx))
+		if rm is not None:
+			map_mae = rm
+		if os.path.isfile(done_mask_fits_path):
+			try:
+				dm = np.asarray(fits.getdata(done_mask_fits_path), dtype=np.float32)
+				if dm.ndim == 3:
+					dm = dm[0]
+				if dm.shape == (ny, nx):
+					processed_mask = np.asarray(dm > 0.5, dtype=bool)
+			except Exception:
+				pass
+
+	progress_png = os.path.join(out_dir, f"{out_prefix}_INPROGRESS_MAP.png")
+	fit_count = int(np.count_nonzero(np.isfinite(map_logn) & processed_mask))
+	done_steps = int(np.sum([1 for (yy, xx) in pixel_order if bool(processed_mask[yy, xx])]))
+	for p_done, (y, x) in enumerate(pixel_order, start=1):
+		if bool(processed_mask[y, x]):
+			continue
+
+		y_obs = np.asarray(arr[:, y, x], dtype=np.float64)
+		pred = _predict_pixel_params_from_synthdb_models(
+			obs_freq_ghz=np.asarray(obs_freq, dtype=np.float64),
+			obs_intensity=np.asarray(y_obs, dtype=np.float64),
+			models=models_sel,
+			min_overlap_channels=int(min_overlap_channels),
+		)
+		if isinstance(pred, dict):
+			map_logn[y, x] = float(pred.get("logn", np.nan))
+			map_tex[y, x] = float(pred.get("tex", np.nan))
+			map_velo[y, x] = float(pred.get("velo", np.nan))
+			map_fwhm[y, x] = float(pred.get("fwhm", np.nan))
+			map_obj[y, x] = float(pred.get("objective", np.nan))
+			map_mae[y, x] = float(pred.get("mae_proxy", np.nan))
+			fit_count += 1
+
+		# Per-ROI predictions (4 maps per intersecting ROI model).
+		for roi_key, roi_pack in roi_pred_maps.items():
+			ent_roi = roi_pack.get("model", None)
+			if not isinstance(ent_roi, dict):
+				continue
+			pred_roi = _predict_pixel_params_from_synthdb_models(
+				obs_freq_ghz=np.asarray(obs_freq, dtype=np.float64),
+				obs_intensity=np.asarray(y_obs, dtype=np.float64),
+				models=[ent_roi],
+				min_overlap_channels=int(min_overlap_channels),
+			)
+			if not isinstance(pred_roi, dict):
+				continue
+			roi_pack["logn"][y, x] = float(pred_roi.get("logn", np.nan))
+			roi_pack["tex"][y, x] = float(pred_roi.get("tex", np.nan))
+			roi_pack["velo"][y, x] = float(pred_roi.get("velo", np.nan))
+			roi_pack["fwhm"][y, x] = float(pred_roi.get("fwhm", np.nan))
+		processed_mask[y, x] = True
+		done_steps += 1
+
+		if (done_steps % int(progress_every) == 0) or (p_done == total_pixels):
+			_write_map_fits_2d(inprog_logn_path, map_logn, ref_hdr, "In-progress inverse cube map")
+			_write_map_fits_2d(inprog_tex_path, map_tex, ref_hdr, "In-progress inverse cube map")
+			_write_map_fits_2d(inprog_velo_path, map_velo, ref_hdr, "In-progress inverse cube map")
+			_write_map_fits_2d(inprog_fwhm_path, map_fwhm, ref_hdr, "In-progress inverse cube map")
+			_write_map_fits_2d(inprog_obj_path, map_obj, ref_hdr, "In-progress inverse cube objective map")
+			_write_map_fits_2d(inprog_mae_path, map_mae, ref_hdr, "In-progress inverse cube MAE proxy map")
+			_write_done_mask_fits_2d(done_mask_fits_path, processed_mask, ref_hdr, "In-progress done mask")
+			_save_cubefit_progress_png(
+				logn_map=map_logn,
+				tex_map=map_tex,
+				velo_map=map_velo,
+				fwhm_map=map_fwhm,
+				done_steps=int(done_steps),
+				total_steps=int(total_pixels),
+				out_png=progress_png,
+				ref_hdr=ref_hdr,
+				processed_mask=processed_mask,
+			)
+			try:
+				with open(state_json_path, "w", encoding="utf-8") as f:
+					json.dump({"done_steps": int(done_steps), "total_steps": int(total_pixels), "fit_count": int(fit_count)}, f, ensure_ascii=False, indent=2)
+			except Exception:
+				pass
+			_append_cubefit_progress_log(log_txt_path, f"Progress {done_steps}/{total_pixels} | fitted={fit_count}")
+
+	if fit_count <= 0:
+		try:
+			with open(status_json_path, "w", encoding="utf-8") as f_status:
+				json.dump(
+					{
+						"success": False,
+						"obs_cube_path": str(obs_cube_path),
+						"obs_cube_name": str(os.path.basename(str(obs_cube_path))),
+						"reason": "Inverse cube prediction produced no valid fitted pixels",
+						"n_models_selected": int(len(models_sel)),
+						"n_models_intersected": int(len(models_sel)),
+						"n_valid_fitted_pixels": 0,
+					},
+					f_status,
+					ensure_ascii=False,
+					indent=2,
+				)
+		except Exception:
+			pass
+		_append_cubefit_progress_log(log_txt_path, "[WARN] Inverse cube prediction produced no valid fitted pixels")
+		return 0
+
+	_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_LOGN.fits"), map_logn, ref_hdr, "Final inverse cube map")
+	_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_TEX.fits"), map_tex, ref_hdr, "Final inverse cube map")
+	_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_VELOCITY.fits"), map_velo, ref_hdr, "Final inverse cube map")
+	_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_FWHM.fits"), map_fwhm, ref_hdr, "Final inverse cube map")
+	_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_OBJECTIVE.fits"), map_obj, ref_hdr, "Final inverse cube objective map")
+	_write_map_fits_2d(os.path.join(out_dir, f"{out_prefix}_MAE.fits"), map_mae, ref_hdr, "Final inverse cube MAE proxy map")
+
+	# Final per-ROI maps (4 parameters each).
+	roi_map_index = {}
+	for roi_key, roi_pack in roi_pred_maps.items():
+		try:
+			m_logn = np.asarray(roi_pack.get("logn"), dtype=np.float32)
+			m_tex = np.asarray(roi_pack.get("tex"), dtype=np.float32)
+			m_velo = np.asarray(roi_pack.get("velo"), dtype=np.float32)
+			m_fwhm = np.asarray(roi_pack.get("fwhm"), dtype=np.float32)
+			p_logn = os.path.join(out_dir, f"{out_prefix}_ROI_{roi_key}_LOGN.fits")
+			p_tex = os.path.join(out_dir, f"{out_prefix}_ROI_{roi_key}_TEX.fits")
+			p_velo = os.path.join(out_dir, f"{out_prefix}_ROI_{roi_key}_VELOCITY.fits")
+			p_fwhm = os.path.join(out_dir, f"{out_prefix}_ROI_{roi_key}_FWHM.fits")
+			_write_map_fits_2d(p_logn, m_logn, ref_hdr, "Final inverse cube per-ROI map")
+			_write_map_fits_2d(p_tex, m_tex, ref_hdr, "Final inverse cube per-ROI map")
+			_write_map_fits_2d(p_velo, m_velo, ref_hdr, "Final inverse cube per-ROI map")
+			_write_map_fits_2d(p_fwhm, m_fwhm, ref_hdr, "Final inverse cube per-ROI map")
+			roi_map_index[roi_key] = {
+				"roi_name": str(roi_model_labels.get(roi_key, {}).get("roi_name", roi_key)),
+				"f_min_ghz": float(roi_model_labels.get(roi_key, {}).get("f_min_ghz", np.nan)),
+				"f_max_ghz": float(roi_model_labels.get(roi_key, {}).get("f_max_ghz", np.nan)),
+				"files": {
+					"logn": str(os.path.basename(p_logn)),
+					"tex": str(os.path.basename(p_tex)),
+					"velo": str(os.path.basename(p_velo)),
+					"fwhm": str(os.path.basename(p_fwhm)),
+				},
+			}
+		except Exception:
+			continue
+
+	if roi_map_index:
+		try:
+			roi_index_path = os.path.join(out_dir, f"{out_prefix}_ROI_MAPS_INDEX.json")
+			with open(roi_index_path, "w", encoding="utf-8") as f_roi_idx:
+				json.dump({"cube": os.path.basename(str(obs_cube_path)), "roi_maps": roi_map_index}, f_roi_idx, ensure_ascii=False, indent=2)
+		except Exception:
+			pass
+	try:
+		with open(status_json_path, "w", encoding="utf-8") as f_status:
+			json.dump(
+				{
+					"success": True,
+					"obs_cube_path": str(obs_cube_path),
+					"obs_cube_name": str(os.path.basename(str(obs_cube_path))),
+					"reason": "ok",
+					"n_models_selected": int(len(models_sel)),
+					"n_models_intersected": int(len(models_sel)),
+					"n_valid_fitted_pixels": int(fit_count),
+				},
+				f_status,
+				ensure_ascii=False,
+				indent=2,
+			)
+	except Exception:
+		pass
+	_append_cubefit_progress_log(log_txt_path, f"Completed inverse cube prediction | valid fitted pixels: {fit_count}/{total_pixels}")
+	print(f"[INFO] Inverse cube prediction completed | valid fitted pixels: {fit_count}/{total_pixels}")
+	return 0
+
+
 def _build_noise_cube_bytes_from_pair(final_fits_path: str, synth_fits_path: str):
 	if fits is None:
 		return None, "FITS backend not available"
@@ -2953,6 +5110,150 @@ def _sample_fit_candidates(n_samples: int, ranges: dict, seed: int, mode: str = 
 	return X
 
 
+def _augment_candidates_with_velocity_shifts(
+	X_candidates: np.ndarray,
+	velocity_shifts_kms: Optional[List[float]],
+	ranges: Optional[dict] = None,
+) -> np.ndarray:
+	X = np.asarray(X_candidates, dtype=np.float32)
+	if X.ndim != 2 or X.shape[0] <= 0 or X.shape[1] < 3:
+		return X
+
+	shifts = _parse_candidate_velocity_shifts(velocity_shifts_kms, default_values=[])
+	if len(shifts) <= 0:
+		return X
+
+	v_lo = float(-np.inf)
+	v_hi = float(np.inf)
+	if isinstance(ranges, dict):
+		try:
+			v_lo = float(min(float(ranges["velo_min"]), float(ranges["velo_max"])))
+			v_hi = float(max(float(ranges["velo_min"]), float(ranges["velo_max"])))
+		except Exception:
+			v_lo, v_hi = float(-np.inf), float(np.inf)
+
+	parts = [np.asarray(X, dtype=np.float32)]
+	base_v = np.asarray(X[:, 2], dtype=np.float64)
+	for dv in shifts:
+		xv = np.asarray(X, dtype=np.float32).copy()
+		v_new = np.asarray(base_v + float(dv), dtype=np.float64)
+		if np.isfinite(v_lo) and np.isfinite(v_hi):
+			v_new = np.clip(v_new, v_lo, v_hi)
+		xv[:, 2] = np.asarray(v_new, dtype=np.float32)
+		parts.append(np.asarray(xv, dtype=np.float32))
+
+	X_aug = np.vstack(parts).astype(np.float32)
+	# Deduplicate rows while preserving first occurrence.
+	X_key = np.round(np.asarray(X_aug, dtype=np.float64), decimals=6)
+	_, idx = np.unique(X_key, axis=0, return_index=True)
+	idx = np.sort(np.asarray(idx, dtype=np.int64))
+	return np.asarray(X_aug[idx], dtype=np.float32)
+
+
+def _apply_tex_guided_candidate_filter(
+	X_candidates: np.ndarray,
+	tex_prior_value: float,
+	tex_half_window: float,
+	min_candidates: int,
+	hard_fix_tex: bool = False,
+) -> np.ndarray:
+	X = np.asarray(X_candidates, dtype=np.float32)
+	if X.ndim != 2 or X.shape[0] <= 0 or X.shape[1] < 2:
+		return X
+	if not np.isfinite(float(tex_prior_value)):
+		return X
+
+	tex_center = float(tex_prior_value)
+	if bool(hard_fix_tex):
+		X_out = np.asarray(X, dtype=np.float32).copy()
+		X_out[:, 1] = float(tex_center)
+		return X_out
+
+	hw = float(tex_half_window)
+	if (not np.isfinite(hw)) or hw <= 0.0:
+		return X
+
+	d = np.abs(np.asarray(X[:, 1], dtype=np.float64) - float(tex_center))
+	idx_in = np.where(d <= float(hw))[0].astype(np.int64)
+	min_k = int(max(1, int(min_candidates)))
+	if idx_in.size < min_k:
+		ord_idx = np.argsort(d).astype(np.int64)
+		k = int(min(int(ord_idx.size), int(min_k)))
+		idx_near = ord_idx[:k]
+		if idx_in.size > 0:
+			idx_in = np.unique(np.concatenate([idx_in, idx_near], axis=0)).astype(np.int64)
+		else:
+			idx_in = np.asarray(idx_near, dtype=np.int64)
+	if idx_in.size <= 0:
+		return X
+	return np.asarray(X[idx_in], dtype=np.float32)
+
+
+def _tex_guided_indices_from_sorted(
+	tex_sorted_values: np.ndarray,
+	tex_sorted_indices: np.ndarray,
+	tex_center: float,
+	tex_half_window: float,
+	min_candidates: int,
+) -> np.ndarray:
+	tex_v = np.asarray(tex_sorted_values, dtype=np.float64).reshape(-1)
+	idx_s = np.asarray(tex_sorted_indices, dtype=np.int64).reshape(-1)
+	if tex_v.size <= 0 or idx_s.size != tex_v.size:
+		return np.asarray([], dtype=np.int64)
+
+	if not np.isfinite(float(tex_center)):
+		return np.asarray([], dtype=np.int64)
+
+	hw = float(tex_half_window)
+	if (not np.isfinite(hw)) or hw <= 0.0:
+		hw = 0.0
+
+	min_k = int(max(1, int(min_candidates)))
+	lo = float(tex_center) - float(hw)
+	hi = float(tex_center) + float(hw)
+	l = int(np.searchsorted(tex_v, lo, side="left"))
+	r = int(np.searchsorted(tex_v, hi, side="right"))
+	sel = np.asarray(idx_s[l:r], dtype=np.int64)
+	if sel.size >= min_k:
+		return sel
+
+	# Fallback: nearest-by-Tex from globally sorted axis.
+	p = int(np.searchsorted(tex_v, float(tex_center), side="left"))
+	half = int(max(1, (min_k + 1) // 2))
+	a = int(max(0, p - half))
+	b = int(min(int(tex_v.size), a + min_k))
+	a = int(max(0, b - min_k))
+	near = np.asarray(idx_s[a:b], dtype=np.int64)
+	if sel.size > 0:
+		return np.unique(np.concatenate([sel, near], axis=0)).astype(np.int64)
+	return near
+
+
+def _axis_from_min_max_step(vmin: float, vmax: float, step: float) -> np.ndarray:
+	lo = float(min(vmin, vmax))
+	hi = float(max(vmin, vmax))
+	dv = float(abs(step))
+	if not np.isfinite(dv) or dv <= 0.0:
+		dv = 1.0
+	if not np.isfinite(lo) or not np.isfinite(hi):
+		return np.asarray([], dtype=np.float64)
+	if hi <= lo:
+		return np.asarray([lo], dtype=np.float64)
+	n = int(np.floor((hi - lo) / dv + 1e-12)) + 1
+	n = int(max(1, min(n, 2_000_000)))
+	ax = lo + np.arange(n, dtype=np.float64) * dv
+	if ax.size == 0:
+		ax = np.asarray([lo], dtype=np.float64)
+	eps = max(1e-12, dv * 1e-6)
+	if abs(float(ax[-1]) - hi) <= eps:
+		ax[-1] = hi
+	elif float(ax[-1]) < hi:
+		ax = np.append(ax, hi)
+	if float(ax[0]) != lo:
+		ax = np.insert(ax, 0, lo)
+	return np.asarray(ax, dtype=np.float64)
+
+
 def _predict_synthetic_batch_single_target(
 	signal_models_source: str,
 	filter_file: str,
@@ -3046,19 +5347,46 @@ def _downsample_for_plot_arrays(freq: np.ndarray, arrays: List[Optional[np.ndarr
 	return f_ds, arr_ds
 
 
-def _vectorized_fit_metrics(y_true: np.ndarray, y_pred_batch: np.ndarray):
+def _vectorized_fit_metrics(y_true: np.ndarray, y_pred_batch: np.ndarray, sample_weights: Optional[np.ndarray] = None):
 	y = np.asarray(y_true, dtype=np.float64).reshape(1, -1)
 	p = np.asarray(y_pred_batch, dtype=np.float64)
 	err = p - y
-	mae = np.mean(np.abs(err), axis=1)
-	rmse = np.sqrt(np.mean(err ** 2, axis=1))
-	den = float(np.sum((y.reshape(-1) - float(np.mean(y))) ** 2))
+	w = None
+	if sample_weights is not None:
+		ws = np.asarray(sample_weights, dtype=np.float64).reshape(-1)
+		if ws.size == y.shape[1]:
+			ws[~np.isfinite(ws)] = 0.0
+			ws = np.clip(ws, 0.0, np.inf)
+			sw = float(np.sum(ws))
+			if sw > 0.0:
+				w = ws / sw
+
+	if w is None:
+		mae = np.mean(np.abs(err), axis=1)
+		rmse = np.sqrt(np.mean(err ** 2, axis=1))
+		y_flat = y.reshape(-1)
+		y_mean = float(np.mean(y_flat))
+		den = float(np.sum((y_flat - y_mean) ** 2))
+		eps = float(max(1e-12, np.quantile(np.abs(y_flat), 0.1)))
+		chi_like = np.mean((err ** 2) / (np.abs(y) + eps), axis=1)
+	else:
+		w2 = w.reshape(1, -1)
+		mae = np.sum(np.abs(err) * w2, axis=1)
+		rmse = np.sqrt(np.sum((err ** 2) * w2, axis=1))
+		y_flat = y.reshape(-1)
+		y_mean = float(np.sum(y_flat * w))
+		den = float(np.sum(((y_flat - y_mean) ** 2) * w))
+		eps = float(max(1e-12, np.quantile(np.abs(y_flat), 0.1)))
+		chi_like = np.sum(((err ** 2) / (np.abs(y) + eps)) * w2, axis=1)
+
 	if den > 0:
-		r2 = 1.0 - (np.sum(err ** 2, axis=1) / den)
+		if w is None:
+			r2_num = np.sum(err ** 2, axis=1)
+		else:
+			r2_num = np.sum((err ** 2) * w.reshape(1, -1), axis=1)
+		r2 = 1.0 - (r2_num / den)
 	else:
 		r2 = np.full((p.shape[0],), np.nan, dtype=np.float64)
-	eps = float(max(1e-12, np.quantile(np.abs(y.reshape(-1)), 0.1)))
-	chi_like = np.mean((err ** 2) / (np.abs(y) + eps), axis=1)
 	return mae.astype(np.float64), rmse.astype(np.float64), r2.astype(np.float64), chi_like.astype(np.float64)
 
 
@@ -3109,7 +5437,10 @@ def _build_concatenated_residual_vector(
 			if not np.any(mask_ch):
 				continue
 			f_eval = np.asarray(roi_freq, dtype=np.float64)[mask_ch]
-			y_eval = np.asarray(y_syn_batch[0], dtype=np.float64)[mask_ch] + np.asarray(y_noise_batch[0], dtype=np.float64)[mask_ch]
+			y_eval = np.maximum(
+				np.asarray(y_syn_batch[0], dtype=np.float64)[mask_ch] + np.asarray(y_noise_batch[0], dtype=np.float64)[mask_ch],
+				0.0,
+			)
 
 		y_obs_eval = np.interp(f_eval, obs_f, obs_y, left=np.nan, right=np.nan)
 		valid = np.isfinite(y_obs_eval) & np.isfinite(y_eval)
@@ -3253,6 +5584,8 @@ def _run_roi_fitting(
 	refine_n_candidates: Optional[int] = None,
 	local_optimizer_method: str = "none",
 	local_optimizer_max_nfev: int = 24,
+	candidate_velocity_shifts_kms: Optional[List[float]] = None,
+	peak_emphasis_alpha: float = 0.8,
 	_internal_refine_stage: int = 0,
 ):
 	crit = str(fit_criterion).strip().lower()
@@ -3269,6 +5602,7 @@ def _run_roi_fitting(
 		local_opt_method = "none"
 	if local_opt_method == "trf" and least_squares is None:
 		local_opt_method = "none"
+	peak_alpha = float(np.clip(float(peak_emphasis_alpha), 0.0, 2.0))
 	# Legacy compatibility placeholder (old constraint removed).
 	enforce_below_obs = False
 
@@ -3281,6 +5615,16 @@ def _run_roi_fitting(
 			seed=int(seed),
 			mode=str(candidate_mode),
 		)
+	n_base_candidates = int(X.shape[0])
+	shifts_for_fit = _parse_candidate_velocity_shifts(
+		candidate_velocity_shifts_kms,
+		default_values=[float(v) for v in DEFAULT_CANDIDATE_VELOCITY_SHIFTS_KMS],
+	)
+	X = _augment_candidates_with_velocity_shifts(
+		X_candidates=np.asarray(X, dtype=np.float32),
+		velocity_shifts_kms=shifts_for_fit,
+		ranges=ranges,
+	)
 	n = int(X.shape[0])
 	pkg_cache: Dict[str, object] = (pkg_cache_override if isinstance(pkg_cache_override, dict) else {})
 	warnings_out: List[str] = []
@@ -3399,7 +5743,7 @@ def _run_roi_fitting(
 					roi_freq_eval = np.asarray(roi_freq, dtype=np.float64)[noise_channel_mask]
 					y_syn_eval = np.asarray(y_syn_batch, dtype=np.float32)[:, noise_channel_mask]
 					y_noise_eval_batch = np.asarray(y_noise_batch, dtype=np.float32)[:, noise_channel_mask]
-					y_eval = (y_syn_eval + y_noise_eval_batch).astype(np.float32)
+					y_eval = np.maximum(y_syn_eval + y_noise_eval_batch, 0.0).astype(np.float32)
 
 				if roi_freq_eval_ref is None:
 					roi_freq_eval_ref = np.asarray(roi_freq_eval, dtype=np.float64)
@@ -3431,7 +5775,25 @@ def _run_roi_fitting(
 
 				y_true = np.asarray(y_obs_roi_ref[valid_ref], dtype=np.float64)
 				y_pred_batch = np.asarray(y_eval[:, valid_ref], dtype=np.float64)
-				mae, rmse, r2, chi_like = _vectorized_fit_metrics(y_true, y_pred_batch)
+				roi_weights_fit = None
+				if float(peak_alpha) > 1e-12:
+					y_abs = np.abs(np.asarray(y_true, dtype=np.float64))
+					if y_abs.size > 0:
+						sc = float(np.nanpercentile(y_abs, 95.0))
+						if (not np.isfinite(sc)) or (sc <= 1e-12):
+							sc = float(np.nanmax(y_abs)) if y_abs.size > 0 else 1.0
+						if (not np.isfinite(sc)) or (sc <= 1e-12):
+							sc = 1.0
+						w_peak = np.clip(y_abs / float(sc), 0.0, 1.0)
+						# Blend intensity-based emphasis with a local core window centered on
+						# the observed peak channel to force tighter line-center alignment.
+						peak_idx = int(np.nanargmax(y_abs))
+						chan_idx = np.arange(int(y_abs.size), dtype=np.float64)
+						sigma_ch = float(max(1.5, 0.10 * float(max(1, y_abs.size))))
+						w_core = np.exp(-0.5 * ((chan_idx - float(peak_idx)) / float(sigma_ch)) ** 2)
+						w_mix = np.clip(0.40 * w_peak + 0.60 * w_core, 0.0, 1.0)
+						roi_weights_fit = np.asarray(1.0 + float(peak_alpha) * w_mix, dtype=np.float64)
+				mae, rmse, r2, chi_like = _vectorized_fit_metrics(y_true, y_pred_batch, sample_weights=roi_weights_fit)
 				if crit == "rmse":
 					obj = np.asarray(rmse, dtype=np.float64)
 				elif crit == "chi_like":
@@ -3603,6 +5965,80 @@ def _run_roi_fitting(
 		global_mae = np.average(mae_mat, axis=0, weights=w).astype(np.float64)
 		weighting_used = str(weight_mode)
 
+	# Lightweight micro-refinement (velocity/FWHM only) to improve line alignment
+	# with negligible overhead versus the full candidate sweep.
+	if int(_internal_refine_stage) == 0 and int(n) >= 1:
+		try:
+			anchor = np.asarray(X[best_global_idx], dtype=np.float64).reshape(-1)
+			if anchor.size == 4:
+				v_lo = float(min(float(ranges["velo_min"]), float(ranges["velo_max"])))
+				v_hi = float(max(float(ranges["velo_min"]), float(ranges["velo_max"])))
+				w_lo = float(min(float(ranges["fwhm_min"]), float(ranges["fwhm_max"])))
+				w_hi = float(max(float(ranges["fwhm_min"]), float(ranges["fwhm_max"])))
+
+				dv_grid = np.asarray([-0.45, -0.30, -0.20, -0.12, -0.08, -0.05, -0.03, 0.0, 0.03, 0.05, 0.08, 0.12, 0.20, 0.30, 0.45], dtype=np.float64)
+				dw_grid = np.asarray([-0.30, -0.18, -0.10, 0.0, 0.10, 0.18, 0.30], dtype=np.float64)
+				cand_rows: List[np.ndarray] = [np.asarray(anchor, dtype=np.float64)]
+				for dv in dv_grid:
+					for dw in dw_grid:
+						xr = np.asarray(anchor, dtype=np.float64).copy()
+						xr[2] = float(np.clip(float(anchor[2]) + float(dv), v_lo, v_hi))
+						xr[3] = float(np.clip(float(anchor[3]) + float(dw), w_lo, w_hi))
+						cand_rows.append(np.asarray(xr, dtype=np.float64))
+
+				X_micro = np.asarray(cand_rows, dtype=np.float64)
+				X_micro_key = np.round(X_micro, decimals=6)
+				_, idx_micro = np.unique(X_micro_key, axis=0, return_index=True)
+				idx_micro = np.sort(np.asarray(idx_micro, dtype=np.int64))
+				X_micro = np.asarray(X_micro[idx_micro], dtype=np.float32)
+
+				if int(X_micro.shape[0]) >= 2:
+					res_micro = _run_roi_fitting(
+						signal_models_source=signal_models_source,
+						noise_models_root=noise_models_root,
+						filter_file=filter_file,
+						target_freqs=target_freqs,
+						obs_freq=obs_freq,
+						obs_intensity=obs_intensity,
+						case_mode=case_mode,
+						fit_criterion=fit_criterion,
+						global_weight_mode=global_weight_mode,
+						global_search_mode=global_search_mode,
+						candidate_mode=candidate_mode,
+						n_candidates=int(X_micro.shape[0]),
+						ranges=ranges,
+						noise_scale=noise_scale,
+						allow_nearest=allow_nearest,
+						seed=seed,
+						x_candidates_override=np.asarray(X_micro, dtype=np.float32),
+						noise_models_loaded_override=noise_models_loaded,
+						pkg_cache_override=pkg_cache,
+						refine_after_first_fit=False,
+						refine_span_fraction=refine_span_fraction,
+						refine_n_candidates=refine_n_candidates,
+						local_optimizer_method="none",
+						local_optimizer_max_nfev=int(local_optimizer_max_nfev),
+						candidate_velocity_shifts_kms=[],
+						peak_emphasis_alpha=float(peak_alpha),
+						_internal_refine_stage=2,
+					)
+					if isinstance(res_micro, dict) and bool(res_micro.get("ok", False)):
+						obj_micro = float(res_micro.get("best_global_mean_objective", np.inf))
+						obj_cur = float(global_obj[best_global_idx])
+						if np.isfinite(obj_micro) and (obj_micro <= obj_cur):
+							merged_warn = list(warnings_out)
+							for wmsg in list(res_micro.get("warnings", []) if isinstance(res_micro.get("warnings", []), list) else []):
+								merged_warn.append(wmsg)
+							res_micro["warnings"] = merged_warn
+							res_micro["micro_refinement_applied"] = True
+							res_micro["micro_refinement_used_result"] = True
+							res_micro["micro_refinement_n_candidates"] = int(X_micro.shape[0])
+							res_micro["micro_refinement_velocity_steps_kms"] = [float(v) for v in dv_grid.tolist()]
+							res_micro["micro_refinement_fwhm_steps"] = [float(v) for v in dw_grid.tolist()]
+							return res_micro
+		except Exception as e:
+			warnings_out.append(f"micro-refinement stage skipped due to error: {e}")
+
 	local_opt_applied = False
 	local_opt_used_result = False
 	local_opt_status = "not_requested"
@@ -3687,6 +6123,7 @@ def _run_roi_fitting(
 						refine_n_candidates=refine_n_candidates,
 						local_optimizer_method="none",
 						local_optimizer_max_nfev=int(local_optimizer_max_nfev),
+						peak_emphasis_alpha=float(peak_alpha),
 						_internal_refine_stage=1,
 					)
 					if isinstance(res_ref, dict) and bool(res_ref.get("ok", False)):
@@ -3778,6 +6215,8 @@ def _run_roi_fitting(
 					refine_n_candidates=refine_n_candidates,
 					local_optimizer_method="none",
 					local_optimizer_max_nfev=int(local_optimizer_max_nfev),
+					candidate_velocity_shifts_kms=[float(v) for v in shifts_for_fit],
+					peak_emphasis_alpha=float(peak_alpha),
 					_internal_refine_stage=1,
 				)
 				refinement_applied = True
@@ -3850,7 +6289,7 @@ def _run_roi_fitting(
 				roi_freq_g = np.asarray(roi_freq_g, dtype=np.float64)[noise_channel_mask_g]
 				y_syn_g = np.asarray(y_syn_g, dtype=np.float32)[:, noise_channel_mask_g]
 				y_noise_g = np.asarray(y_noise_b[0], dtype=np.float64)[noise_channel_mask_g]
-				y_pred_g = np.asarray(y_syn_g[0], dtype=np.float64) + y_noise_g
+				y_pred_g = np.maximum(np.asarray(y_syn_g[0], dtype=np.float64) + y_noise_g, 0.0)
  
 			if (str(case_mode).strip().lower() != "synthetic_plus_noise"):
 				roi_freq_g = np.asarray(roi_freq_g, dtype=np.float64)
@@ -3968,6 +6407,8 @@ def _run_roi_fitting(
 		"n_rois_skipped_zero_observed": int(len(skipped_zero_observed_targets)),
 		"skipped_zero_observed_targets_ghz": sorted([float(v) for v in skipped_zero_observed_targets]),
 		"n_candidates": int(n),
+		"n_candidates_base": int(n_base_candidates),
+		"candidate_velocity_shifts_kms": [float(v) for v in shifts_for_fit],
 		"best_global_index": int(best_global_idx),
 		"best_global_params": {
 			"logN": float(X[best_global_idx, 0]),
@@ -3976,6 +6417,7 @@ def _run_roi_fitting(
 			"FWHM": float(X[best_global_idx, 3]),
 		},
 		"fit_criterion": str(crit),
+		"peak_emphasis_alpha": float(peak_alpha),
 		"local_optimizer_method": str(local_opt_method),
 		"local_optimizer_applied": bool(local_opt_applied),
 		"local_optimizer_used_result": bool(local_opt_used_result),
@@ -4038,6 +6480,28 @@ def _ensure_state():
 		st.session_state.cubefit_cfg_path = ""
 	if "cubefit_log_handle" not in st.session_state:
 		st.session_state.cubefit_log_handle = None
+	if "cubefit_start_ts" not in st.session_state:
+		st.session_state.cubefit_start_ts = None
+	if "hybridfit_proc" not in st.session_state:
+		st.session_state.hybridfit_proc = None
+	if "hybridfit_log_path" not in st.session_state:
+		st.session_state.hybridfit_log_path = ""
+	if "hybridfit_cfg_path" not in st.session_state:
+		st.session_state.hybridfit_cfg_path = ""
+	if "hybridfit_log_handle" not in st.session_state:
+		st.session_state.hybridfit_log_handle = None
+	if "hybridfit_start_ts" not in st.session_state:
+		st.session_state.hybridfit_start_ts = None
+	if "invcubepred_proc" not in st.session_state:
+		st.session_state.invcubepred_proc = None
+	if "invcubepred_log_path" not in st.session_state:
+		st.session_state.invcubepred_log_path = ""
+	if "invcubepred_cfg_path" not in st.session_state:
+		st.session_state.invcubepred_cfg_path = ""
+	if "invcubepred_log_handle" not in st.session_state:
+		st.session_state.invcubepred_log_handle = None
+	if "invcubepred_start_ts" not in st.session_state:
+		st.session_state.invcubepred_start_ts = None
 	if "drive_cache_dir" not in st.session_state:
 		st.session_state.drive_cache_dir = ""
 	if "drive_auto_paths" not in st.session_state:
@@ -4094,6 +6558,12 @@ def _ensure_state():
 		st.session_state.p6_guide_freqs_cfit_pending = ""
 	if "p6_guide_cfit_refresh" not in st.session_state:
 		st.session_state.p6_guide_cfit_refresh = False
+	if "p6_guide_freqs_icp_input" not in st.session_state:
+		st.session_state.p6_guide_freqs_icp_input = _freqs_to_text([float(v) for v in DEFAULT_CUBEFIT_GUIDE_FREQS])
+	if "p6_guide_freqs_icp_pending" not in st.session_state:
+		st.session_state.p6_guide_freqs_icp_pending = ""
+	if "p6_guide_icp_refresh" not in st.session_state:
+		st.session_state.p6_guide_icp_refresh = False
 	if "p6_fit_last_result" not in st.session_state:
 		st.session_state.p6_fit_last_result = None
 	if "p6_fit_upload_signature" not in st.session_state:
@@ -4139,6 +6609,16 @@ def _is_sim_running() -> bool:
 
 def _is_cubefit_running() -> bool:
 	proc = st.session_state.get("cubefit_proc", None)
+	return proc is not None and proc.poll() is None
+
+
+def _is_invcubepred_running() -> bool:
+	proc = st.session_state.get("invcubepred_proc", None)
+	return proc is not None and proc.poll() is None
+
+
+def _is_hybridfit_running() -> bool:
+	proc = st.session_state.get("hybridfit_proc", None)
 	return proc is not None and proc.poll() is None
 
 
@@ -4224,6 +6704,65 @@ def _stop_cubefit_process():
 		except Exception:
 			pass
 	st.session_state.cubefit_cfg_path = ""
+	st.session_state.cubefit_start_ts = None
+
+
+def _stop_invcubepred_process():
+	proc = st.session_state.get("invcubepred_proc", None)
+	if proc is not None and proc.poll() is None:
+		try:
+			proc.terminate()
+			proc.wait(timeout=6)
+		except Exception:
+			try:
+				proc.kill()
+			except Exception:
+				pass
+	st.session_state.invcubepred_proc = None
+	fh = st.session_state.get("invcubepred_log_handle", None)
+	if fh is not None:
+		try:
+			fh.close()
+		except Exception:
+			pass
+	st.session_state.invcubepred_log_handle = None
+	cfgp = st.session_state.get("invcubepred_cfg_path", "")
+	if cfgp and os.path.isfile(cfgp):
+		try:
+			os.remove(cfgp)
+		except Exception:
+			pass
+	st.session_state.invcubepred_cfg_path = ""
+	st.session_state.invcubepred_start_ts = None
+
+
+def _stop_hybridfit_process():
+	proc = st.session_state.get("hybridfit_proc", None)
+	if proc is not None and proc.poll() is None:
+		try:
+			proc.terminate()
+			proc.wait(timeout=6)
+		except Exception:
+			try:
+				proc.kill()
+			except Exception:
+				pass
+	st.session_state.hybridfit_proc = None
+	fh = st.session_state.get("hybridfit_log_handle", None)
+	if fh is not None:
+		try:
+			fh.close()
+		except Exception:
+			pass
+	st.session_state.hybridfit_log_handle = None
+	cfgp = st.session_state.get("hybridfit_cfg_path", "")
+	if cfgp and os.path.isfile(cfgp):
+		try:
+			os.remove(cfgp)
+		except Exception:
+			pass
+	st.session_state.hybridfit_cfg_path = ""
+	st.session_state.hybridfit_start_ts = None
 
 
 def _load_uploaded_map_preview(upload_obj):
@@ -4248,21 +6787,39 @@ def _load_uploaded_map_preview(upload_obj):
 		return None, str(e)
 
 
-def _show_fits_preview(title: str, arr: np.ndarray):
+def _show_fits_preview(
+	title: str,
+	arr: np.ndarray,
+	cmap: str = "viridis",
+	ref_hdr: Optional[object] = None,
+	zoom_mask: Optional[np.ndarray] = None,
+):
 	if arr is None:
 		return
 	v = np.asarray(arr, dtype=np.float32)
 	fin = np.isfinite(v)
 	if not np.any(fin):
 		return
-	vf = v[fin]
-	vmin = float(np.percentile(vf, 1.0))
-	vmax = float(np.percentile(vf, 99.0))
-	if vmax <= vmin:
-		vmax = vmin + 1e-6
-	fig, ax = plt.subplots(figsize=(4.2, 4.0))
-	im = ax.imshow(v, origin="lower", cmap="viridis", vmin=vmin, vmax=vmax)
+	vmin, vmax = _compute_display_limits(v)
+	wcs2d = _header_to_celestial_wcs(ref_hdr)
+	if wcs2d is not None:
+		fig = plt.figure(figsize=(4.6, 4.2))
+		ax = fig.add_subplot(111, projection=wcs2d)
+	else:
+		fig, ax = plt.subplots(figsize=(4.2, 4.0))
+	im = ax.imshow(v, origin="lower", cmap=str(cmap), vmin=vmin, vmax=vmax)
 	ax.set_title(f"{title} | shape={v.shape[0]}x{v.shape[1]}")
+	if wcs2d is not None:
+		ax.set_xlabel("RA")
+		ax.set_ylabel("Dec")
+	else:
+		ax.set_xlabel("x")
+		ax.set_ylabel("y")
+	zoom_lim = _compute_zoom_limits_from_mask(zoom_mask, pad_frac=0.08)
+	if zoom_lim is not None:
+		x0, x1, y0, y1 = zoom_lim
+		ax.set_xlim(float(x0) - 0.5, float(x1) + 0.5)
+		ax.set_ylim(float(y0) - 0.5, float(y1) + 0.5)
 	plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
 	plt.tight_layout()
 	st.pyplot(fig, width="stretch")
@@ -4389,11 +6946,33 @@ def _cleanup_cubefit_outputs_for_dir(out_dir: str):
 		ln = str(name).lower()
 		try:
 			if os.path.isfile(p):
-				is_cubefit_fits = ln.startswith("cubefit_") and ln.endswith(".fits")
+				is_cubefit_fits = ((ln.startswith("cubefit_") or ln.startswith("hybridfit_")) and ln.endswith(".fits"))
 				is_progress_png = ln.endswith("_inprogress_map.png")
 				is_progress_json = ln.endswith("_inprogress_map.json")
-				is_run_log = ln.startswith("cubefit_run_") and ln.endswith(".log")
-				if is_cubefit_fits or is_progress_png or is_progress_json or is_run_log:
+				is_run_log = (ln.startswith("cubefit_run_") or ln.startswith("hybridfit_run_")) and ln.endswith(".log")
+				is_resume_state = (ln == "cubefit_inprogress_state.json") or (ln == "hybridfit_inprogress_state.json")
+				is_resume_logtxt = ln == "log.txt"
+				if is_cubefit_fits or is_progress_png or is_progress_json or is_run_log or is_resume_state or is_resume_logtxt:
+					os.remove(p)
+		except Exception:
+			pass
+
+
+def _cleanup_invcubepred_outputs_for_dir(out_dir: str):
+	if (not out_dir) or (not os.path.isdir(out_dir)):
+		return
+	for name in os.listdir(out_dir):
+		p = os.path.join(out_dir, name)
+		ln = str(name).lower()
+		try:
+			if os.path.isfile(p):
+				is_inv_fits = ln.startswith("invcubepred_") and ln.endswith(".fits")
+				is_progress_png = ln.endswith("_inprogress_map.png")
+				is_progress_json = ln.endswith("_inprogress_map.json")
+				is_run_log = ln.startswith("invcubepred_run_") and ln.endswith(".log")
+				is_resume_state = ln == "invcubepred_inprogress_state.json"
+				is_resume_logtxt = ln == "log.txt"
+				if is_inv_fits or is_progress_png or is_progress_json or is_run_log or is_resume_state or is_resume_logtxt:
 					os.remove(p)
 		except Exception:
 			pass
@@ -4496,6 +7075,97 @@ def _safe_trapezoid_np(y):
 	if callable(trapz_fn):
 		return float(trapz_fn(yy))
 	return float(np.sum((yy[:-1] + yy[1:]) * 0.5))
+
+
+def _resample_1d_by_index_float64(y: np.ndarray, target_len: int) -> np.ndarray:
+	yy = np.asarray(y, dtype=np.float64).reshape(-1)
+	t = int(max(2, int(target_len)))
+	if yy.size == t:
+		return yy
+	if yy.size < 2:
+		return np.full((t,), float(yy[0]) if yy.size == 1 else np.nan, dtype=np.float64)
+	x_old = np.linspace(0.0, 1.0, int(yy.size), dtype=np.float64)
+	x_new = np.linspace(0.0, 1.0, t, dtype=np.float64)
+	return np.interp(x_new, x_old, yy).astype(np.float64)
+
+
+def _estimate_edge_step_ghz(freqs: np.ndarray) -> float:
+	f = np.asarray(freqs, dtype=np.float64).reshape(-1)
+	if f.size < 2:
+		return 1e-6
+	d = np.abs(np.diff(f))
+	d = d[np.isfinite(d) & (d > 0.0)]
+	if d.size == 0:
+		return 1e-6
+	return float(np.nanmedian(d))
+
+
+def concat_segments_with_zero_gaps(
+	freqs_segments: List[np.ndarray],
+	spec_segments: List[np.ndarray],
+	insert_zero_gaps: bool = True,
+) -> Tuple[np.ndarray, np.ndarray]:
+	if len(freqs_segments) != len(spec_segments):
+		raise ValueError("freqs_segments and spec_segments must have the same length")
+	if len(freqs_segments) == 0:
+		return np.array([], dtype=np.float64), np.array([], dtype=np.float64)
+
+	f_out_parts: List[np.ndarray] = []
+	y_out_parts: List[np.ndarray] = []
+	nseg = int(len(freqs_segments))
+
+	for i in range(nseg):
+		fi = np.asarray(freqs_segments[i], dtype=np.float64).reshape(-1)
+		yi = np.asarray(spec_segments[i], dtype=np.float64).reshape(-1)
+		if fi.size == 0 or yi.size == 0:
+			continue
+		if fi.size != yi.size:
+			raise ValueError("Each segment must have same frequency/intensity length")
+
+		f_out_parts.append(fi)
+		y_out_parts.append(yi)
+
+		if (not insert_zero_gaps) or (i >= nseg - 1):
+			continue
+
+		fj = np.asarray(freqs_segments[i + 1], dtype=np.float64).reshape(-1)
+		if fj.size == 0:
+			continue
+
+		f_end = float(fi[-1])
+		f_next = float(fj[0])
+		if (not np.isfinite(f_end)) or (not np.isfinite(f_next)):
+			continue
+
+		gap = float(abs(f_next - f_end))
+		step_i = _estimate_edge_step_ghz(fi)
+		step_j = _estimate_edge_step_ghz(fj)
+		base_step = float(max(1e-9, min(step_i, step_j)))
+		direction = 1.0 if (f_next >= f_end) else -1.0
+
+		edge_eps = float(max(1e-9, 0.45 * base_step))
+		if gap > 0.0:
+			edge_eps = float(min(edge_eps, 0.45 * gap))
+
+		z1 = float(f_end + direction * edge_eps)
+		z2 = float(f_next - direction * edge_eps)
+
+		if direction > 0.0 and z1 >= z2:
+			mid = float(0.5 * (f_end + f_next))
+			z1 = float(mid - edge_eps)
+			z2 = float(mid + edge_eps)
+		elif direction < 0.0 and z1 <= z2:
+			mid = float(0.5 * (f_end + f_next))
+			z1 = float(mid + edge_eps)
+			z2 = float(mid - edge_eps)
+
+		f_out_parts.append(np.asarray([z1, z2], dtype=np.float64))
+		y_out_parts.append(np.asarray([0.0, 0.0], dtype=np.float64))
+
+	if not f_out_parts:
+		return np.array([], dtype=np.float64), np.array([], dtype=np.float64)
+
+	return np.concatenate(f_out_parts, axis=0), np.concatenate(y_out_parts, axis=0)
 
 
 def _build_obs_features_for_rank(obs_seg, spw_idx, n_spw):
@@ -4754,43 +7424,11 @@ def _render_model_sources_sidebar(runtime_info: dict) -> dict:
 	signal_models_root = str(DEFAULT_MERGED_H5)
 	noise_models_root = str(DEFAULT_NOISE_NN_H5)
 	filter_file = str(DEFAULT_FILTER_FILE)
-	roi_rank_model_dir = str(DEFAULT_LOCAL_ROI_RANK_MODEL_DIR)
 	source_mode_label = "manual paths"
 
 	with st.sidebar:
-		st.header("Model Upload")
-		st.caption(
-			f"Runtime: CPU-only | cores={runtime_info['cpu_count']} | "
-			f"threads={runtime_info['cpu_threads']}"
-		)
-		st.markdown("**Model Upload**")
-		up_signal_h5 = st.file_uploader("Upload signal models (.h5)", type=["h5", "hdf5"], key="p6_up_signal_h5")
-		up_noise_h5 = st.file_uploader("Upload noise models (.h5 bundle or single model)", type=["h5", "hdf5"], key="p6_up_noise_h5")
-		up_filter = st.file_uploader("Upload spectral filter (.txt/.dat/.csv)", type=["txt", "dat", "csv"], key="p6_up_filter")
-		st.markdown("**ROI Ranking model upload (.h5 bundle or 1.5 artifacts)**")
-		up_rank_bundle_h5 = st.file_uploader("Upload ROI ranking model bundle (.h5)", type=["h5", "hdf5"], key="p6_up_rank_bundle_h5")
-
-		uploaded_signal_path = _save_uploaded_file_to_temp(up_signal_h5, "signal")
-		uploaded_noise_path = _save_uploaded_file_to_temp(up_noise_h5, "noise")
-		uploaded_filter_path = _save_uploaded_file_to_temp(up_filter, "filter")
-		uploaded_rank_bundle_h5 = _save_uploaded_file_to_temp(up_rank_bundle_h5, "roi_rank_bundle_h5")
-		if uploaded_signal_path:
-			signal_models_root = str(uploaded_signal_path)
-		if uploaded_noise_path:
-			noise_models_root = str(uploaded_noise_path)
-		if uploaded_filter_path:
-			filter_file = str(uploaded_filter_path)
-		rank_dir_uploaded = None
-		rank_upload_warning = None
-		if uploaded_rank_bundle_h5:
-			rank_dir_uploaded, rank_upload_warning = _prepare_roi_rank_model_dir_from_h5_bundle(uploaded_rank_bundle_h5)
-		if rank_dir_uploaded:
-			roi_rank_model_dir = str(rank_dir_uploaded)
-		if rank_upload_warning:
-			st.warning(str(rank_upload_warning))
-
 		st.markdown("---")
-		st.markdown("**Optional: use temporary Google Drive download**")
+		st.markdown("**DRIVE: use temporary Google Drive download**")
 		use_drive_temp = st.checkbox("Use Google Drive temporary models", value=False, key="p6_use_drive_temp")
 		drive_link = st.text_input("Google Drive folder link", value=DEFAULT_GDRIVE_MODELS_LINK, key="p6_drive_link")
 		download_drive_now = st.button("Download / refresh from Drive", key="p6_drive_download_btn")
@@ -4814,11 +7452,11 @@ def _render_model_sources_sidebar(runtime_info: dict) -> dict:
 			if auto_paths:
 				for w in auto_paths.get("warnings", []):
 					st.warning(str(w))
-				signal_models_root, noise_models_root, filter_file, roi_rank_model_dir = _apply_drive_auto_paths(
+				signal_models_root, noise_models_root, filter_file, _ = _apply_drive_auto_paths(
 					signal_models_root=signal_models_root,
 					noise_models_root=noise_models_root,
 					filter_file=filter_file,
-					roi_rank_model_dir=roi_rank_model_dir,
+					roi_rank_model_dir="",
 					auto_paths=auto_paths,
 				)
 				source_mode_label = "Google Drive temporary download"
@@ -4831,23 +7469,20 @@ def _render_model_sources_sidebar(runtime_info: dict) -> dict:
 			st.caption("Active source mode: manual paths")
 
 		st.markdown("---")
-		st.markdown("**Optional: use local preset paths (D:\\4.DATASETS)**")
+		st.markdown("**LOCAL: use local preset paths**")
 		use_local_preset = st.checkbox("Use local preset models", value=False, key="p6_use_local_preset")
 		if use_local_preset:
 			signal_models_root = str(DEFAULT_LOCAL_SIGNAL_H5)
 			noise_models_root = str(DEFAULT_LOCAL_NOISE_H5)
 			filter_file = str(DEFAULT_LOCAL_FILTER_FILE)
-			roi_rank_model_dir = str(DEFAULT_LOCAL_ROI_RANK_MODEL_DIR)
 			source_mode_label = "local preset paths"
 			st.caption("Active source mode: local preset paths")
-			st.caption(f"Includes ROI ranking model dir: {DEFAULT_LOCAL_ROI_RANK_MODEL_DIR}")
-			for w in _validate_local_preset_sources(signal_models_root, noise_models_root, filter_file, roi_rank_model_dir):
+			for w in _validate_local_preset_sources(signal_models_root, noise_models_root, filter_file, ""):
 				st.warning(str(w))
 
 		st.caption(f"Signal source in use: {signal_models_root}")
-		st.caption(f"Noise source in use: {noise_models_root}")
+		st.caption(f"Residuals (Noise) source in use: {noise_models_root}")
 		st.caption(f"Filter file in use: {filter_file}")
-		st.caption(f"ROI ranking model source in use: {roi_rank_model_dir}")
 
 		# If model/filter sources change, clear fitting outputs to avoid stale state.
 		sources_sig = "|".join([
@@ -4866,13 +7501,12 @@ def _render_model_sources_sidebar(runtime_info: dict) -> dict:
 			target_freqs = [float(v) for v in DEFAULT_TARGET_FREQS]
 		allow_nearest = False
 		st.caption("ROI selection mode for cube generation: exact overlap only (nearest disabled).")
-		noise_scale = st.number_input("Noise scale", min_value=0.0, value=float(DEFAULT_NOISE_SCALE), step=0.1, format="%.3f")
+		noise_scale = st.number_input("Residuals (Noise) scale", min_value=0.0, value=float(DEFAULT_NOISE_SCALE), step=0.1, format="%.3f")
 
 	return {
 		"signal_models_root": str(signal_models_root),
 		"noise_models_root": str(noise_models_root),
 		"filter_file": str(filter_file),
-		"roi_rank_model_dir": str(roi_rank_model_dir),
 		"source_mode_label": str(source_mode_label),
 		"target_freqs": [float(v) for v in target_freqs],
 		"allow_nearest": bool(allow_nearest),
@@ -4881,11 +7515,11 @@ def _render_model_sources_sidebar(runtime_info: dict) -> dict:
 
 
 def run_streamlit_app():
-	st.set_page_config(page_title="OBSEMULATOR", page_icon="📡", layout="wide")
+	st.set_page_config(page_title="SpecGen | AI-ITACA", page_icon="📡", layout="wide")
 	runtime_info = _configure_runtime_resources_cpu_only()
 	_ensure_state()
 	_cleanup_generated_outputs_on_startup_once()
-	st.title("OBSEMULATOR")
+	st.title("SpecGen | AI-ITACA")
 
 	intro_img = _project_dir() / "NGC6523_BVO_2.jpg"
 	if intro_img.is_file():
@@ -4902,13 +7536,18 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 	signal_models_root = str(sidebar_cfg["signal_models_root"])
 	noise_models_root = str(sidebar_cfg["noise_models_root"])
 	filter_file = str(sidebar_cfg["filter_file"])
-	roi_rank_model_dir = str(sidebar_cfg["roi_rank_model_dir"])
 	source_mode_label = str(sidebar_cfg.get("source_mode_label", "manual paths"))
 	target_freqs = [float(v) for v in sidebar_cfg["target_freqs"]]
 	allow_nearest = bool(sidebar_cfg["allow_nearest"])
 	noise_scale = float(sidebar_cfg["noise_scale"])
 
-	tab_cube, tab_cube2, tab_cube3, tab_eval16, tab_fit, tab_cube_fit = st.tabs(["Cube Generator", "Simulate Single Spectrum", "Simulate Single Synthetic Spectrum", "ROI Ranking Eval", "Fitting", "Cube Fitting"])
+	tab_cube, tab_cube2, tab_cube3, tab_hybrid_fit, tab_pred_from_cube = st.tabs([
+		"Cube Generator",
+		"Simulate Single Spectrum",
+		"Simulate Single Synthetic Spectrum",
+		"Hybrid Fast Fit (Tex-guided)",
+		"Inverse Cube Prediction",
+	])
 
 	try:
 		syngen_path = _resolve_local_file("4.SYNGEN_Streamlit_v1.py")
@@ -4920,7 +7559,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 
 	with tab_cube:
 		st.subheader("Cube Generator | CH3OCHO")
-		st.markdown("**ROI explorer (signal and noise models)**")
+		st.markdown("**ROI explorer (signal and Residuals (Noise) models)**")
 		if bool(st.session_state.get("p6_guide_main_refresh", False)):
 			st.session_state.p6_guide_freqs_main_input = str(st.session_state.get("p6_guide_freqs_main_pending", "")).strip()
 			st.session_state.p6_guide_main_refresh = False
@@ -4991,7 +7630,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					sel_s = signal_rois[int(sel_sig_pos)]
 					match_n = _get_overlapping_noise_roi_indices(sel_s, noise_rois)
 					match_txt = ",".join([str(v) for v in match_n]) if match_n else "none"
-					st.caption(f"Selected: ROI S{int(sel_s['index'])} | range {float(sel_s['lo']):.6f}–{float(sel_s['hi']):.6f} GHz | matching Noise ROI(s): {match_txt}")
+					st.caption(f"Selected: ROI S{int(sel_s['index'])} | range {float(sel_s['lo']):.6f}–{float(sel_s['hi']):.6f} GHz | matching Residuals (Noise) ROI(s): {match_txt}")
 				else:
 					st.caption("No signal ROIs available")
 
@@ -4999,7 +7638,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				if noise_rois:
 					noi_opts = list(range(len(noise_rois)))
 					st.selectbox(
-						"Noise-model ROIs",
+						"Residuals (Noise)-model ROIs",
 						options=noi_opts,
 						format_func=lambda i: (
 							f"ROI N{noise_rois[i]['index']} | {noise_rois[i]['lo']:.6f}–{noise_rois[i]['hi']:.6f} GHz"
@@ -5017,7 +7656,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					match_s_txt = ",".join([f"S{v}" for v in match_s]) if match_s else "none"
 					st.caption(f"Selected: ROI N{int(sel_n['index'])} | range {float(sel_n['lo']):.6f}–{float(sel_n['hi']):.6f} GHz | SPW: {spw_txt} | matching Signal ROI(s): {match_s_txt}")
 				else:
-					st.caption("No noise ROIs available")
+					st.caption("No Residuals (Noise) ROIs available")
 
 			sel_sig_idx = None if not signal_rois else int(signal_rois[int(sel_sig_pos)]["index"])
 			sel_noi_idx = None if not noise_rois else int(noise_rois[int(sel_noi_pos)]["index"])
@@ -5089,7 +7728,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			elif (not signal_models_root) or ((not os.path.isfile(signal_models_root)) and (not os.path.isdir(signal_models_root))):
 				st.error("Signal models source invalid.")
 			elif not _is_valid_noise_source(noise_models_root):
-				st.error("Noise models root invalid.")
+				st.error("Residuals (Noise) models root invalid.")
 			else:
 				try:
 					os.makedirs(cube_out_dir, exist_ok=True)
@@ -5325,14 +7964,14 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				if (noise_bytes is not None) and (noise_err is None):
 					base_name = os.path.splitext(os.path.basename(str(sel_cube_dl)))[0]
 					st.download_button(
-						"Download noise cube (.fits) [observational - synthetic]",
+						"Download residuals cube (.fits) [observational - synthetic]",
 						data=noise_bytes,
 						file_name=f"{base_name}_NOISEONLY.fits",
 						mime="application/fits",
 						key="p6_cube_download_button_noise",
 					)
 				elif noise_err:
-					st.caption(f"Noise cube not available: {noise_err}")
+					st.caption(f"Residuals (Noise) cube not available: {noise_err}")
 			except Exception as e:
 				st.error(f"Could not prepare cube download: {e}")
 		else:
@@ -5348,7 +7987,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		st.subheader("Simulate Single Spectrum | CH3OCHO")
 		st.caption("Same workflow as Cube Generator, using implicit scalar values for LogN, Tex, FWHM, and Velocity.")
 
-		st.markdown("**ROI explorer (signal and noise models)**")
+		st.markdown("**ROI explorer (signal and Residuals (Noise) models)**")
 		if bool(st.session_state.get("p6_guide_cube2_refresh", False)):
 			st.session_state.p6_guide_freqs_cube2_input = str(st.session_state.get("p6_guide_freqs_cube2_pending", "")).strip()
 			st.session_state.p6_guide_cube2_refresh = False
@@ -5419,7 +8058,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					sel_s2 = signal_rois2[int(sel_sig_pos2)]
 					match_n2 = _get_overlapping_noise_roi_indices(sel_s2, noise_rois2)
 					match_txt2 = ",".join([str(v) for v in match_n2]) if match_n2 else "none"
-					st.caption(f"Selected: ROI S{int(sel_s2['index'])} | range {float(sel_s2['lo']):.6f}–{float(sel_s2['hi']):.6f} GHz | matching Noise ROI(s): {match_txt2}")
+					st.caption(f"Selected: ROI S{int(sel_s2['index'])} | range {float(sel_s2['lo']):.6f}–{float(sel_s2['hi']):.6f} GHz | matching Residuals (Noise) ROI(s): {match_txt2}")
 				else:
 					st.caption("No signal ROIs available")
 
@@ -5427,7 +8066,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				if noise_rois2:
 					noi_opts2 = list(range(len(noise_rois2)))
 					st.selectbox(
-						"Noise-model ROIs",
+						"Residuals (Noise)-model ROIs",
 						options=noi_opts2,
 						format_func=lambda i: (
 							f"ROI N{noise_rois2[i]['index']} | {noise_rois2[i]['lo']:.6f}–{noise_rois2[i]['hi']:.6f} GHz"
@@ -5445,7 +8084,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					match_s_txt2 = ",".join([f"S{v}" for v in match_s2]) if match_s2 else "none"
 					st.caption(f"Selected: ROI N{int(sel_n2['index'])} | range {float(sel_n2['lo']):.6f}–{float(sel_n2['hi']):.6f} GHz | SPW: {spw_txt2} | matching Signal ROI(s): {match_s_txt2}")
 				else:
-					st.caption("No noise ROIs available")
+					st.caption("No Residuals (Noise) ROIs available")
 
 			sel_sig_idx2 = None if not signal_rois2 else int(signal_rois2[int(sel_sig_pos2)]["index"])
 			sel_noi_idx2 = None if not noise_rois2 else int(noise_rois2[int(sel_noi_pos2)]["index"])
@@ -5506,7 +8145,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			elif (not signal_models_root) or ((not os.path.isfile(signal_models_root)) and (not os.path.isdir(signal_models_root))):
 				st.error("Signal models source invalid.")
 			elif not _is_valid_noise_source(noise_models_root):
-				st.error("Noise models root invalid.")
+				st.error("Residuals (Noise) models root invalid.")
 			else:
 				try:
 					os.makedirs(cube2_out_dir, exist_ok=True)
@@ -5681,9 +8320,9 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 
 	with tab_cube3:
 		st.subheader("Simulate Single Synthetic Spectrum | CH3OCHO")
-		st.caption("Same workflow as Simulate Single Spectrum, but using only synthetic-spectrum models (no noise models).")
+		st.caption("Same workflow as Simulate Single Spectrum, but using only synthetic-spectrum models (no Residuals (Noise) models).")
 
-		st.markdown("**ROI explorer (signal and noise models)**")
+		st.markdown("**ROI explorer (signal and Residuals (Noise) models)**")
 		if bool(st.session_state.get("p6_guide_cube3_refresh", False)):
 			st.session_state.p6_guide_freqs_cube3_input = str(st.session_state.get("p6_guide_freqs_cube3_pending", "")).strip()
 			st.session_state.p6_guide_cube3_refresh = False
@@ -5745,7 +8384,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					st.caption("No signal ROIs available")
 
 			with c3_roi_2:
-				st.caption("Noise ROI selector hidden in this tab (synthetic-only mode).")
+				st.caption("Residuals (Noise) ROI selector hidden in this tab (synthetic-only mode).")
 
 			sel_sig_idx3 = None if not signal_rois3 else int(signal_rois3[int(sel_sig_pos3)]["index"])
 			combo_freqs3 = _selected_roi_combo_freqs(
@@ -6032,460 +8671,273 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		else:
 			st.caption("No synthetic spectra available yet.")
 
-	with tab_eval16:
-		st.subheader("ROI Ranking Eval")
-		st.caption("Independent ranking: uses only model artifacts and the uploaded observed spectrum.")
-		st.caption(f"Model source mode in use: {source_mode_label}")
+	if False:
+		st.subheader("Generate Synthetic Spectra | CH3OCHO")
+		st.caption("Generate spectra from selected ROIs/guide frequencies and parameter ranges, then save as TXT.")
 
-		eval16_model_dir = str(roi_rank_model_dir)
-		with st.expander("Optional: upload ROI ranking model (.h5 bundle or 1.5 artifacts)", expanded=False):
-			st.caption("If provided, this upload overrides the current ROI ranking model directory for this evaluation.")
-			e16_up_rank_bundle_h5 = st.file_uploader("Upload ROI ranking model bundle (.h5)", type=["h5", "hdf5"], key="p6_eval16_up_rank_bundle_h5")
-
-			e16_uploaded_rank_bundle_h5 = _save_uploaded_file_to_temp(e16_up_rank_bundle_h5, "eval16_roi_rank_bundle_h5")
-			e16_rank_dir_uploaded = None
-			e16_rank_upload_warning = None
-			if e16_uploaded_rank_bundle_h5:
-				e16_rank_dir_uploaded, e16_rank_upload_warning = _prepare_roi_rank_model_dir_from_h5_bundle(e16_uploaded_rank_bundle_h5)
-			if e16_rank_dir_uploaded:
-				eval16_model_dir = str(e16_rank_dir_uploaded)
-				st.success("ROI ranking model uploaded and ready for this evaluation.")
-			if e16_rank_upload_warning:
-				st.warning(str(e16_rank_upload_warning))
-
-		eval16_model_dir_resolved, eval16_model_dir_warn = _resolve_roi_rank_model_dir(str(eval16_model_dir))
-		if eval16_model_dir_warn:
-			st.warning(str(eval16_model_dir_warn))
-		st.caption(f"ROI ranking model source in use: {eval16_model_dir}")
-		st.caption(f"ROI ranking artifacts directory in use: {eval16_model_dir_resolved}")
-
-		eval16_model_weights, eval16_model_scalers, eval16_model_meta = _roi_rank_artifact_paths(str(eval16_model_dir_resolved))
-
-		upload_obs_eval16 = st.file_uploader(
-			"Upload observed spectrum (.txt/.dat/.csv)",
-			type=None,
-			key="p6_eval16_upload_obs",
+		batch_mode_ui = st.radio(
+			"Fitting mode",
+			options=["Case 1: Synthetic only", "Case 2: Synthetic + noise"],
+			index=0,
+			horizontal=True,
+			key="p6_synthbatch_mode_output",
 		)
-		eval16_out_dir = os.path.join(str(eval16_model_dir_resolved), "eval_new_spectrum")
-
-		c16g, c16h = st.columns(2)
-		with c16g:
-			eval16_shift_kms = st.number_input(
-				"Obs shift (km/s)",
-				value=-98.0,
-				step=0.1,
-				format="%.4f",
-				key="p6_eval16_shift_kms",
-			)
-		with c16h:
-			eval16_shift_mode = st.selectbox(
-				"Shift mode",
-				options=["per_frequency", "spw_center"],
-				index=0,
-				key="p6_eval16_shift_mode",
-			)
-
-		eval16_allow_nearest = st.checkbox(
-			"Allow nearest ROI if no overlap",
-			value=False,
-			key="p6_eval16_allow_nearest",
-			disabled=True,
+		batch_mode = "synthetic_plus_noise" if str(batch_mode_ui).strip().lower().endswith("noise") else "synthetic_only"
+		batch_noise_scale = st.number_input(
+			"Noise scale (for Synthetic + noise)",
+			min_value=0.0,
+			value=float(noise_scale),
+			step=0.1,
+			format="%.3f",
+			key="p6_synthbatch_noise_scale",
+			disabled=(batch_mode != "synthetic_plus_noise"),
 		)
 
-		run_eval16 = st.button("Run ROI Ranking Eval", type="primary", key="p6_eval16_run")
-		if run_eval16:
-			try:
-				if upload_obs_eval16 is None:
-					raise RuntimeError("Upload observed spectrum is required.")
-				tmp_obs = _save_uploaded_file_to_temp(upload_obs_eval16, "eval16_obs")
-				if not tmp_obs:
-					raise RuntimeError("Could not save uploaded observed spectrum to temporary file.")
-				f_obs_raw, y_obs_raw, parse_err = _read_uploaded_spectrum_any(upload_obs_eval16)
-				if parse_err is not None or f_obs_raw is None or y_obs_raw is None:
-					raise RuntimeError(f"Could not parse uploaded observed spectrum: {parse_err}")
-				f_obs = np.asarray(f_obs_raw, dtype=np.float64)
-				y_obs = np.asarray(y_obs_raw, dtype=np.float64)
-				if str(eval16_shift_mode).strip().lower() == "spw_center":
-					f_obs = _apply_velocity_shift_by_spw_center(f_obs, float(eval16_shift_kms))
-				else:
-					f_obs = _apply_velocity_shift_to_frequency(f_obs, float(eval16_shift_kms))
+		if "p6_synthbatch_guide_input" not in st.session_state:
+			st.session_state.p6_synthbatch_guide_input = _freqs_to_text([float(v) for v in target_freqs])
 
-				artifacts_error = _validate_roi_rank_artifacts(str(eval16_model_dir_resolved))
-				if artifacts_error:
-					raise FileNotFoundError(str(artifacts_error))
+		signal_rois_sb = _collect_signal_rois_for_ui(signal_models_root, filter_file)
+		guide_text_sb = st.text_input("Guide frequencies (GHz)", key="p6_synthbatch_guide_input")
+		guide_freqs_sb = parse_freq_list(guide_text_sb)
 
-				with open(eval16_model_meta, "r", encoding="utf-8") as fm16:
-					meta16 = json.load(fm16)
-				input_dim16 = int(meta16.get("input_dim", 14))
-				hidden16 = [int(v) for v in meta16.get("hidden_sizes", [128, 64])]
-				dropout16 = float(meta16.get("dropout", 0.15))
-
-				z16 = np.load(eval16_model_scalers)
-				x_mean16 = np.asarray(z16["x_mean"], dtype=np.float64)
-				x_scale16 = np.asarray(z16["x_scale"], dtype=np.float64)
-				y_mean16 = np.asarray(z16["y_mean"], dtype=np.float64)
-				y_scale16 = np.asarray(z16["y_scale"], dtype=np.float64)
-
-				m16 = _RoiRankNNLite(input_size=input_dim16, hidden_sizes=hidden16, output_size=2, dropout=dropout16).cpu()
-				m16.load_state_dict(torch.load(eval16_model_weights, map_location="cpu"))
-				m16.eval()
-
-				target_freqs_model = _load_model_target_freqs_for_ranking(str(eval16_model_dir_resolved), str(eval16_model_meta))
-				roi_defs16 = _build_roi_defs_from_model_targets(f_obs, target_freqs_model)
-				if not roi_defs16:
-					# Fallback only if model does not expose target frequencies.
-					roi_defs16 = _build_auto_roi_defs(f_obs)
-				if not roi_defs16:
-					raise RuntimeError("Could not build ROI windows from uploaded spectrum.")
-
-				rows16 = []
-				n_spw16 = int(max(1, len(roi_defs16)))
-				for j16, rd16 in enumerate(roi_defs16, start=1):
-					idx16 = np.asarray(rd16["idx"], dtype=int)
-					oo16 = np.asarray(y_obs[idx16], dtype=np.float64)
-					valid16 = np.isfinite(oo16)
-					if int(np.count_nonzero(valid16)) < 4:
-						continue
-					oo16 = oo16[valid16]
-					if _is_invalid_obs_roi_line_rank(oo16):
-						rows16.append({
-							"roi_name": str(rd16["roi_name"]),
-							"target_freq_ghz": float(rd16["target_freq_ghz"]),
-							"f_min_ghz": float(rd16["f_min_ghz"]),
-							"f_max_ghz": float(rd16["f_max_ghz"]),
-							"pred_rmse": float("nan"),
-							"pred_intensity": float("nan"),
-							"n_points": int(oo16.size),
-							"is_invalid_obs_line": True,
-							"ranking_note": "excluded_from_model_order_flat_or_zero_obs_roi",
-						})
-						continue
-					feat16 = _build_obs_features_for_rank(oo16, spw_idx=j16, n_spw=n_spw16)
-					if feat16 is None:
-						continue
-					feat_s16 = (feat16.astype(np.float64) - x_mean16) / np.maximum(1e-12, x_scale16)
-					feat_s16 = feat_s16.astype(np.float32).reshape(1, -1)
-					with torch.no_grad():
-						yp_s16 = m16(torch.from_numpy(feat_s16)).cpu().numpy().reshape(-1)
-					yp16 = yp_s16.astype(np.float64) * y_scale16 + y_mean16
-					rows16.append({
-						"roi_name": str(rd16["roi_name"]),
-						"target_freq_ghz": float(rd16["target_freq_ghz"]),
-						"f_min_ghz": float(rd16["f_min_ghz"]),
-						"f_max_ghz": float(rd16["f_max_ghz"]),
-						"pred_rmse": float(yp16[0]),
-						"pred_intensity": float(yp16[1]),
-						"n_points": int(oo16.size),
-						"is_invalid_obs_line": False,
-						"ranking_note": "ok",
-					})
-
-				if not rows16:
-					raise RuntimeError("No evaluable ROIs from uploaded spectrum.")
-
-				rows16 = sorted(
-					rows16,
-					key=lambda d: (
-						1 if bool(d.get("is_invalid_obs_line", False)) else 0,
-						(float(d["pred_rmse"]) if np.isfinite(float(d.get("pred_rmse", np.nan))) else np.inf),
-						(-float(d["pred_intensity"]) if np.isfinite(float(d.get("pred_intensity", np.nan))) else np.inf),
-					),
-				)
-				for i16, r16 in enumerate(rows16, start=1):
-					r16["rank"] = int(i16)
-
-				topk16 = int(len(rows16))
-				auto_sel_n = int(min(6, len(rows16)))
-				auto_sel_map = {}
-				for rr in rows16:
-					row_id = f"{str(rr.get('roi_name', ''))}|{float(rr.get('target_freq_ghz', np.nan)):.9f}"
-					auto_sel_map[row_id] = (int(rr.get("rank", 10**9)) <= auto_sel_n)
-				st.session_state.p6_eval16_select_map = auto_sel_map
-				st.session_state.p6_eval16_rows = rows16
-				st.session_state.p6_eval16_topk = int(topk16)
-				st.session_state.p6_eval16_f_obs = np.asarray(f_obs, dtype=np.float64)
-				st.session_state.p6_eval16_y_obs = np.asarray(y_obs, dtype=np.float64)
-				st.session_state.p6_eval16_last_log = f"ROI ranking completed | ROIs={len(rows16)} | TopK={topk16}"
-				st.session_state.p6_eval16_last_out_dir = str(eval16_out_dir)
-				st.success("ROI ranking evaluation completed.")
-			except Exception as e:
-				st.session_state.p6_eval16_last_log = ""
-				st.session_state.p6_eval16_rows = []
-				st.error(f"1.6 evaluation failed: {e}")
-
-		last_log16 = str(st.session_state.get("p6_eval16_last_log", ""))
-		if last_log16:
-			with st.expander("Show execution log"):
-				st.text(last_log16)
-
-		rows16 = st.session_state.get("p6_eval16_rows", [])
-		f_obs16 = st.session_state.get("p6_eval16_f_obs", None)
-		y_obs16 = st.session_state.get("p6_eval16_y_obs", None)
-		topk16 = int(st.session_state.get("p6_eval16_topk", 0))
-		if isinstance(rows16, list) and rows16:
-			st.markdown("**ROI ranking output**")
-
-			if "p6_eval16_select_map" not in st.session_state:
-				st.session_state.p6_eval16_select_map = {}
-			sel_map = st.session_state.get("p6_eval16_select_map", {}) if isinstance(st.session_state.get("p6_eval16_select_map", {}), dict) else {}
-
-			row_ids16 = [
-				f"{str(rr.get('roi_name', ''))}|{float(rr.get('target_freq_ghz', np.nan)):.9f}"
-				for rr in rows16
-			]
-			csel1, csel2, _ = st.columns([1.2, 1.2, 3.6])
-			with csel1:
-				if st.button("Select all rows", key="p6_eval16_select_all_rows"):
-					st.session_state.p6_eval16_select_map = {rid: True for rid in row_ids16}
-					st.rerun()
-			with csel2:
-				if st.button("Clear selection", key="p6_eval16_clear_selection"):
-					st.session_state.p6_eval16_select_map = {rid: False for rid in row_ids16}
-					st.rerun()
-
-			table_rows16 = []
-			for rr16 in rows16:
-				row_id = f"{str(rr16.get('roi_name', ''))}|{float(rr16.get('target_freq_ghz', np.nan)):.9f}"
-				table_rows16.append({
-					"Select": bool(sel_map.get(row_id, False)),
-					"rank": int(rr16.get("rank", 0)),
-					"roi_name": str(rr16.get("roi_name", "")),
-					"target_freq_ghz": float(rr16.get("target_freq_ghz", np.nan)),
-					"f_min_ghz": float(rr16.get("f_min_ghz", np.nan)),
-					"f_max_ghz": float(rr16.get("f_max_ghz", np.nan)),
-					"pred_rmse": float(rr16.get("pred_rmse", np.nan)),
-					"pred_intensity": float(rr16.get("pred_intensity", np.nan)),
-					"n_points": int(rr16.get("n_points", 0)),
-					"ranking_note": str(rr16.get("ranking_note", "")),
-				})
-
-			edited16 = st.data_editor(
-				table_rows16,
-				use_container_width=True,
-				num_rows="fixed",
-				hide_index=True,
-				disabled=["rank", "roi_name", "target_freq_ghz", "f_min_ghz", "f_max_ghz", "pred_rmse", "pred_intensity", "n_points", "ranking_note"],
-				key="p6_eval16_table_editor",
+		use_roi_centers_sb = st.checkbox("Add selected signal ROI centers", value=True, key="p6_synthbatch_use_roi_centers")
+		roi_center_freqs_sb: List[float] = []
+		if use_roi_centers_sb and signal_rois_sb:
+			roi_opts_sb = list(range(len(signal_rois_sb)))
+			default_sel_sb = roi_opts_sb
+			sel_roi_pos_sb = st.multiselect(
+				"Signal ROIs to include",
+				options=roi_opts_sb,
+				default=default_sel_sb,
+				format_func=lambda i: f"ROI S{signal_rois_sb[i]['index']} | {signal_rois_sb[i]['lo']:.6f}–{signal_rois_sb[i]['hi']:.6f} GHz",
+				key="p6_synthbatch_roi_multiselect",
 			)
+			for ii in sel_roi_pos_sb:
+				cc = _roi_center_ghz(signal_rois_sb[int(ii)])
+				if cc is not None and np.isfinite(float(cc)):
+					roi_center_freqs_sb.append(float(cc))
+		elif use_roi_centers_sb and (not signal_rois_sb):
+			st.info("No signal ROIs detected yet. Check signal model/filter paths.")
 
-			selected_freqs16: List[float] = []
-			new_map16 = {}
-			if isinstance(edited16, list):
-				edited_rows16 = edited16
-			elif hasattr(edited16, "to_dict"):
+		target_freqs_sb = _normalize_target_freqs_for_run([float(v) for v in (guide_freqs_sb + roi_center_freqs_sb)])
+		if target_freqs_sb:
+			st.caption("Target frequencies to generate: " + _freqs_to_text(target_freqs_sb))
+		else:
+			st.caption("Target frequencies to generate: (empty)")
+
+		sb1, sb2, sb3, sb4 = st.columns(4)
+		with sb1:
+			logn_min_sb = st.number_input("LogN min", value=14.0, key="p6_synthbatch_logn_min")
+			logn_max_sb = st.number_input("LogN max", value=19.5, key="p6_synthbatch_logn_max")
+			logn_step_sb = st.number_input("LogN step", min_value=1e-6, value=0.1, step=0.01, format="%.6f", key="p6_synthbatch_logn_step")
+		with sb2:
+			tex_min_sb = st.number_input("Tex min", value=100.0, key="p6_synthbatch_tex_min")
+			tex_max_sb = st.number_input("Tex max", value=380.0, key="p6_synthbatch_tex_max")
+			tex_step_sb = st.number_input("Tex step", min_value=1e-6, value=20.0, step=1.0, format="%.6f", key="p6_synthbatch_tex_step")
+		with sb3:
+			velo_min_sb = st.number_input("Velocity min", value=90.0, key="p6_synthbatch_velo_min")
+			velo_max_sb = st.number_input("Velocity max", value=105.0, key="p6_synthbatch_velo_max")
+			velo_step_sb = st.number_input("Velocity step", min_value=1e-6, value=1.0, step=0.1, format="%.6f", key="p6_synthbatch_velo_step")
+		with sb4:
+			fwhm_min_sb = st.number_input("FWHM min", value=5.0, key="p6_synthbatch_fwhm_min")
+			fwhm_max_sb = st.number_input("FWHM max", value=8.0, key="p6_synthbatch_fwhm_max")
+			fwhm_step_sb = st.number_input("FWHM step", min_value=1e-6, value=2.0, step=0.1, format="%.6f", key="p6_synthbatch_fwhm_step")
+
+		sb5, sb6, sb7 = st.columns(3)
+		with sb5:
+			candidate_mode_sb_ui = st.selectbox("Sampling mode", options=["Random", "Ordered grid"], index=0, key="p6_synthbatch_mode")
+		is_ordered_grid_sb = str(candidate_mode_sb_ui).strip().lower().startswith("ordered")
+		with sb6:
+			n_spectra_sb = st.number_input("Number of spectra", min_value=1, max_value=1000000, value=200, step=10, key="p6_synthbatch_n", disabled=bool(is_ordered_grid_sb))
+		with sb7:
+			random_seed_sb = st.number_input("Random seed", min_value=0, value=42, step=1, key="p6_synthbatch_seed")
+
+		logn_axis_sb = _axis_from_min_max_step(float(logn_min_sb), float(logn_max_sb), float(logn_step_sb))
+		tex_axis_sb = _axis_from_min_max_step(float(tex_min_sb), float(tex_max_sb), float(tex_step_sb))
+		velo_axis_sb = _axis_from_min_max_step(float(velo_min_sb), float(velo_max_sb), float(velo_step_sb))
+		fwhm_axis_sb = _axis_from_min_max_step(float(fwhm_min_sb), float(fwhm_max_sb), float(fwhm_step_sb))
+		total_grid_sb = int(logn_axis_sb.size * tex_axis_sb.size * velo_axis_sb.size * fwhm_axis_sb.size)
+		st.caption(
+			f"Ordered grid total spectra (from steps): {total_grid_sb} = "
+			f"{logn_axis_sb.size}×{tex_axis_sb.size}×{velo_axis_sb.size}×{fwhm_axis_sb.size}"
+		)
+
+		out_dir_sb = st.text_input(
+			"Output directory",
+			value=r"D:\4.DATASETS\OBSEMU_Synthetic_Spectra",
+			key="p6_synthbatch_outdir",
+		)
+
+		if st.button("Generate and save synthetic spectra", type="primary", key="p6_synthbatch_run"):
+			if not target_freqs_sb:
+				st.error("Define at least one target frequency (Guide frequencies and/or selected ROIs).")
+			elif not os.path.isfile(filter_file):
+				st.error(f"Filter file not found: {filter_file}")
+			elif (not signal_models_root) or ((not os.path.isfile(signal_models_root)) and (not os.path.isdir(signal_models_root))):
+				st.error("Signal models source invalid.")
+			elif (batch_mode == "synthetic_plus_noise") and (not _is_valid_noise_source(noise_models_root)):
+				st.error("Residuals (Noise) models source invalid for Synthetic + noise mode.")
+			elif is_ordered_grid_sb and total_grid_sb <= 0:
+				st.error("Ordered grid from current step settings is empty.")
+			else:
 				try:
-					edited_rows16 = edited16.to_dict("records")
-				except Exception:
-					edited_rows16 = []
-			else:
-				edited_rows16 = []
-			for er in edited_rows16:
-				row_id = f"{str(er.get('roi_name', ''))}|{float(er.get('target_freq_ghz', np.nan)):.9f}"
-				is_sel = bool(er.get("Select", False))
-				new_map16[row_id] = is_sel
-				if is_sel:
-					try:
-						fv = float(er.get("target_freq_ghz", np.nan))
-						if np.isfinite(fv):
-							selected_freqs16.append(float(fv))
-					except Exception:
-						pass
-			st.session_state.p6_eval16_select_map = new_map16
+					os.makedirs(str(out_dir_sb), exist_ok=True)
 
-			selected_freqs16 = _normalize_target_freqs_for_run(selected_freqs16)
-			st.markdown("**Guide frequencies from selected ROIs**")
-			if selected_freqs16:
-				st.caption(_freqs_to_text(selected_freqs16))
-			else:
-				st.caption("(none selected)")
+					noise_models_loaded_sb: List[tuple] = []
+					if batch_mode == "synthetic_plus_noise":
+						entries_sb = _list_noise_model_entries(noise_models_root)
+						for ent_sb in entries_sb:
+							try:
+								m_sb, sy_sb, c_sb = _load_noisenn_from_entry(ent_sb)
+								noise_models_loaded_sb.append((m_sb, sy_sb, c_sb))
+							except Exception as e:
+								warn_agg_local = str(e)
+								# Delay surfacing as aggregated warning.
+								pass
 
-			st.markdown(
-				"""
-<style>
-#p6_eval16_add_btn_anchor + div[data-testid="stButton"] > button {
-  background-color: #d62728 !important;
-  color: white !important;
-  border: 1px solid #d62728 !important;
-}
-#p6_eval16_add_btn_anchor + div[data-testid="stButton"] > button:hover {
-  background-color: #b61f21 !important;
-  border-color: #b61f21 !important;
-}
-</style>
-<div id="p6_eval16_add_btn_anchor"></div>
-""",
-				unsafe_allow_html=True,
-			)
-
-			if st.button("Add selected frequencies to Guide frequencies (all tabs)", key="p6_eval16_add_selected_to_guides"):
-				if not selected_freqs16:
-					st.warning("Select at least one ROI first.")
-				else:
-					_propagate_selected_freqs_to_all_guides(selected_freqs16)
-					st.success("Selected frequencies added to guide frequencies in all tabs.")
-					st.rerun()
-
-			json_bytes16 = json.dumps(rows16, ensure_ascii=False, indent=2).encode("utf-8")
-			csv_io16 = io.StringIO()
-			fieldnames16 = [
-				"rank", "roi_name", "target_freq_ghz", "f_min_ghz", "f_max_ghz",
-				"pred_rmse", "pred_intensity", "n_points", "is_invalid_obs_line", "ranking_note",
-			]
-			w16 = csv.DictWriter(csv_io16, fieldnames=fieldnames16)
-			w16.writeheader()
-			for rr16 in rows16:
-				w16.writerow({k: rr16.get(k, None) for k in fieldnames16})
-			csv_bytes16 = csv_io16.getvalue().encode("utf-8")
-
-			d_cols16 = st.columns(2)
-			with d_cols16[0]:
-				st.download_button(
-					"Download ranking JSON",
-					data=json_bytes16,
-					file_name="new_spectrum_roi_ranking.json",
-					mime="application/json",
-					key="p6_eval16_dl_json",
-				)
-			with d_cols16[1]:
-				st.download_button(
-					"Download ranking CSV",
-					data=csv_bytes16,
-					file_name="new_spectrum_roi_ranking.csv",
-					mime="text/csv",
-					key="p6_eval16_dl_csv",
-				)
-
-			if isinstance(f_obs16, np.ndarray) and isinstance(y_obs16, np.ndarray):
-				topk16 = int(len(rows16)) if int(topk16) <= 0 else int(max(1, min(int(topk16), len(rows16))))
-
-				# 1) RMSE vs Intensity first (smaller vertical height)
-				labels16 = [f"#{int(r['rank'])}\n{float(r['target_freq_ghz']):.4f}" for r in rows16[:topk16]]
-				v_rmse16 = np.array([float(r["pred_rmse"]) for r in rows16[:topk16]], dtype=np.float64)
-				v_int16 = np.array([float(r["pred_intensity"]) for r in rows16[:topk16]], dtype=np.float64)
-				x16 = np.arange(len(labels16))
-				fig_bar16 = go.Figure()
-				fig_bar16.add_trace(go.Bar(
-					x=x16,
-					y=v_rmse16,
-					name="Pred RMSE",
-					marker_color="#d62728",
-					opacity=0.85,
-					width=0.28,
-					yaxis="y1",
-					offsetgroup="rmse",
-				))
-				fig_bar16.add_trace(go.Bar(
-					x=x16,
-					y=v_int16,
-					name="Pred Intensity",
-					marker_color="#1f77b4",
-					opacity=0.65,
-					width=0.28,
-					yaxis="y2",
-					offsetgroup="intensity",
-				))
-				fig_bar16.update_layout(
-					title="Top-ranked ROIs: predicted RMSE vs intensity",
-					xaxis=dict(
-						title="ROI",
-						tickmode="array",
-						tickvals=list(x16),
-						ticktext=labels16,
-					),
-					yaxis=dict(title="Pred RMSE"),
-					yaxis2=dict(title="Pred Intensity", overlaying="y", side="right"),
-					barmode="group",
-					template="plotly_white",
-					height=300,
-					margin=dict(l=40, r=40, t=45, b=40),
-				)
-				st.plotly_chart(fig_bar16, width="stretch", key="p6_eval16_bar_plot")
-
-				# 2) Interactive global overlay
-				shapes16 = []
-				for rr16 in rows16:
-					shapes16.append({
-						"type": "rect",
-						"xref": "x",
-						"yref": "paper",
-						"x0": float(rr16["f_min_ghz"]),
-						"x1": float(rr16["f_max_ghz"]),
-						"y0": 0.0,
-						"y1": 1.0,
-						"fillcolor": "rgba(120,120,120,0.12)",
-						"line": {"width": 0},
-						"layer": "below",
-					})
-				for rr16 in rows16[:topk16]:
-					shapes16.append({
-						"type": "rect",
-						"xref": "x",
-						"yref": "paper",
-						"x0": float(rr16["f_min_ghz"]),
-						"x1": float(rr16["f_max_ghz"]),
-						"y0": 0.0,
-						"y1": 1.0,
-						"fillcolor": "rgba(44,160,44,0.22)",
-						"line": {"width": 0},
-						"layer": "below",
-					})
-				fig_ov16 = go.Figure()
-				fig_ov16.add_trace(go.Scatter(
-					x=np.asarray(f_obs16, dtype=np.float64),
-					y=np.asarray(y_obs16, dtype=np.float64),
-					mode="lines",
-					name="Observed",
-					line=dict(color="orange", width=1.4),
-				))
-				fig_ov16.update_layout(
-					title="Observed spectrum with best-ranked ROIs",
-					xaxis_title="Frequency (GHz)",
-					yaxis_title="Intensity",
-					shapes=shapes16,
-					template="plotly_white",
-					height=420,
-					margin=dict(l=40, r=20, t=45, b=40),
-				)
-				st.plotly_chart(fig_ov16, width="stretch", key="p6_eval16_overlay_plot")
-
-				# 3) Interactive per-ROI zoom panels (similar to fitting tab)
-				st.markdown("**Zoom by ROI of interest (Top-K)**")
-				n_cols16 = 2 if int(topk16) <= 4 else 3
-				cols16 = st.columns(n_cols16)
-				for ip16, rr16 in enumerate(rows16[:topk16]):
-					lo16 = float(rr16["f_min_ghz"])
-					hi16 = float(rr16["f_max_ghz"])
-					span16 = float(max(1e-9, hi16 - lo16))
-					pad16 = 0.18 * span16
-					m16 = (f_obs16 >= (lo16 - pad16)) & (f_obs16 <= (hi16 + pad16))
-					fx16 = np.asarray(f_obs16[m16], dtype=np.float64)
-					oy16 = np.asarray(y_obs16[m16], dtype=np.float64)
-					with cols16[ip16 % n_cols16]:
-						fig_z16 = go.Figure()
-						fig_z16.add_trace(go.Scatter(x=fx16, y=oy16, mode="lines", name="Observed", line=dict(color="orange", width=1.2)))
-						fig_z16.add_shape(
-							type="rect",
-							xref="x",
-							yref="paper",
-							x0=lo16,
-							x1=hi16,
-							y0=0.0,
-							y1=1.0,
-							fillcolor="rgba(44,160,44,0.20)",
-							line=dict(width=0),
-							layer="below",
+					ranges_sb = {
+						"logn_min": float(min(logn_min_sb, logn_max_sb)),
+						"logn_max": float(max(logn_min_sb, logn_max_sb)),
+						"tex_min": float(min(tex_min_sb, tex_max_sb)),
+						"tex_max": float(max(tex_min_sb, tex_max_sb)),
+						"velo_min": float(min(velo_min_sb, velo_max_sb)),
+						"velo_max": float(max(velo_min_sb, velo_max_sb)),
+						"fwhm_min": float(min(fwhm_min_sb, fwhm_max_sb)),
+						"fwhm_max": float(max(fwhm_min_sb, fwhm_max_sb)),
+					}
+					mode_sb = "ordered_grid" if str(candidate_mode_sb_ui).strip().lower().startswith("ordered") else "random"
+					if mode_sb == "ordered_grid":
+						g0_sb, g1_sb, g2_sb, g3_sb = np.meshgrid(
+							logn_axis_sb,
+							tex_axis_sb,
+							velo_axis_sb,
+							fwhm_axis_sb,
+							indexing="ij",
 						)
-						fig_z16.update_layout(
-							title=f"#{int(rr16['rank'])} | {float(rr16['target_freq_ghz']):.6f} GHz | pred_rmse={float(rr16['pred_rmse']):.4g}",
-							xaxis=dict(title="Frequency (GHz)", range=[lo16 - pad16, hi16 + pad16]),
-							yaxis=dict(title="Intensity"),
-							template="plotly_white",
-							height=300,
-							margin=dict(l=40, r=20, t=42, b=36),
+						X_sb = np.stack(
+							[g0_sb.reshape(-1), g1_sb.reshape(-1), g2_sb.reshape(-1), g3_sb.reshape(-1)],
+							axis=1,
+						).astype(np.float32)
+					else:
+						X_sb = _sample_fit_candidates(
+							n_samples=int(n_spectra_sb),
+							ranges=ranges_sb,
+							seed=int(random_seed_sb),
+							mode=mode_sb,
 						)
-						st.plotly_chart(fig_z16, width="stretch", key=f"p6_eval16_zoom_{ip16}")
 
-	with tab_fit:
+					prog = st.progress(0.0, text="Generating synthetic spectra...")
+					st.caption("Live preview: one generated spectrum is updated every 5 simulations.")
+					preview_slot_sb = st.empty()
+					n_ok_sb = 0
+					n_fail_sb = 0
+					warn_agg_sb: List[str] = []
+					for i_sb in range(int(X_sb.shape[0])):
+						x_logN = float(X_sb[i_sb, 0])
+						x_tex = float(X_sb[i_sb, 1])
+						x_velo = float(X_sb[i_sb, 2])
+						x_fwhm = float(X_sb[i_sb, 3])
+						x_feat_sb = np.asarray([[x_logN, x_tex, x_velo, x_fwhm]], dtype=np.float32)
+						res_sb, warns_sb = _generate_synthetic_spectra_for_targets(
+							signal_models_source=str(signal_models_root),
+							filter_file=str(filter_file),
+							target_freqs=[float(v) for v in target_freqs_sb],
+							x_features=[x_logN, x_tex, x_velo, x_fwhm],
+							pred_mode=DEFAULT_PRED_MODE,
+							selected_model_name=DEFAULT_SELECTED_MODEL_NAME,
+							allow_nearest=bool(allow_nearest),
+						)
+
+						segs_sb: List[Tuple[float, np.ndarray, np.ndarray]] = []
+						for _, item_sb in (res_sb or {}).items():
+							ff_sb = np.asarray(item_sb.get("freq", []), dtype=np.float64).reshape(-1)
+							yy_sb = np.asarray(item_sb.get("synthetic", []), dtype=np.float64).reshape(-1)
+							if ff_sb.size < 2 or yy_sb.size != ff_sb.size:
+								continue
+							m_sb = np.isfinite(ff_sb) & np.isfinite(yy_sb)
+							if int(np.count_nonzero(m_sb)) < 2:
+								continue
+							ff_sb = ff_sb[m_sb]
+							yy_sb = yy_sb[m_sb]
+							if batch_mode == "synthetic_plus_noise":
+								try:
+									y_noise_sb = _add_noise_batch_for_target(
+										noise_models_loaded=noise_models_loaded_sb,
+										roi_freq=np.asarray(ff_sb, dtype=np.float64),
+										y_syn_batch=np.asarray(yy_sb, dtype=np.float32).reshape(1, -1),
+										x_candidates=x_feat_sb,
+										noise_scale=float(batch_noise_scale),
+									).reshape(-1)
+									yy_sb = np.asarray(yy_sb, dtype=np.float64) + np.asarray(y_noise_sb, dtype=np.float64)
+								except Exception as e:
+									warn_agg_sb.append(f"Noise add failed (sample #{int(i_sb+1)}): {e}")
+							segs_sb.append((float(np.nanmin(ff_sb)), ff_sb, yy_sb))
+
+						if not segs_sb:
+							n_fail_sb += 1
+							warn_agg_sb.extend([str(w) for w in (warns_sb or [])])
+						else:
+							segs_sb = sorted(segs_sb, key=lambda t: t[0])
+							freq_segments_sb = [t[1] for t in segs_sb]
+							spec_segments_sb = [t[2] for t in segs_sb]
+							# One TXT per simulation: concatenate all ROI/target segments into a
+							# single spectrum, inserting zero bridges between windows.
+							f_cat_sb, y_cat_sb = concat_segments_with_zero_gaps(
+								freqs_segments=freq_segments_sb,
+								spec_segments=spec_segments_sb,
+								insert_zero_gaps=True,
+							)
+							if f_cat_sb.size < 2 or y_cat_sb.size != f_cat_sb.size:
+								n_fail_sb += 1
+								warn_agg_sb.append(
+									f"Simulation #{int(i_sb+1)} could not be concatenated into a valid single spectrum."
+								)
+								prog.progress(float(i_sb + 1) / float(max(1, X_sb.shape[0])), text=f"Generating synthetic spectra... ({i_sb+1}/{int(X_sb.shape[0])})")
+								continue
+							out_name_sb = (
+								f"synthetic_{i_sb+1:04d}_"
+								f"logN_{x_logN:.4f}_tex_{x_tex:.4f}_"
+								f"fwhm_{x_fwhm:.4f}_velo_{x_velo:.4f}.txt"
+							)
+							out_path_sb = os.path.join(str(out_dir_sb), out_name_sb)
+							np.savetxt(out_path_sb, np.column_stack([f_cat_sb, y_cat_sb]), fmt="%.10f")
+							n_ok_sb += 1
+
+							if ((i_sb + 1) % 5 == 0) or ((i_sb + 1) == int(X_sb.shape[0])):
+								fig_prev_sb = go.Figure()
+								fig_prev_sb.add_trace(
+									go.Scatter(
+										x=np.asarray(f_cat_sb, dtype=np.float64),
+										y=np.asarray(y_cat_sb, dtype=np.float64),
+										mode="lines",
+										name=f"Sim #{int(i_sb+1)}",
+										line=dict(width=1.3, color="#1f77b4"),
+									)
+								)
+								fig_prev_sb.update_layout(
+									title=f"Live spectrum preview (simulation #{int(i_sb+1)})",
+									xaxis_title="Frequency (GHz)",
+									yaxis_title="Intensity",
+									template="plotly_white",
+									height=320,
+									margin=dict(l=40, r=20, t=45, b=40),
+								)
+								preview_slot_sb.plotly_chart(fig_prev_sb, use_container_width=True)
+
+						prog.progress(float(i_sb + 1) / float(max(1, X_sb.shape[0])), text=f"Generating synthetic spectra... ({i_sb+1}/{int(X_sb.shape[0])})")
+
+					prog.empty()
+					if n_ok_sb > 0:
+						st.success(f"Synthetic spectra generation completed. Saved: {n_ok_sb} | Failed: {n_fail_sb} | Output: {out_dir_sb}")
+					else:
+						st.error("No synthetic spectra could be generated with current settings.")
+					if warn_agg_sb:
+						with st.expander("Show generation warnings"):
+							st.text("\n".join(warn_agg_sb[:200]))
+				except Exception as e:
+					st.error(f"Synthetic batch generation failed: {e}")
+
+	if False:
 		st.subheader("Fitting")
 		st.caption("Upload an observational spectrum and fit synthetic models per ROI using Guide frequencies.")
 
@@ -6685,6 +9137,11 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				n_candidates_fit = st.number_input("Number of candidates", min_value=50, max_value=4000, value=300, step=50, key="p6_fit_n_candidates")
 			with cfsp2:
 				seed_fit = st.number_input("Random seed", min_value=0, value=42, step=1, key="p6_fit_seed")
+			fit_candidate_shift_text = st.text_input(
+				"Candidate velocity shifts (km/s, comma-separated)",
+				value=str(st.session_state.get("p6_fit_candidate_velocity_shifts_text", "-3,-2,-1.5,-1,-0.5,-0.25,-0.1,0,0.1,0.25,0.5,1,1.5,3,2")),
+				key="p6_fit_candidate_velocity_shifts_text",
+			)
 
 		run_fit = st.button("Run fitting", type="primary", key="p6_run_fitting_btn")
 		if run_fit:
@@ -6711,6 +9168,10 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				}
 				with st.spinner("Running efficient batch fitting per ROI..."):
 					fit_candidate_mode_internal = str(fit_candidate_mode_map.get(str(fit_candidate_mode_ui), "random"))
+					fit_candidate_velocity_shifts_kms = _parse_candidate_velocity_shifts(
+						str(fit_candidate_shift_text),
+						default_values=[float(v) for v in DEFAULT_CANDIDATE_VELOCITY_SHIFTS_KMS],
+					)
 					X_shared_fit = _sample_fit_candidates(
 						n_samples=int(n_candidates_fit),
 						ranges=ranges_fit,
@@ -6781,6 +9242,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 							pkg_cache_override=pkg_cache_shared_fit,
 							local_optimizer_method=str(fit_local_opt_method_map.get(str(fit_local_opt_method_ui), "none")),
 							local_optimizer_max_nfev=int(fit_local_opt_max_nfev),
+							candidate_velocity_shifts_kms=[float(v) for v in fit_candidate_velocity_shifts_kms],
 							refine_after_first_fit=False,
 						)
 						if isinstance(res_trial, dict) and bool(res_trial.get("ok", False)):
@@ -6826,13 +9288,18 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					f"Mode: {fit_result.get('case_mode', '')} | "
 					f"Global strategy: {fit_result.get('global_search_mode', 'per_roi')} | "
 					f"Local optimizer: {fit_result.get('local_optimizer_method', 'none')} | "
-					f"Candidates: {int(fit_result.get('n_candidates', 0))} | "
+					f"Candidates: {int(fit_result.get('n_candidates_base', fit_result.get('n_candidates', 0)))}/{int(fit_result.get('n_candidates', 0))} (base/expanded) | "
 					f"Guide freqs input: {int(fit_result.get('n_guide_freqs_input', 0))} | "
 					f"Unique ROIs from guide freqs: {int(fit_result.get('n_unique_rois_requested', 0))} | "
 					f"ROIs fitted: {int(fit_result.get('n_rois_fitted', 0))} | "
 					f"Sampling: {fit_result.get('candidate_mode', 'ordered_grid')} | "
 					f"Weighting: {fit_result.get('global_weight_mode', 'uniform')}"
 				)
+				if list(fit_result.get("candidate_velocity_shifts_kms", [])):
+					st.caption(
+						"Candidate velocity shifts used (km/s): "
+						+ ", ".join([f"{float(v):+g}" for v in list(fit_result.get("candidate_velocity_shifts_kms", []))])
+					)
 				if str(fit_result.get("local_optimizer_method", "none")).lower() != "none":
 					st.caption(
 						f"Local optimizer status: {fit_result.get('local_optimizer_status', 'unknown')} | "
@@ -7020,16 +9487,565 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				with st.expander("Show fitting warnings"):
 					st.text("\n".join([str(w) for w in warns_fit]))
 
-	with tab_cube_fit:
+	if False:
+		st.subheader("Inverse Parameter Prediction")
+		st.caption("Upload a spectrum and estimate LogN/Tex/FWHM/Velocity using inverse ROI models generated by script 13.")
+
+		inv_models_dir = st.text_input(
+			"Inverse ROI models directory",
+			value=str(DEFAULT_LOCAL_INVERSE_PARAM_MODELS_DIR),
+			key="p6_inv_models_dir",
+		)
+
+		inv_models, inv_warnings = _load_inverse_param_models_cached(str(inv_models_dir))
+		if inv_warnings:
+			with st.expander("Inverse model loading warnings", expanded=False):
+				st.text("\n".join([str(w) for w in inv_warnings]))
+		if inv_models:
+			fmins = [float(m.get("f_min_ghz", np.nan)) for m in inv_models]
+			fmaxs = [float(m.get("f_max_ghz", np.nan)) for m in inv_models]
+			st.caption(
+				f"Loaded inverse models: {len(inv_models)} | "
+				f"coverage: {float(np.nanmin(fmins)):.6f} - {float(np.nanmax(fmaxs)):.6f} GHz"
+			)
+		else:
+			st.info("No inverse models loaded. Check the directory path.")
+			if inv_warnings:
+				st.warning(str(inv_warnings[0]))
+
+		up_obs_inv = st.file_uploader(
+			"Upload spectrum for inverse prediction (.txt/.dat/.csv)",
+			type=None,
+			key="p6_inv_upload_obs",
+		)
+		obs_freq_inv, obs_vals_inv, obs_err_inv = _read_uploaded_spectrum_any(up_obs_inv) if up_obs_inv is not None else (None, None, None)
+		if up_obs_inv is not None and obs_err_inv is not None:
+			st.error(f"Could not parse uploaded spectrum: {obs_err_inv}")
+
+		inv_shift_enabled = st.checkbox("Apply uploaded spectrum frequency shift", value=True, key="p6_inv_shift_enabled")
+		inv_shift_mode = st.selectbox(
+			"Shift mode",
+			options=["per_frequency", "spw_center"],
+			index=0,
+			key="p6_inv_shift_mode",
+		)
+		inv_shift_kms = st.number_input(
+			"Uploaded spectrum shift (km/s)",
+			value=-98.0,
+			step=0.1,
+			format="%.4f",
+			key="p6_inv_shift_kms",
+		)
+		obs_freq_inv_used = None if obs_freq_inv is None else np.asarray(obs_freq_inv, dtype=np.float64).copy()
+		if (obs_freq_inv_used is not None) and bool(inv_shift_enabled):
+			if str(inv_shift_mode).strip().lower() == "spw_center":
+				obs_freq_inv_used = _apply_velocity_shift_by_spw_center(obs_freq_inv_used, float(inv_shift_kms))
+			else:
+				obs_freq_inv_used = _apply_velocity_shift_to_frequency(obs_freq_inv_used, float(inv_shift_kms))
+			st.caption(f"Uploaded spectrum shifted by {float(inv_shift_kms):+.4f} km/s using mode: {str(inv_shift_mode)}")
+
+		run_inv = st.button("Run inverse prediction", type="primary", key="p6_inv_run_btn")
+		if run_inv:
+			if up_obs_inv is None or obs_freq_inv_used is None or obs_vals_inv is None:
+				st.error("Upload a valid spectrum first.")
+			elif not inv_models:
+				st.error("No inverse models available to run prediction.")
+			else:
+				rows_inv, summary_inv = _predict_inverse_params_from_models(
+					freq_ghz=np.asarray(obs_freq_inv_used, dtype=np.float64),
+					intensity=np.asarray(obs_vals_inv, dtype=np.float64),
+					inverse_models=inv_models,
+					min_overlap_channels=8,
+				)
+				st.session_state.p6_inv_last_result = {
+					"rows": rows_inv,
+					"summary": summary_inv,
+					"models_dir": str(inv_models_dir),
+					"obs_freq_used": np.asarray(obs_freq_inv_used, dtype=np.float64),
+					"obs_vals_used": np.asarray(obs_vals_inv, dtype=np.float64),
+				}
+
+		inv_res = st.session_state.get("p6_inv_last_result", None)
+		if isinstance(inv_res, dict):
+			rows_inv = inv_res.get("rows", []) if isinstance(inv_res.get("rows", []), list) else []
+			summary_inv = inv_res.get("summary", None)
+
+			if (summary_inv is None) or (not rows_inv):
+				st.warning("No valid ROI predictions were produced for this spectrum.")
+			else:
+				cmi1, cmi2, cmi3, cmi4 = st.columns(4)
+				cmi1.metric("Weighted LogN", f"{float(summary_inv.get('weighted_logn', np.nan)):.5g}")
+				cmi2.metric("Weighted Tex", f"{float(summary_inv.get('weighted_tex', np.nan)):.5g}")
+				cmi3.metric("Weighted FWHM", f"{float(summary_inv.get('weighted_fwhm', np.nan)):.5g}")
+				cmi4.metric("Weighted Velocity", f"{float(summary_inv.get('weighted_velo', np.nan)):.5g}")
+
+				st.caption(
+					f"ROIs used: {int(summary_inv.get('n_rois_used', 0))} | "
+					f"outliers removed: {int(summary_inv.get('n_outlier_rows_removed', 0))} | "
+					f"rows clipped: {int(summary_inv.get('n_clipped_rows', 0))} | "
+					f"Best ROI by weight: {str(summary_inv.get('best_roi_name', ''))} | "
+					f"Median estimate = "
+					f"[{float(summary_inv.get('median_logn', np.nan)):.5g}, "
+					f"{float(summary_inv.get('median_tex', np.nan)):.5g}, "
+					f"{float(summary_inv.get('median_fwhm', np.nan)):.5g}, "
+					f"{float(summary_inv.get('median_velo', np.nan)):.5g}]"
+				)
+
+				rows_inv_sorted = sorted(rows_inv, key=lambda r: float(r.get("weight", 0.0)), reverse=True)
+				st.markdown("**Per-ROI inverse predictions**")
+				st.dataframe(rows_inv_sorted, use_container_width=True)
+
+				obs_freq_plot = inv_res.get("obs_freq_used", None)
+				obs_vals_plot = inv_res.get("obs_vals_used", None)
+				if (obs_freq_plot is not None) and (obs_vals_plot is not None):
+					fig_inv = go.Figure()
+					fig_inv.add_trace(
+						go.Scatter(
+							x=np.asarray(obs_freq_plot, dtype=np.float64),
+							y=np.asarray(obs_vals_plot, dtype=np.float64),
+							mode="lines",
+							name="Uploaded spectrum",
+							line=dict(color="green", width=1.5),
+						)
+					)
+					for r in rows_inv_sorted:
+						fig_inv.add_vrect(
+							x0=float(r.get("roi_f_min_ghz", np.nan)),
+							x1=float(r.get("roi_f_max_ghz", np.nan)),
+							fillcolor="rgba(120,120,220,0.10)",
+							line_width=0,
+							layer="below",
+						)
+					fig_inv.update_layout(
+						title="Uploaded spectrum with ROIs used by inverse predictors",
+						xaxis_title="Frequency (GHz)",
+						yaxis_title="Intensity",
+						template="plotly_white",
+						height=360,
+						margin=dict(l=40, r=20, t=45, b=40),
+					)
+					st.plotly_chart(fig_inv, width="stretch", key="p6_inv_overlay_plot")
+
+	with tab_pred_from_cube:
+		st.subheader("Inverse Cube Prediction")
+		st.caption("Equivalent to script 4.PREDICT_ParamMaps_FromCube... inside Streamlit (no external script dependency).")
+
+		models_root_predcube = st.text_input(
+			"ROI models directory",
+			value=str(DEFAULT_LOCAL_INVERSE_CUBE_MODELS_DIR),
+			key="p6_predcube_models_root",
+		)
+		model_selection_mode = st.selectbox(
+			"Model selection",
+			options=["all_roi_models", "guide_frequencies"],
+			index=0,
+			key="p6_predcube_model_selection_mode",
+		)
+		available_families_predcube = _list_available_inverse_model_families(str(models_root_predcube))
+		if "p6_predcube_model_family" not in st.session_state:
+			st.session_state.p6_predcube_model_family = "all"
+		if str(st.session_state.get("p6_predcube_model_family", "all")) not in list(available_families_predcube):
+			st.session_state.p6_predcube_model_family = str(available_families_predcube[0])
+		predcube_model_family = st.selectbox(
+			"Model type (available in directory)",
+			options=list(available_families_predcube),
+			key="p6_predcube_model_family",
+		)
+		st.caption("Available model types detected: " + ", ".join([str(v) for v in list(available_families_predcube)]))
+		st.caption("Prediction uses only models whose ROI frequency range intersects the shifted cube frequency axis.")
+		guide_freqs_predcube: List[float] = []
+		if str(model_selection_mode) == "guide_frequencies":
+			if not str(st.session_state.get("p6_predcube_guide_freqs_input", "")).strip():
+				st.session_state.p6_predcube_guide_freqs_input = _freqs_to_text([float(v) for v in DEFAULT_CUBEFIT_GUIDE_FREQS])
+			guide_freqs_text = st.text_input(
+				"Guide frequencies (GHz)",
+				key="p6_predcube_guide_freqs_input",
+			)
+			guide_freqs_predcube = _normalize_target_freqs_for_run(parse_freq_list(str(guide_freqs_text)))
+			if guide_freqs_predcube:
+				st.caption("Guide frequencies: " + _freqs_to_text(guide_freqs_predcube))
+
+		up_obs_cube_predcube = st.file_uploader(
+			"Upload one or more observational cubes (.fits)",
+			type=["fits"],
+			accept_multiple_files=True,
+			key="p6_predcube_upload_cube",
+		)
+		obs_cube_predcube_paths_manual_text = st.text_area(
+			"Or set observational cube path(s) (.fits) | one per line",
+			value=str(st.session_state.get("p6_predcube_obs_cube_paths_text", "")),
+			key="p6_predcube_obs_cube_paths_input",
+			height=90,
+		)
+
+		upload_paths_predcube: List[str] = []
+		for i_up, up_item in enumerate((up_obs_cube_predcube or []), start=1):
+			p_up = _save_uploaded_file_to_temp(up_item, f"predcube_obs_cube_{i_up}")
+			if p_up and os.path.isfile(str(p_up)):
+				upload_paths_predcube.append(str(p_up))
+		if (up_obs_cube_predcube is not None) and (len(up_obs_cube_predcube) > 0) and (len(upload_paths_predcube) <= 0):
+			st.warning("Uploaded files could not be cached locally. For large cubes, use the manual paths field below.")
+
+		manual_paths_predcube: List[str] = []
+		for _ln in str(obs_cube_predcube_paths_manual_text or "").replace(";", "\n").splitlines():
+			_p = str(_ln or "").strip().strip('"').strip("'")
+			if _p:
+				manual_paths_predcube.append(_p)
+
+		if manual_paths_predcube:
+			n_exist_predcube = int(sum(1 for p in manual_paths_predcube if os.path.isfile(p)))
+			st.caption(f"Manual paths existing: {n_exist_predcube}/{len(manual_paths_predcube)}")
+
+		obs_cube_predcube_paths: List[str] = []
+		obs_cube_predcube_shapes: List[Tuple[int, int]] = []
+		candidate_predcube_paths = list(upload_paths_predcube) if len(upload_paths_predcube) > 0 else list(manual_paths_predcube)
+		if len(upload_paths_predcube) > 0:
+			st.caption("Using uploaded cube(s). Manual path(s) are ignored for this run.")
+
+		for _cand in candidate_predcube_paths:
+			_c = str(_cand or "").strip()
+			if (not _c) or (not os.path.isfile(_c)):
+				continue
+			_sh = _get_cube_ny_nx(_c)
+			if (_sh is None) or (int(_sh[0]) <= 0) or (int(_sh[1]) <= 0):
+				continue
+			if _c not in obs_cube_predcube_paths:
+				obs_cube_predcube_paths.append(_c)
+				obs_cube_predcube_shapes.append((int(_sh[0]), int(_sh[1])))
+
+		if len(obs_cube_predcube_paths) > 0:
+			st.session_state.p6_predcube_obs_cube_paths_text = "\n".join([str(p) for p in obs_cube_predcube_paths])
+			st.caption(f"Valid cubes for prediction: {len(obs_cube_predcube_paths)}")
+			for i_sh, (shy, shx) in enumerate(obs_cube_predcube_shapes[:6], start=1):
+				st.caption(f"Cube {i_sh}: ny={int(shy)}, nx={int(shx)}")
+		elif manual_paths_predcube:
+			st.caption("Manual cube paths are set, but no valid readable FITS cubes were found.")
+
+		predcube_shift_enabled = st.checkbox("Apply frequency shift", value=True, key="p6_predcube_shift_enabled")
+		predcube_shift_mode = st.selectbox("Shift mode", options=["per_frequency", "spw_center"], index=0, key="p6_predcube_shift_mode")
+		predcube_shift_kms = st.number_input("Shift (km/s)", value=-55.0, step=0.1, format="%.4f", key="p6_predcube_shift_kms")
+
+		predcube_out_dir = st.text_input("Output directory", value=str(DEFAULT_INVERSE_CUBEPRED_OUTDIR), key="p6_predcube_out_dir")
+		predcube_out_prefix = st.text_input("Output prefix", value="PRED_FROMCUBE", key="p6_predcube_out_prefix")
+		predcube_progress_every = st.number_input("Progress every N pixels", min_value=1, value=3000, step=1, key="p6_predcube_progress_every")
+		predcube_spatial_stride = st.number_input("Spatial stride", min_value=1, value=1, step=1, key="p6_predcube_spatial_stride")
+		predcube_min_overlap = st.number_input("Minimum overlap channels per ROI", min_value=1, value=2, step=1, key="p6_predcube_min_overlap")
+
+		pc1, pc2 = st.columns(2)
+		with pc1:
+			run_predcube = st.button("Run map prediction", type="primary", key="p6_run_predcube_btn", disabled=_is_invcubepred_running())
+		with pc2:
+			stop_predcube = st.button("Stop map prediction", key="p6_stop_predcube_btn", disabled=not _is_invcubepred_running())
+
+		if run_predcube:
+			if len(obs_cube_predcube_paths) <= 0:
+				st.error("Upload at least one valid observational cube first.")
+			elif (str(model_selection_mode) == "guide_frequencies") and (not guide_freqs_predcube):
+				st.error("Guide frequencies is empty. Add at least one frequency.")
+			elif (not models_root_predcube) or (not os.path.isdir(str(models_root_predcube))):
+				st.error("ROI models directory is invalid.")
+			else:
+				try:
+					predcube_out_dir_user = str(predcube_out_dir).strip()
+					predcube_out_dir_resolved = str(predcube_out_dir_user) if os.path.isdir(str(predcube_out_dir_user)) else str(DEFAULT_INVERSE_CUBEPRED_OUTDIR)
+					if (not predcube_out_dir_user) or (not os.path.isdir(str(predcube_out_dir_user))):
+						st.warning(f"Output directory not found. Using temporary directory: {predcube_out_dir_resolved}")
+
+					os.makedirs(predcube_out_dir_resolved, exist_ok=True)
+					_cleanup_invcubepred_outputs_for_dir(str(predcube_out_dir_resolved))
+					cfg_icp = {
+						"out_dir": str(predcube_out_dir_resolved),
+						"obs_cube_path": str(obs_cube_predcube_paths[0]),
+						"obs_cube_paths": [str(p) for p in obs_cube_predcube_paths],
+						"inverse_models_root": str(models_root_predcube),
+						"model_family": str(predcube_model_family),
+						"use_all_models": bool(str(model_selection_mode) == "all_roi_models"),
+						"target_freqs": [float(v) for v in guide_freqs_predcube],
+						"allow_nearest": True,
+						"progress_every": int(predcube_progress_every),
+						"spatial_stride": int(predcube_spatial_stride),
+						"obs_shift_enabled": bool(predcube_shift_enabled),
+						"obs_shift_mode": str(predcube_shift_mode),
+						"obs_shift_kms": float(predcube_shift_kms),
+						"resume_enabled": False,
+						"min_overlap_channels": int(predcube_min_overlap),
+						"region_mode": "full",
+						"out_prefix": str(predcube_out_prefix).strip() or "PRED_FROMCUBE",
+					}
+					fd_icp, cfg_icp_path = tempfile.mkstemp(prefix="predobs6_predcube_cfg_", suffix=".json", dir=tempfile.gettempdir())
+					os.close(fd_icp)
+					with open(cfg_icp_path, "w", encoding="utf-8") as f:
+						json.dump(cfg_icp, f, ensure_ascii=False, indent=2)
+					log_icp_path = os.path.join(predcube_out_dir_resolved, f"predcube_run_{time.strftime('%Y%m%d_%H%M%S')}.log")
+					log_icp_fh = open(log_icp_path, "a", encoding="utf-8", buffering=1)
+					proc_icp = subprocess.Popen(
+						[sys.executable, str(Path(__file__).resolve()), "--inverse-cube-worker", cfg_icp_path],
+						cwd=str(_project_dir()),
+						stdout=log_icp_fh,
+						stderr=subprocess.STDOUT,
+						text=True,
+					)
+					st.session_state.invcubepred_proc = proc_icp
+					st.session_state.invcubepred_log_path = log_icp_path
+					st.session_state.invcubepred_cfg_path = cfg_icp_path
+					st.session_state.invcubepred_log_handle = log_icp_fh
+					st.session_state.invcubepred_start_ts = float(time.time())
+					st.session_state.p6_predcube_last_out_dir = str(predcube_out_dir_resolved)
+					st.session_state.p6_predcube_last_out_prefix = str(cfg_icp.get("out_prefix", "PRED_FROMCUBE"))
+					st.success(f"Map prediction started for {len(obs_cube_predcube_paths)} cube(s).")
+				except Exception as e:
+					st.error(f"Could not start map prediction: {e}")
+
+		if stop_predcube:
+			_stop_invcubepred_process()
+			st.warning("Map prediction stopped by user.")
+
+		if _is_invcubepred_running():
+			start_ts_icp = st.session_state.get("invcubepred_start_ts", None)
+			if start_ts_icp is not None:
+				elapsed_icp = _format_elapsed_hms(float(time.time()) - float(start_ts_icp))
+				st.info(f"Map prediction status: running | elapsed: {elapsed_icp}")
+			else:
+				st.info("Map prediction status: running")
+		else:
+			proc_icp = st.session_state.get("invcubepred_proc", None)
+			if proc_icp is not None:
+				code_icp = proc_icp.poll()
+				if code_icp == 0:
+					st.success("Map prediction status: finished successfully")
+				elif code_icp is not None:
+					st.error(f"Map prediction status: finished with code {code_icp}")
+					log_tail_icp = _read_log_tail(str(st.session_state.get("invcubepred_log_path", "")), n_lines=120)
+					if log_tail_icp:
+						with st.expander("Show last map-prediction log lines"):
+							st.text(log_tail_icp)
+				_stop_invcubepred_process()
+			else:
+				st.caption("Map prediction status: idle")
+
+		out_dir_show = str(st.session_state.get("p6_predcube_last_out_dir", predcube_out_dir))
+		out_prefix_show = str(st.session_state.get("p6_predcube_last_out_prefix", predcube_out_prefix)).strip() or "PRED_FROMCUBE"
+		progress_png_icp = _find_latest_progress_png(str(out_dir_show))
+		if progress_png_icp:
+			with st.expander("Map prediction progress", expanded=False):
+				progress_info_icp = _read_progress_info(progress_png_icp)
+				if isinstance(progress_info_icp, dict):
+					done_steps = int(progress_info_icp.get("done_steps", 0))
+					total_steps = int(max(1, progress_info_icp.get("total_steps", 1)))
+					pct = 100.0 * float(done_steps) / float(total_steps)
+					st.success(f"**Pixels processed:** {done_steps}/{total_steps} ({pct:.1f}%)")
+				img_bytes_icp = _read_progress_png_stable_bytes(progress_png_icp)
+				if img_bytes_icp is not None:
+					st.image(img_bytes_icp, caption=os.path.basename(progress_png_icp))
+
+		if not _is_invcubepred_running():
+			run_dirs_icp: List[str] = []
+			if os.path.isdir(str(out_dir_show)):
+				subdirs_icp: List[str] = []
+				for n in sorted(os.listdir(str(out_dir_show))):
+					d = os.path.join(str(out_dir_show), str(n))
+					if os.path.isdir(d):
+						subdirs_icp.append(str(d))
+
+				# If subdirectories exist (multi-cube runs), prefer those to avoid duplicate rendering
+				# from root-level leftovers of previous single-cube runs.
+				if len(subdirs_icp) > 0:
+					run_dirs_icp.extend(subdirs_icp)
+				else:
+					run_dirs_icp.append(str(out_dir_show))
+
+			shown_any_icp = False
+			shown_cube_keys_icp = set()
+			cmap_by_param_icp = {
+				"logN": "viridis",
+				"Tex": "magma",
+				"Velocity": "coolwarm",
+				"FWHM": "plasma",
+			}
+			for rdir_icp in run_dirs_icp:
+				map_files_icp = {
+					"logN": os.path.join(str(rdir_icp), f"{out_prefix_show}_LOGN.fits"),
+					"Tex": os.path.join(str(rdir_icp), f"{out_prefix_show}_TEX.fits"),
+					"Velocity": os.path.join(str(rdir_icp), f"{out_prefix_show}_VELOCITY.fits"),
+					"FWHM": os.path.join(str(rdir_icp), f"{out_prefix_show}_FWHM.fits"),
+				}
+				available_maps_icp = {k: v for k, v in map_files_icp.items() if os.path.isfile(v)}
+				run_name_icp = os.path.basename(str(rdir_icp).rstrip("/\\")) or str(rdir_icp)
+				status_path_icp = os.path.join(str(rdir_icp), f"{out_prefix_show}_RUN_STATUS.json")
+				status_obj_icp = None
+				if os.path.isfile(status_path_icp):
+					try:
+						with open(status_path_icp, "r", encoding="utf-8") as f_status_icp:
+							status_obj_icp = json.load(f_status_icp)
+					except Exception:
+						status_obj_icp = None
+				if not available_maps_icp:
+					if isinstance(status_obj_icp, dict):
+						cube_nm = str(status_obj_icp.get("obs_cube_name", run_name_icp))
+						reason_nm = str(status_obj_icp.get("reason", "No final maps were produced for this cube."))
+						st.warning(f"Cube: {cube_nm} | Prediction skipped: {reason_nm}")
+					continue
+
+				# De-duplicate by cube path/name when scanning multiple run directories.
+				cube_key_icp = ""
+				if isinstance(status_obj_icp, dict):
+					cube_key_icp = str(status_obj_icp.get("obs_cube_path", "")).strip() or str(status_obj_icp.get("obs_cube_name", "")).strip()
+				if not cube_key_icp:
+					cube_key_icp = str(run_name_icp)
+				if cube_key_icp in shown_cube_keys_icp:
+					continue
+				shown_cube_keys_icp.add(cube_key_icp)
+
+				shown_any_icp = True
+				meta_cube_name = ""
+				meta_roi_names: List[str] = []
+				meta_path_icp = os.path.join(str(rdir_icp), f"{out_prefix_show}_RUN_META.json")
+				if os.path.isfile(meta_path_icp):
+					try:
+						with open(meta_path_icp, "r", encoding="utf-8") as f_meta_icp:
+							meta_icp = json.load(f_meta_icp)
+						if isinstance(meta_icp, dict):
+							meta_cube_name = str(meta_icp.get("obs_cube_name", "")).strip()
+							sel_models = meta_icp.get("selected_models", [])
+							if isinstance(sel_models, list):
+								for sm in sel_models:
+									if not isinstance(sm, dict):
+										continue
+									rn = str(sm.get("roi_name", "")).strip()
+									if rn:
+										meta_roi_names.append(rn)
+					except Exception:
+						pass
+
+				if not meta_cube_name:
+					meta_cube_name = str(run_name_icp)
+				roi_unique = sorted(list({str(v) for v in meta_roi_names if str(v).strip()}))
+				if roi_unique:
+					roi_preview = ", ".join(roi_unique[:3])
+					if len(roi_unique) > 3:
+						roi_preview = roi_preview + f", +{int(len(roi_unique) - 3)} more"
+					st.markdown(f"**Predicted parameter maps (final, RA/Dec) | Cube: {meta_cube_name} | ROIs used ({len(roi_unique)}): {roi_preview}**")
+				else:
+					st.markdown(f"**Predicted parameter maps (final, RA/Dec) | Cube: {meta_cube_name} | ROI models: not available**")
+				imc1, imc2 = st.columns(2)
+				cols_map_icp = [imc1, imc2]
+				for i_m, (mk, mp) in enumerate(available_maps_icp.items()):
+					with cols_map_icp[i_m % 2]:
+						try:
+							arr_m = np.asarray(fits.getdata(mp), dtype=np.float32)
+							hdr_m = fits.getheader(mp)
+							if arr_m.ndim == 3:
+								arr_m = arr_m[0]
+							_show_fits_preview(mk, arr_m, cmap=str(cmap_by_param_icp.get(str(mk), "viridis")), ref_hdr=hdr_m)
+						except Exception:
+							st.caption(f"Could not render preview for {mk}")
+						try:
+							dl_key = f"p6_predcube_download_{run_name_icp}_{mk}".replace(" ", "_")
+							with open(mp, "rb") as f_mp:
+								st.download_button(
+									f"Download {mk} map (.fits)",
+									data=f_mp.read(),
+									file_name=os.path.basename(mp),
+									mime="application/fits",
+									key=dl_key,
+								)
+						except Exception:
+							pass
+
+				# Per-ROI maps (4 params for each ROI model intersecting this cube).
+				roi_index_path = os.path.join(str(rdir_icp), f"{out_prefix_show}_ROI_MAPS_INDEX.json")
+				roi_index_obj = None
+				if os.path.isfile(roi_index_path):
+					try:
+						with open(roi_index_path, "r", encoding="utf-8") as f_roi_idx:
+							roi_index_obj = json.load(f_roi_idx)
+					except Exception:
+						roi_index_obj = None
+
+				roi_maps_dict = {}
+				if isinstance(roi_index_obj, dict):
+					rm = roi_index_obj.get("roi_maps", {})
+					if isinstance(rm, dict):
+						roi_maps_dict = rm
+
+				if roi_maps_dict and (len(roi_maps_dict) > 1):
+					st.markdown("**Per-ROI predicted maps (frequency-intersected ROI vs cube)**")
+					for roi_key, roi_meta in roi_maps_dict.items():
+						if not isinstance(roi_meta, dict):
+							continue
+						roi_name_disp = str(roi_meta.get("roi_name", roi_key))
+						fmin_disp = float(roi_meta.get("f_min_ghz", np.nan))
+						fmax_disp = float(roi_meta.get("f_max_ghz", np.nan))
+						f_range_disp = ""
+						if np.isfinite(fmin_disp) and np.isfinite(fmax_disp):
+							f_range_disp = f" | Frequency range: [{min(fmin_disp, fmax_disp):.6f}, {max(fmin_disp, fmax_disp):.6f}] GHz"
+						st.markdown(f"**Cube: {meta_cube_name} | ROI: {roi_name_disp}{f_range_disp}**")
+
+						files_meta = roi_meta.get("files", {}) if isinstance(roi_meta.get("files", {}), dict) else {}
+						roi_map_files = {
+							"logN": os.path.join(str(rdir_icp), str(files_meta.get("logn", f"{out_prefix_show}_ROI_{roi_key}_LOGN.fits"))),
+							"Tex": os.path.join(str(rdir_icp), str(files_meta.get("tex", f"{out_prefix_show}_ROI_{roi_key}_TEX.fits"))),
+							"Velocity": os.path.join(str(rdir_icp), str(files_meta.get("velo", f"{out_prefix_show}_ROI_{roi_key}_VELOCITY.fits"))),
+							"FWHM": os.path.join(str(rdir_icp), str(files_meta.get("fwhm", f"{out_prefix_show}_ROI_{roi_key}_FWHM.fits"))),
+						}
+						available_roi_maps = {k: v for k, v in roi_map_files.items() if os.path.isfile(v)}
+						if not available_roi_maps:
+							st.caption("No ROI-specific maps found for this ROI.")
+							continue
+
+						rc1, rc2 = st.columns(2)
+						roi_cols = [rc1, rc2]
+						for i_rm, (mk2, mp2) in enumerate(available_roi_maps.items()):
+							with roi_cols[i_rm % 2]:
+								try:
+									arr2 = np.asarray(fits.getdata(mp2), dtype=np.float32)
+									hdr2 = fits.getheader(mp2)
+									if arr2.ndim == 3:
+										arr2 = arr2[0]
+									_show_fits_preview(mk2, arr2, cmap=str(cmap_by_param_icp.get(str(mk2), "viridis")), ref_hdr=hdr2)
+								except Exception:
+									st.caption(f"Could not render ROI map for {mk2}")
+								try:
+									dl_key2 = f"p6_predcube_download_{run_name_icp}_{roi_key}_{mk2}".replace(" ", "_")
+									with open(mp2, "rb") as f_mp2:
+										st.download_button(
+											f"Download ROI {mk2} map (.fits)",
+											data=f_mp2.read(),
+											file_name=os.path.basename(mp2),
+											mime="application/fits",
+											key=dl_key2,
+										)
+								except Exception:
+									pass
+				elif roi_maps_dict and (len(roi_maps_dict) == 1):
+					st.caption("Per-ROI maps hidden to avoid duplicate display (single ROI selected for this cube).")
+
+			if (not shown_any_icp) and os.path.isdir(str(out_dir_show)):
+				st.caption("No final prediction maps found yet in output directory.")
+
+		log_txt_icp = os.path.join(str(out_dir_show), "Log.txt")
+		if os.path.isfile(log_txt_icp):
+			with st.expander("Map prediction Log.txt", expanded=False):
+				st.text(_read_log_tail(log_txt_icp, n_lines=300))
+
+		if _is_invcubepred_running():
+			st.caption("Auto-updating every 5 seconds...")
+			time.sleep(5)
+			st.rerun()
+
+	if False:
 		st.subheader("Cube Fitting")
 		st.caption("Same fitting parameterization as 'Fitting', but applied pixel-by-pixel to an uploaded observational cube to produce LogN/Tex/Velocity/FWHM maps.")
+
+		if not str(st.session_state.get("p6_cubefit_obs_cube_paths_text", "")).strip():
+			st.session_state.p6_cubefit_obs_cube_paths_text = str(DEFAULT_OBS_CUBE_PATH)
 
 		if bool(st.session_state.get("p6_guide_cfit_refresh", False)):
 			st.session_state.p6_guide_freqs_cfit_input = str(st.session_state.get("p6_guide_freqs_cfit_pending", "")).strip()
 			st.session_state.p6_guide_cfit_refresh = False
 			st.session_state.p6_guide_freqs_cfit_pending = ""
 		if not str(st.session_state.get("p6_guide_freqs_cfit_input", "")).strip():
-			st.session_state.p6_guide_freqs_cfit_input = _freqs_to_text([float(v) for v in DEFAULT_TARGET_FREQS])
+			st.session_state.p6_guide_freqs_cfit_input = _freqs_to_text([float(v) for v in DEFAULT_CUBEFIT_GUIDE_FREQS])
 
 		guide_freqs_cfit_text = st.text_input(
 			"Guide frequencies (GHz; defines ROIs to fit in every pixel)",
@@ -7040,19 +10056,111 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			st.caption("Target frequencies used for cube fitting: " + _freqs_to_text(guide_freqs_cfit))
 
 		up_obs_cube_fit = st.file_uploader(
-			"Upload observational cube (.fits)",
+			"Upload one or more observational cubes (.fits)",
 			type=["fits"],
+			accept_multiple_files=True,
 			key="p6_cubefit_upload_cube",
 		)
-		obs_cube_fit_path = _save_uploaded_file_to_temp(up_obs_cube_fit, "cubefit_obs_cube") if up_obs_cube_fit is not None else None
+		obs_cube_fit_paths_manual_text = st.text_area(
+			"Or set observational cube path(s) (.fits) | one per line",
+			value=str(st.session_state.get("p6_cubefit_obs_cube_paths_text", str(DEFAULT_OBS_CUBE_PATH))),
+			key="p6_cubefit_obs_cube_paths_input",
+			height=90,
+		)
 
-		cubefit_out_dir = st.text_input("Output directory", value=os.path.join(DEFAULT_OUTPUT_DIR, "cube_fit"), key="p6_cubefit_out_dir")
+		upload_paths: List[str] = []
+		for i_up, up_item in enumerate((up_obs_cube_fit or []), start=1):
+			p_up = _save_uploaded_file_to_temp(up_item, f"cubefit_obs_cube_{i_up}")
+			if p_up and os.path.isfile(str(p_up)):
+				upload_paths.append(str(p_up))
+		if (up_obs_cube_fit is not None) and (len(up_obs_cube_fit) > 0) and (len(upload_paths) <= 0):
+			st.warning("Uploaded files could not be cached locally. For large cubes, use the manual paths field below.")
+
+		manual_paths: List[str] = []
+		for _ln in str(obs_cube_fit_paths_manual_text or "").replace(";", "\n").splitlines():
+			_p = str(_ln or "").strip().strip('"').strip("'")
+			if _p:
+				manual_paths.append(_p)
+
+		if manual_paths:
+			n_exist = int(sum(1 for p in manual_paths if os.path.isfile(p)))
+			st.caption(f"Manual paths existing: {n_exist}/{len(manual_paths)}")
+
+		obs_cube_fit_paths: List[str] = []
+		obs_cube_shape = None
+		shape_ref = None
+		if len(upload_paths) > 0:
+			candidate_paths = list(upload_paths)
+			st.caption("Using uploaded cube(s). Manual path(s) are ignored for this run.")
+		else:
+			candidate_paths = list(manual_paths)
+
+		for _cand in candidate_paths:
+			_c = str(_cand or "").strip()
+			if (not _c) or (not os.path.isfile(_c)):
+				continue
+			_sh = _get_cube_ny_nx(_c)
+			if (_sh is None) or (int(_sh[0]) <= 0) or (int(_sh[1]) <= 0):
+				continue
+			if shape_ref is None:
+				shape_ref = (int(_sh[0]), int(_sh[1]))
+			elif (int(_sh[0]), int(_sh[1])) != shape_ref:
+				st.warning(f"Cube skipped due to shape mismatch: {_c} | shape=({_sh[0]},{_sh[1]}) | expected={shape_ref}")
+				continue
+			if _c not in obs_cube_fit_paths:
+				obs_cube_fit_paths.append(_c)
+
+		if len(obs_cube_fit_paths) > 0:
+			obs_cube_shape = shape_ref
+			st.session_state.p6_last_cubefit_obs_cube_paths = [str(p) for p in obs_cube_fit_paths]
+			st.session_state.p6_cubefit_obs_cube_paths_text = "\n".join([str(p) for p in obs_cube_fit_paths])
+			st.caption(f"Valid cubes for fitting: {len(obs_cube_fit_paths)}")
+			st.caption(f"Reference spatial shape: ny={int(obs_cube_shape[0])}, nx={int(obs_cube_shape[1])}")
+		elif manual_paths:
+			st.caption("Manual cube paths are set, but no valid readable FITS cubes were found.")
+
+		cubefit_out_dir = st.text_input("Output directory", value=str(DEFAULT_CUBEFIT_OUTDIR), key="p6_cubefit_out_dir")
 		cubefit_progress_every = st.number_input("Progress every N pixels", min_value=1, value=40, step=1, key="p6_cubefit_progress_every")
 		cubefit_spatial_stride = st.number_input("Spatial stride (1=all pixels, 2=every 2 pixels)", min_value=1, value=1, step=1, key="p6_cubefit_spatial_stride")
+		cubefit_use_region = st.checkbox(
+			"Fit only a selected pixel region (bounding box)",
+			value=True,
+			key="p6_cubefit_use_region",
+		)
+		if obs_cube_shape is not None:
+			ny_cf, nx_cf = int(obs_cube_shape[0]), int(obs_cube_shape[1])
+		else:
+			ny_cf, nx_cf = 1, 1
+		def_y_min = int(max(0, min(ny_cf - 1, 139)))
+		def_y_max = int(max(0, min(ny_cf - 1, 201)))
+		def_x_min = int(max(0, min(nx_cf - 1, 161)))
+		def_x_max = int(max(0, min(nx_cf - 1, 200)))
+		region_sig = f"{int(ny_cf)}x{int(nx_cf)}|n={len(obs_cube_fit_paths)}"
+		if str(st.session_state.get("p6_cubefit_region_shape_sig", "")) != str(region_sig):
+			st.session_state.p6_cubefit_region_y_min = int(def_y_min)
+			st.session_state.p6_cubefit_region_y_max = int(def_y_max)
+			st.session_state.p6_cubefit_region_x_min = int(def_x_min)
+			st.session_state.p6_cubefit_region_x_max = int(def_x_max)
+			st.session_state.p6_cubefit_region_shape_sig = str(region_sig)
+		rg_c1, rg_c2 = st.columns(2)
+		with rg_c1:
+			region_x_min = st.number_input("Region x_min", min_value=0, max_value=max(0, nx_cf - 1), value=int(def_x_min), step=1, key="p6_cubefit_region_x_min", disabled=not bool(cubefit_use_region))
+			region_y_min = st.number_input("Region y_min", min_value=0, max_value=max(0, ny_cf - 1), value=int(def_y_min), step=1, key="p6_cubefit_region_y_min", disabled=not bool(cubefit_use_region))
+		with rg_c2:
+			region_x_max = st.number_input("Region x_max", min_value=0, max_value=max(0, nx_cf - 1), value=int(def_x_max), step=1, key="p6_cubefit_region_x_max", disabled=not bool(cubefit_use_region))
+			region_y_max = st.number_input("Region y_max", min_value=0, max_value=max(0, ny_cf - 1), value=int(def_y_max), step=1, key="p6_cubefit_region_y_max", disabled=not bool(cubefit_use_region))
+		if bool(cubefit_use_region):
+			st.caption(f"Selected region (pixels): x=[{int(min(region_x_min, region_x_max))},{int(max(region_x_min, region_x_max))}], y=[{int(min(region_y_min, region_y_max))},{int(max(region_y_min, region_y_max))}]")
+		cubefit_resume_enabled = st.checkbox(
+			"Resume from previous in-progress checkpoint (if available)",
+			value=True,
+			key="p6_cubefit_resume_enabled",
+		)
 
 		cubefit_case = st.radio(
 			"Fitting mode",
 			options=["Case 1: Synthetic only", "Case 2: Synthetic + noise"],
+			index=1,
 			horizontal=True,
 			key="p6_cubefit_case_mode",
 		)
@@ -7067,11 +10175,184 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		)
 		cubefit_shift_kms = st.number_input(
 			"Observational shift (km/s)",
-			value=-98.0,
+			value=-55.0,
 			step=0.1,
 			format="%.4f",
 			key="p6_cubefit_shift_kms",
 		)
+
+		with st.expander("Preview pixel spectrum and ROI windows", expanded=False):
+			if (obs_cube_shape is None) or (len(obs_cube_fit_paths) <= 0):
+				st.caption("Load at least one valid cube to enable the preview.")
+			else:
+				ny_prev, nx_prev = int(obs_cube_shape[0]), int(obs_cube_shape[1])
+				px_default_x = int(max(0, min(nx_prev - 1, nx_prev // 2)))
+				px_default_y = int(max(0, min(ny_prev - 1, ny_prev // 2)))
+				pcx1, pcx2 = st.columns(2)
+				with pcx1:
+					preview_x = st.number_input(
+						"Preview pixel x",
+						min_value=0,
+						max_value=max(0, nx_prev - 1),
+						value=int(px_default_x),
+						step=1,
+						key="p6_cubefit_preview_x",
+					)
+				with pcx2:
+					preview_y = st.number_input(
+						"Preview pixel y",
+						min_value=0,
+						max_value=max(0, ny_prev - 1),
+						value=int(px_default_y),
+						step=1,
+						key="p6_cubefit_preview_y",
+					)
+
+				freq_parts = []
+				val_parts = []
+				integ_map_accum = None
+				for i_cp, cp in enumerate(obs_cube_fit_paths, start=1):
+					try:
+						with fits.open(str(cp), memmap=True) as hdul_cp:
+							arr_cp = np.asarray(hdul_cp[0].data, dtype=np.float32)
+							hdr_cp = hdul_cp[0].header.copy()
+						if arr_cp.ndim == 4:
+							arr_cp = arr_cp[0]
+						if arr_cp.ndim != 3:
+							continue
+						nchan_cp = int(arr_cp.shape[0])
+						f_cp = _build_freq_axis_from_header(hdr_cp, nchan_cp)
+						if bool(cubefit_shift_enabled):
+							if str(cubefit_shift_mode).strip().lower() == "spw_center":
+								f_cp = _apply_velocity_shift_by_spw_center(f_cp, float(cubefit_shift_kms))
+							else:
+								f_cp = _apply_velocity_shift_to_frequency(f_cp, float(cubefit_shift_kms))
+
+						map_cp = np.asarray(np.nansum(np.where(np.isfinite(arr_cp), arr_cp, 0.0), axis=0), dtype=np.float64)
+						if integ_map_accum is None:
+							integ_map_accum = np.asarray(map_cp, dtype=np.float64)
+						else:
+							if integ_map_accum.shape == map_cp.shape:
+								integ_map_accum = np.asarray(integ_map_accum + map_cp, dtype=np.float64)
+
+						y_cp = np.asarray(arr_cp[:, int(preview_y), int(preview_x)], dtype=np.float64)
+						freq_parts.append(np.asarray(f_cp, dtype=np.float64))
+						val_parts.append(np.asarray(y_cp, dtype=np.float64))
+						st.caption(f"Cube {i_cp}: {os.path.basename(str(cp))} | nchan={int(nchan_cp)}")
+					except Exception as e:
+						st.warning(f"Could not read preview from cube: {cp} | {e}")
+
+				# Keep spectrum detail similar to the previous full-width view,
+				# while placing the integrated map at the left.
+				col_map, col_spec = st.columns([0.85, 2.15], vertical_alignment="top")
+
+				with col_map:
+					if integ_map_accum is not None:
+						v_map = np.asarray(integ_map_accum, dtype=np.float64)
+						m_map = np.isfinite(v_map)
+						if np.any(m_map):
+							vmin_map = float(np.nanpercentile(v_map[m_map], 5.0))
+							vmax_map = float(np.nanpercentile(v_map[m_map], 99.0))
+							if (not np.isfinite(vmin_map)) or (not np.isfinite(vmax_map)) or (vmax_map <= vmin_map):
+								vmin_map = float(np.nanmin(v_map[m_map]))
+								vmax_map = float(np.nanmax(v_map[m_map]))
+						else:
+							vmin_map, vmax_map = 0.0, 1.0
+
+						fig_cf_map = go.Figure()
+						fig_cf_map.add_trace(
+							go.Heatmap(
+								z=v_map,
+								colorscale="Viridis",
+								zmin=vmin_map,
+								zmax=vmax_map,
+								colorbar=dict(title="Integrated intensity"),
+								hovertemplate="x=%{x}<br>y=%{y}<br>Iint=%{z:.4g}<extra></extra>",
+							)
+						)
+						fig_cf_map.add_trace(
+							go.Scatter(
+								x=[int(preview_x)],
+								y=[int(preview_y)],
+								mode="markers",
+								name="Preview pixel",
+								marker=dict(size=11, color="#ff3b30", symbol="x", line=dict(width=1, color="#ffffff")),
+								hovertemplate="Preview pixel<br>x=%{x}<br>y=%{y}<extra></extra>",
+							)
+						)
+						fig_cf_map.update_layout(
+							title="Integrated intensity map (sum across channels and cubes)",
+							xaxis_title="x pixel",
+							yaxis_title="y pixel",
+							template="plotly_white",
+							height=360,
+							margin=dict(l=40, r=20, t=45, b=40),
+						)
+						fig_cf_map.update_yaxes(scaleanchor="x", scaleratio=1)
+						st.plotly_chart(fig_cf_map, width="stretch", key="p6_cubefit_preview_map")
+					else:
+						st.caption("Integrated map preview not available.")
+
+				with col_spec:
+					if (len(freq_parts) > 0) and (len(val_parts) > 0):
+						f_all = np.concatenate([np.asarray(ff, dtype=np.float64) for ff in freq_parts], axis=0)
+						y_all = np.concatenate([np.asarray(yy, dtype=np.float64) for yy in val_parts], axis=0)
+						ord_idx = np.argsort(np.asarray(f_all, dtype=np.float64))
+						f_all = np.asarray(f_all, dtype=np.float64)[ord_idx]
+						y_all = np.asarray(y_all, dtype=np.float64)[ord_idx]
+
+						fig_cf_prev = go.Figure()
+						fig_cf_prev.add_trace(
+							go.Scatter(
+								x=f_all,
+								y=y_all,
+								mode="lines",
+								name="Pixel spectrum (concatenated cubes)",
+								line=dict(color="#1f77b4", width=1.3),
+							)
+						)
+
+						if guide_freqs_cfit:
+							try:
+								groups_prev = _group_target_freqs_by_signal_roi(
+									signal_models_source=str(signal_models_root),
+									filter_file=str(filter_file),
+									target_freqs=[float(v) for v in guide_freqs_cfit],
+									allow_nearest=bool(allow_nearest),
+								)
+							except Exception:
+								groups_prev = []
+
+							for g in groups_prev:
+								lo = g.get("roi_f_min_ghz", None)
+								hi = g.get("roi_f_max_ghz", None)
+								if (lo is None) or (hi is None):
+									continue
+								try:
+									fig_cf_prev.add_vrect(
+										x0=float(lo),
+										x1=float(hi),
+										fillcolor="rgba(120,120,220,0.12)",
+										line_width=0,
+										layer="below",
+									)
+								except Exception:
+									pass
+
+							for gf in [float(v) for v in guide_freqs_cfit]:
+								fig_cf_prev.add_vline(x=float(gf), line=dict(color="#9467bd", dash="dash"))
+
+						fig_cf_prev.update_layout(
+							title=f"Cube-fitting preview | pixel (x={int(preview_x)}, y={int(preview_y)})",
+							xaxis_title="Frequency (GHz)",
+							yaxis_title="Intensity",
+							template="plotly_white",
+							height=360,
+							margin=dict(l=40, r=20, t=45, b=40),
+						)
+						st.plotly_chart(fig_cf_prev, width="stretch", key="p6_cubefit_preview_plot")
+					else:
+						st.caption("No preview available from selected cubes.")
 
 		with st.expander("Fitting search ranges and speed settings", expanded=False):
 			cubefit_global_mode_ui = st.selectbox(
@@ -7134,6 +10415,11 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				cubefit_n_candidates = st.number_input("Number of candidates", min_value=50, max_value=4000, value=300, step=50, key="p6_cubefit_n_candidates")
 			with ccs2:
 				cubefit_seed = st.number_input("Random seed", min_value=0, value=42, step=1, key="p6_cubefit_seed")
+			cubefit_candidate_shift_text = st.text_input(
+				"Candidate velocity shifts (km/s, comma-separated)",
+				value=str(st.session_state.get("p6_cubefit_candidate_velocity_shifts_text", "-3,-2,-1.5,-1,-0.5,-0.25,-0.1,0,0.1,0.25,0.5,1,1.5,3,2")),
+				key="p6_cubefit_candidate_velocity_shifts_text",
+			)
 			cubefit_local_opt_method_ui = st.selectbox(
 				"Local optimizer after candidate search",
 				options=["None", "TRF (Trust Region Reflective)"],
@@ -7168,8 +10454,8 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			stop_cubefit = st.button("Stop cube fitting", key="p6_stop_cubefit_btn", disabled=not _is_cubefit_running())
 
 		if run_cubefit:
-			if obs_cube_fit_path is None or (not os.path.isfile(str(obs_cube_fit_path))):
-				st.error("Upload a valid observational cube first.")
+			if len(obs_cube_fit_paths) <= 0:
+				st.error("Upload or set at least one valid observational cube first.")
 			elif not guide_freqs_cfit:
 				st.error("Guide frequencies is empty. Add at least one frequency.")
 			elif not os.path.isfile(filter_file):
@@ -7177,11 +10463,28 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			elif (not signal_models_root) or ((not os.path.isfile(signal_models_root)) and (not os.path.isdir(signal_models_root))):
 				st.error("Signal models source invalid.")
 			elif (str(cubefit_case_mode).strip().lower() == "synthetic_plus_noise") and (not _is_valid_noise_source(noise_models_root)):
-				st.error("Noise models source invalid for Case 2.")
+				st.error("Residuals (Noise) models source invalid for Case 2.")
 			else:
 				try:
 					os.makedirs(cubefit_out_dir, exist_ok=True)
-					_cleanup_cubefit_outputs_for_dir(str(cubefit_out_dir))
+					if not bool(cubefit_resume_enabled):
+						_cleanup_cubefit_outputs_for_dir(str(cubefit_out_dir))
+						st.caption("Starting fresh: previous cube-fitting checkpoints were cleared.")
+					else:
+						st.caption("Resume mode enabled: existing checkpoints (if any) will be reused.")
+					elapsed_accum_seconds_cfg = 0.0
+					if bool(cubefit_resume_enabled):
+						state_prev_path = os.path.join(str(cubefit_out_dir), "CUBEFIT_INPROGRESS_STATE.json")
+						if os.path.isfile(state_prev_path):
+							try:
+								with open(state_prev_path, "r", encoding="utf-8") as f_prev:
+									state_prev_obj = json.load(f_prev)
+								if isinstance(state_prev_obj, dict):
+									elapsed_accum_seconds_cfg = float(state_prev_obj.get("elapsed_total_seconds", 0.0))
+							except Exception:
+								elapsed_accum_seconds_cfg = 0.0
+					if (not np.isfinite(float(elapsed_accum_seconds_cfg))) or (float(elapsed_accum_seconds_cfg) < 0.0):
+						elapsed_accum_seconds_cfg = 0.0
 					ranges_cubefit = {
 						"logn_min": float(min(cubefit_logn_min, cubefit_logn_max)),
 						"logn_max": float(max(cubefit_logn_min, cubefit_logn_max)),
@@ -7194,7 +10497,8 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					}
 					cfg_cfit = {
 						"out_dir": str(cubefit_out_dir),
-						"obs_cube_path": str(obs_cube_fit_path),
+						"obs_cube_path": str(obs_cube_fit_paths[0]),
+						"obs_cube_paths": [str(p) for p in obs_cube_fit_paths],
 						"signal_models_source": str(signal_models_root),
 						"noise_models_root": str(noise_models_root),
 						"filter_file": str(filter_file),
@@ -7205,8 +10509,16 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 						"global_search_mode": str(cubefit_global_mode_map.get(str(cubefit_global_mode_ui), "concatenated")),
 						"candidate_mode": str(cubefit_candidate_mode_map.get(str(cubefit_candidate_mode_ui), "random")),
 						"n_candidates": int(cubefit_n_candidates),
+						"candidate_velocity_shifts_kms": _parse_candidate_velocity_shifts(
+							str(cubefit_candidate_shift_text),
+							default_values=[float(v) for v in DEFAULT_CANDIDATE_VELOCITY_SHIFTS_KMS],
+						),
 						"local_optimizer_method": str(cubefit_local_opt_method_map.get(str(cubefit_local_opt_method_ui), "none")),
 						"local_optimizer_max_nfev": int(cubefit_local_opt_max_nfev),
+						"refine_after_first_fit": True,
+						"refine_span_fraction": 0.15,
+						"refine_n_candidates": int(max(120, min(1200, int(cubefit_n_candidates)))) ,
+						"peak_emphasis_alpha": 0.8,
 						"independent_pixel_candidates": bool(cubefit_independent_pixel_candidates),
 						"ranges": ranges_cubefit,
 						"noise_scale": float(noise_scale),
@@ -7217,6 +10529,13 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 						"obs_shift_enabled": bool(cubefit_shift_enabled),
 						"obs_shift_mode": str(cubefit_shift_mode),
 						"obs_shift_kms": float(cubefit_shift_kms),
+						"resume_enabled": bool(cubefit_resume_enabled),
+						"elapsed_accum_seconds": float(elapsed_accum_seconds_cfg),
+						"region_mode": ("bbox" if bool(cubefit_use_region) else "full"),
+						"region_x_min": int(min(region_x_min, region_x_max)),
+						"region_x_max": int(max(region_x_min, region_x_max)),
+						"region_y_min": int(min(region_y_min, region_y_max)),
+						"region_y_max": int(max(region_y_min, region_y_max)),
 						"out_prefix": "CUBEFIT",
 					}
 					fdc, cfg_cfit_path = tempfile.mkstemp(prefix="predobs6_cubefit_cfg_", suffix=".json", dir=tempfile.gettempdir())
@@ -7236,6 +10555,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					st.session_state.cubefit_log_path = log_cfit_path
 					st.session_state.cubefit_cfg_path = cfg_cfit_path
 					st.session_state.cubefit_log_handle = log_cfit_fh
+					st.session_state.cubefit_start_ts = float(time.time())
 					st.success("Cube fitting started.")
 				except Exception as e:
 					st.error(f"Could not start cube fitting: {e}")
@@ -7245,7 +10565,26 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			st.warning("Cube fitting stopped by user.")
 
 		if _is_cubefit_running():
-			st.info("Cube fitting status: running")
+			elapsed_cf = None
+			state_cf_path = os.path.join(str(cubefit_out_dir), "CUBEFIT_INPROGRESS_STATE.json")
+			if os.path.isfile(state_cf_path):
+				try:
+					with open(state_cf_path, "r", encoding="utf-8") as f_state_cf:
+						state_cf_obj = json.load(f_state_cf)
+					if isinstance(state_cf_obj, dict):
+						et = float(state_cf_obj.get("elapsed_total_seconds", np.nan))
+						if np.isfinite(et) and et >= 0.0:
+							elapsed_cf = _format_elapsed_hms(float(et))
+				except Exception:
+					pass
+			if elapsed_cf is None:
+				start_ts_cf = st.session_state.get("cubefit_start_ts", None)
+				if start_ts_cf is not None:
+					elapsed_cf = _format_elapsed_hms(float(time.time()) - float(start_ts_cf))
+			if elapsed_cf is not None:
+				st.info(f"Cube fitting status: running | elapsed: {elapsed_cf}")
+			else:
+				st.info("Cube fitting status: running")
 		else:
 			proc_cf = st.session_state.get("cubefit_proc", None)
 			if proc_cf is not None:
@@ -7264,16 +10603,117 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 
 		progress_png_cf = _find_latest_progress_png(str(cubefit_out_dir))
 		if progress_png_cf:
-			st.markdown("**Cube fitting progress**")
-			progress_info_cf = _read_progress_info(progress_png_cf)
-			if isinstance(progress_info_cf, dict):
-				done_steps = int(progress_info_cf.get("done_steps", 0))
-				total_steps = int(max(1, progress_info_cf.get("total_steps", 1)))
-				pct = 100.0 * float(done_steps) / float(total_steps)
-				st.success(f"**Pixels processed:** {done_steps}/{total_steps} ({pct:.1f}%)")
-			img_bytes_cf = _read_progress_png_stable_bytes(progress_png_cf)
-			if img_bytes_cf is not None:
-				st.image(img_bytes_cf, caption=os.path.basename(progress_png_cf), width=520)
+			with st.expander("Cube fitting progress", expanded=False):
+				progress_info_cf = _read_progress_info(progress_png_cf)
+				if isinstance(progress_info_cf, dict):
+					done_steps = int(progress_info_cf.get("done_steps", 0))
+					total_steps = int(max(1, progress_info_cf.get("total_steps", 1)))
+					pct = 100.0 * float(done_steps) / float(total_steps)
+					st.success(f"**Pixels processed:** {done_steps}/{total_steps} ({pct:.1f}%)")
+				img_bytes_cf = _read_progress_png_stable_bytes(progress_png_cf)
+				if img_bytes_cf is not None:
+					st.image(img_bytes_cf, caption=os.path.basename(progress_png_cf))
+
+		with st.expander("Live checkpoint spectra and pixel location", expanded=False):
+			lastpixel_npz_cf = os.path.join(str(cubefit_out_dir), "CUBEFIT_INPROGRESS_LASTPIXEL_SPECTRA.npz")
+			integ_map_cf = os.path.join(str(cubefit_out_dir), "CUBEFIT_INPROGRESS_INTEG_MAP.fits")
+			if not os.path.isfile(lastpixel_npz_cf):
+				st.caption("No checkpoint spectra available yet. They appear every 'Progress every N pixels'.")
+			else:
+				try:
+					with np.load(lastpixel_npz_cf, allow_pickle=False) as dd:
+						px = int(np.asarray(dd.get("x", [0])).reshape(-1)[0])
+						py = int(np.asarray(dd.get("y", [0])).reshape(-1)[0])
+						ds = int(np.asarray(dd.get("done_steps", [0])).reshape(-1)[0])
+						ts = int(max(1, np.asarray(dd.get("total_steps", [1])).reshape(-1)[0]))
+						fit_ok = bool(int(np.asarray(dd.get("fit_ok", [0])).reshape(-1)[0]) == 1)
+						f_sp = np.asarray(dd.get("freq", np.asarray([], dtype=np.float32)), dtype=np.float64).reshape(-1)
+						y_obs_sp = np.asarray(dd.get("obs", np.asarray([], dtype=np.float32)), dtype=np.float64).reshape(-1)
+						y_syn_sp = np.asarray(dd.get("syn", np.asarray([], dtype=np.float32)), dtype=np.float64).reshape(-1)
+						y_noise_sp = np.asarray(dd.get("noise", np.asarray([], dtype=np.float32)), dtype=np.float64).reshape(-1)
+						y_pred_sp = np.asarray(dd.get("pred", np.asarray([], dtype=np.float32)), dtype=np.float64).reshape(-1)
+
+					pct = 100.0 * float(ds) / float(ts)
+					st.caption(f"Checkpoint pixel: (x={px}, y={py}) | processed: {ds}/{ts} ({pct:.1f}%)")
+
+					col_live_map, col_live_spec = st.columns([0.85, 2.15], vertical_alignment="top")
+
+					with col_live_map:
+						if os.path.isfile(integ_map_cf):
+							try:
+								arr_map = np.asarray(fits.getdata(integ_map_cf), dtype=np.float32)
+								if arr_map.ndim == 3:
+									arr_map = arr_map[0]
+								arr_map = np.asarray(arr_map, dtype=np.float64)
+								m_live = np.isfinite(arr_map)
+								if np.any(m_live):
+									vmin_live = float(np.nanpercentile(arr_map[m_live], 5.0))
+									vmax_live = float(np.nanpercentile(arr_map[m_live], 99.0))
+									if (not np.isfinite(vmin_live)) or (not np.isfinite(vmax_live)) or (vmax_live <= vmin_live):
+										vmin_live = float(np.nanmin(arr_map[m_live]))
+										vmax_live = float(np.nanmax(arr_map[m_live]))
+								else:
+									vmin_live, vmax_live = 0.0, 1.0
+								fig_live_map = go.Figure()
+								fig_live_map.add_trace(
+									go.Heatmap(
+										z=arr_map,
+										colorscale="Viridis",
+										zmin=vmin_live,
+										zmax=vmax_live,
+										colorbar=dict(title="Integrated intensity"),
+										hovertemplate="x=%{x}<br>y=%{y}<br>Iint=%{z:.4g}<extra></extra>",
+									)
+								)
+								fig_live_map.add_trace(
+									go.Scatter(
+										x=[int(px)],
+										y=[int(py)],
+										mode="markers",
+										name="Checkpoint pixel",
+										marker=dict(size=11, color="#ff3b30", symbol="x", line=dict(width=1, color="#ffffff")),
+									)
+								)
+								fig_live_map.update_layout(
+									title="Checkpoint pixel location",
+									xaxis_title="x pixel",
+									yaxis_title="y pixel",
+									template="plotly_white",
+									height=340,
+									margin=dict(l=40, r=20, t=45, b=40),
+								)
+								fig_live_map.update_yaxes(scaleanchor="x", scaleratio=1)
+								st.plotly_chart(fig_live_map, width="stretch", key="p6_cubefit_live_map")
+							except Exception:
+								st.caption("Could not render checkpoint location map.")
+						else:
+							st.caption("Integrated map not available yet.")
+
+					with col_live_spec:
+						if f_sp.size >= 2 and y_obs_sp.size == f_sp.size:
+							fig_live = go.Figure()
+							fig_live.add_trace(go.Scatter(x=f_sp, y=y_obs_sp, mode="lines", name="Observed", line=dict(color="#2ca02c", width=1.4)))
+							if y_syn_sp.size == f_sp.size:
+								fig_live.add_trace(go.Scatter(x=f_sp, y=y_syn_sp, mode="lines", name="Synthetic", line=dict(color="#1f77b4", width=1.2)))
+							if y_noise_sp.size == f_sp.size:
+								fig_live.add_trace(go.Scatter(x=f_sp, y=y_noise_sp, mode="lines", name="Residuals (Noise)", line=dict(color="#ff7f0e", width=1.1, dash="dot")))
+							if y_pred_sp.size == f_sp.size:
+								fig_live.add_trace(go.Scatter(x=f_sp, y=y_pred_sp, mode="lines", name="Synthetic+Residuals (Noise)", line=dict(color="#d62728", width=1.2)))
+							fig_live.update_layout(
+								title=f"Checkpoint spectral fit | pixel (x={int(px)}, y={int(py)})",
+								xaxis_title="Frequency (GHz)",
+								yaxis_title="Intensity",
+								template="plotly_white",
+								height=340,
+								margin=dict(l=40, r=20, t=45, b=40),
+							)
+							st.plotly_chart(fig_live, width="stretch", key="p6_cubefit_live_spectra")
+							if not bool(fit_ok):
+								st.caption("Last checkpoint pixel had no valid fit. Showing observed spectrum only.")
+						else:
+							st.caption("No checkpoint spectrum available yet.")
+				except Exception as e:
+					st.caption(f"Could not load checkpoint preview: {e}")
 
 		progress_map_files = {
 			"logN": os.path.join(str(cubefit_out_dir), "CUBEFIT_INPROGRESS_LOGN.fits"),
@@ -7281,18 +10721,41 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			"Velocity": os.path.join(str(cubefit_out_dir), "CUBEFIT_INPROGRESS_VELOCITY.fits"),
 			"FWHM": os.path.join(str(cubefit_out_dir), "CUBEFIT_INPROGRESS_FWHM.fits"),
 		}
+		done_mask_cf_path = os.path.join(str(cubefit_out_dir), "CUBEFIT_INPROGRESS_DONE_MASK.fits")
+		done_mask_cf = None
+		if os.path.isfile(done_mask_cf_path):
+			try:
+				done_mask_cf = np.asarray(fits.getdata(done_mask_cf_path), dtype=np.float32)
+				if done_mask_cf.ndim == 3:
+					done_mask_cf = done_mask_cf[0]
+				done_mask_cf = np.asarray(done_mask_cf > 0.5, dtype=bool)
+			except Exception:
+				done_mask_cf = None
 		progress_maps_available = {k: v for k, v in progress_map_files.items() if os.path.isfile(v)}
 		if progress_maps_available:
-			st.markdown("**Live in-progress parameter maps (one plot per parameter)**")
+			st.markdown("**Live in-progress parameter maps (RA/Dec, zoom to fitted region)**")
+			cmap_by_param = {
+				"logN": "viridis",
+				"Tex": "magma",
+				"Velocity": "coolwarm",
+				"FWHM": "plasma",
+			}
 			pm1, pm2 = st.columns(2)
 			pm_cols = [pm1, pm2]
 			for i_pm, (mk, mp) in enumerate(progress_maps_available.items()):
 				with pm_cols[i_pm % 2]:
 					try:
 						arr_pm = np.asarray(fits.getdata(mp), dtype=np.float32)
+						hdr_pm = fits.getheader(mp)
 						if arr_pm.ndim == 3:
 							arr_pm = arr_pm[0]
-						_show_fits_preview(f"{mk} (in progress)", arr_pm)
+						_show_fits_preview(
+							f"{mk} (in progress)",
+							arr_pm,
+							cmap=str(cmap_by_param.get(str(mk), "viridis")),
+							ref_hdr=hdr_pm,
+							zoom_mask=done_mask_cf,
+						)
 					except Exception:
 						st.caption(f"Could not render in-progress map for {mk}")
 
@@ -7305,16 +10768,23 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			}
 			available_maps = {k: v for k, v in map_files.items() if os.path.isfile(v)}
 			if available_maps:
-				st.markdown("**Cube fitting parameter maps (final)**")
+				st.markdown("**Cube fitting parameter maps (final, RA/Dec)**")
+				cmap_by_param = {
+					"logN": "viridis",
+					"Tex": "magma",
+					"Velocity": "coolwarm",
+					"FWHM": "plasma",
+				}
 				mc1, mc2 = st.columns(2)
 				cols_map = [mc1, mc2]
 				for i_m, (mk, mp) in enumerate(available_maps.items()):
 					with cols_map[i_m % 2]:
 						try:
 							arr_m = np.asarray(fits.getdata(mp), dtype=np.float32)
+							hdr_m = fits.getheader(mp)
 							if arr_m.ndim == 3:
 								arr_m = arr_m[0]
-							_show_fits_preview(mk, arr_m)
+							_show_fits_preview(mk, arr_m, cmap=str(cmap_by_param.get(str(mk), "viridis")), ref_hdr=hdr_m)
 						except Exception:
 							st.caption(f"Could not render preview for {mk}")
 						try:
@@ -7329,13 +10799,835 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 						except Exception:
 							pass
 
+		log_txt_cf = os.path.join(str(cubefit_out_dir), "Log.txt")
+		if os.path.isfile(log_txt_cf):
+			with st.expander("Cube fitting progress Log.txt", expanded=False):
+				st.text(_read_log_tail(log_txt_cf, n_lines=300))
+
 		if _is_cubefit_running():
 			st.caption("Auto-updating every 5 seconds...")
 			time.sleep(5)
 			st.rerun()
 
+	with tab_hybrid_fit:
+		st.subheader("Hybrid Fast Fit (Tex-guided)")
+		st.caption("Uses Tex predicted by Inverse Cube Prediction (NN recommended) to constrain candidate search during cube fitting.")
+
+		if not str(st.session_state.get("p6_hybrid_guide_freqs_input", "")).strip():
+			st.session_state.p6_hybrid_guide_freqs_input = _freqs_to_text([float(v) for v in DEFAULT_CUBEFIT_GUIDE_FREQS])
+		guide_freqs_hybrid_text = st.text_input("Guide frequencies (GHz)", key="p6_hybrid_guide_freqs_input")
+		guide_freqs_hybrid = _normalize_target_freqs_for_run(parse_freq_list(str(guide_freqs_hybrid_text)))
+
+		st.markdown("**ROI overview (Signal vs Residuals (Noise))**")
+		signal_rois_h = _collect_signal_rois_for_ui(signal_models_root, filter_file)
+		noise_rois_h = _collect_noise_rois_for_ui(noise_models_root)
+		signal_rois_h, noise_rois_h = _mark_roi_overlaps(signal_rois_h, noise_rois_h)
+		guide_freq_h = float(guide_freqs_hybrid[0]) if len(guide_freqs_hybrid) > 0 else None
+
+		if (not signal_rois_h) and (not noise_rois_h):
+			st.info("Could not load ROIs yet. Check model/filter paths.")
+		else:
+			if "p6_roi_hybrid_guide_prev" not in st.session_state:
+				st.session_state.p6_roi_hybrid_guide_prev = None
+			guide_key_h = tuple([round(float(v), 9) for v in guide_freqs_hybrid])
+			guide_changed_h = st.session_state.p6_roi_hybrid_guide_prev != guide_key_h
+			if guide_changed_h:
+				if signal_rois_h:
+					st.session_state.p6_signal_roi_select_hybrid = int(_pick_default_roi_index(signal_rois_h, guide_freq_h))
+				if noise_rois_h:
+					st.session_state.p6_noise_roi_select_hybrid = int(_pick_default_roi_index(noise_rois_h, guide_freq_h))
+				st.session_state.p6_roi_hybrid_guide_prev = guide_key_h
+
+			sel_sig_pos_h = _resolve_roi_selected_pos(st.session_state.get("p6_signal_roi_select_hybrid", 0), signal_rois_h, default_pos=0)
+			sel_noi_pos_h = _resolve_roi_selected_pos(st.session_state.get("p6_noise_roi_select_hybrid", 0), noise_rois_h, default_pos=0)
+			if signal_rois_h:
+				st.session_state.p6_signal_roi_select_hybrid = int(sel_sig_pos_h)
+			if noise_rois_h:
+				st.session_state.p6_noise_roi_select_hybrid = int(sel_noi_pos_h)
+
+			sel_sig_idx_h = None if not signal_rois_h else int(signal_rois_h[int(sel_sig_pos_h)]["index"])
+			sel_noi_idx_h = None if not noise_rois_h else int(noise_rois_h[int(sel_noi_pos_h)]["index"])
+			combo_freqs_h = _selected_roi_combo_freqs(
+				signal_rois=signal_rois_h,
+				noise_rois=noise_rois_h,
+				selected_signal_pos=int(sel_sig_pos_h) if signal_rois_h else None,
+				selected_noise_pos=int(sel_noi_pos_h) if noise_rois_h else None,
+			)
+			_plot_roi_overview(
+				signal_rois_h,
+				noise_rois_h,
+				guide_freqs_ghz=guide_freqs_hybrid,
+				selected_combo_freqs_ghz=combo_freqs_h,
+				selected_signal_index=sel_sig_idx_h,
+				selected_noise_index=sel_noi_idx_h,
+				chart_key="p6_roi_overview_hybrid",
+			)
+
+		up_obs_cube_hybrid = st.file_uploader(
+			"Upload one or more observational cubes (.fits)",
+			type=["fits"],
+			accept_multiple_files=True,
+			key="p6_hybrid_upload_cube",
+		)
+		obs_cube_hybrid_paths_manual_text = st.text_area(
+			"Or set observational cube path(s) (.fits) | one per line",
+			value=str(st.session_state.get("p6_hybrid_obs_cube_paths_text", str(DEFAULT_OBS_CUBE_PATH))),
+			key="p6_hybrid_obs_cube_paths_input",
+			height=90,
+		)
+
+		upload_paths_hybrid: List[str] = []
+		for i_up, up_item in enumerate((up_obs_cube_hybrid or []), start=1):
+			p_up = _save_uploaded_file_to_temp(up_item, f"hybrid_obs_cube_{i_up}")
+			if p_up and os.path.isfile(str(p_up)):
+				upload_paths_hybrid.append(str(p_up))
+		manual_paths_hybrid: List[str] = []
+		for _ln in str(obs_cube_hybrid_paths_manual_text or "").replace(";", "\n").splitlines():
+			_p = str(_ln or "").strip().strip('"').strip("'")
+			if _p:
+				manual_paths_hybrid.append(_p)
+
+		obs_cube_hybrid_paths: List[str] = []
+		obs_cube_hybrid_shape = None
+		shape_ref_hybrid = None
+		candidate_paths_hybrid = list(upload_paths_hybrid) if len(upload_paths_hybrid) > 0 else list(manual_paths_hybrid)
+		for _cand in candidate_paths_hybrid:
+			_c = str(_cand or "").strip()
+			if (not _c) or (not os.path.isfile(_c)):
+				continue
+			_sh = _get_cube_ny_nx(_c)
+			if (_sh is None) or (int(_sh[0]) <= 0) or (int(_sh[1]) <= 0):
+				continue
+			if shape_ref_hybrid is None:
+				shape_ref_hybrid = (int(_sh[0]), int(_sh[1]))
+			elif (int(_sh[0]), int(_sh[1])) != shape_ref_hybrid:
+				st.warning(f"Cube skipped due to shape mismatch: {_c} | shape=({_sh[0]},{_sh[1]}) | expected={shape_ref_hybrid}")
+				continue
+			obs_cube_hybrid_paths.append(_c)
+		if len(obs_cube_hybrid_paths) > 0:
+			obs_cube_hybrid_shape = shape_ref_hybrid
+			st.session_state.p6_hybrid_obs_cube_paths_text = "\n".join([str(p) for p in obs_cube_hybrid_paths])
+			st.session_state.p6_hybrid_obs_cube_paths_live = [str(p) for p in obs_cube_hybrid_paths]
+			st.caption(f"Valid cubes for hybrid fitting: {len(obs_cube_hybrid_paths)} | shape={obs_cube_hybrid_shape}")
+
+		up_tex_prior = st.file_uploader("Upload Tex prior map (.fits)", type=["fits"], key="p6_hybrid_tex_prior_upload")
+		tex_prior_upload_path = ""
+		if up_tex_prior is not None:
+			tex_prior_upload_path = str(_save_uploaded_file_to_temp(up_tex_prior, "hybrid_tex_prior") or "")
+		if tex_prior_upload_path and os.path.isfile(str(tex_prior_upload_path)):
+			st.caption("Using uploaded Tex prior map for this run.")
+
+		tex_prior_manual_path = st.text_input(
+			"Or Tex prior map path (.fits)",
+			value=str(st.session_state.get("p6_hybrid_tex_prior_map_path", "")),
+			key="p6_hybrid_tex_prior_map_path",
+		)
+		tex_prior_map_path = str(tex_prior_upload_path).strip() if (tex_prior_upload_path and os.path.isfile(str(tex_prior_upload_path))) else str(tex_prior_manual_path).strip()
+
+		hf1, hf2, hf3 = st.columns(3)
+		with hf1:
+			hybrid_out_dir = st.text_input(
+				"Output directory",
+				value=str(os.path.join(tempfile.gettempdir(), "predobs_outputs", "hybrid_fit_tex_guided_C2H5OH_v1")),
+				key="p6_hybrid_out_dir",
+			)
+		with hf2:
+			hybrid_progress_every = st.number_input("Progress every N pixels", min_value=1, value=40, step=1, key="p6_hybrid_progress_every")
+		with hf3:
+			hybrid_spatial_stride = st.number_input("Spatial stride", min_value=1, value=1, step=1, key="p6_hybrid_spatial_stride")
+
+		hg1, hg2, hg3, hg4 = st.columns(4)
+		with hg1:
+			tex_half_window = st.number_input("Tex prior half-window (K)", min_value=0.1, value=15.0, step=0.5, key="p6_hybrid_tex_half_window")
+		with hg2:
+			tex_min_candidates = st.number_input("Min candidates after Tex filter", min_value=1, value=48, step=1, key="p6_hybrid_tex_min_candidates")
+		with hg3:
+			tex_hard_fix = st.checkbox("Hard-fix Tex to prior", value=False, key="p6_hybrid_tex_hard_fix")
+		with hg4:
+			tex_quant_step = st.number_input("Tex quant step (K)", min_value=0.1, value=1.0, step=0.1, key="p6_hybrid_tex_quant_step")
+
+		hybrid_case = st.radio(
+			"Fitting mode",
+			options=["Case 1: Synthetic only", "Case 2: Synthetic + noise"],
+			index=1,
+			horizontal=True,
+			key="p6_hybrid_case_mode",
+		)
+		hybrid_case_mode = "synthetic_only" if "Case 1" in str(hybrid_case) else "synthetic_plus_noise"
+
+		hybrid_shift_enabled = st.checkbox("Apply observational frequency shift", value=True, key="p6_hybrid_shift_enabled")
+		hybrid_shift_mode = st.selectbox("Shift mode", options=["per_frequency", "spw_center"], index=0, key="p6_hybrid_shift_mode")
+		hybrid_shift_kms = st.number_input("Observational shift (km/s)", value=-55.0, step=0.1, format="%.4f", key="p6_hybrid_shift_kms")
+		hybrid_resume_enabled = st.checkbox("Resume from previous checkpoint", value=True, key="p6_hybrid_resume_enabled")
+		st.session_state.p6_hybrid_obs_shift_enabled_live = bool(hybrid_shift_enabled)
+		st.session_state.p6_hybrid_obs_shift_mode_live = str(hybrid_shift_mode)
+		st.session_state.p6_hybrid_obs_shift_kms_live = float(hybrid_shift_kms)
+
+		with st.expander("Preview pixel spectrum and ROI windows", expanded=False):
+			if (obs_cube_hybrid_shape is None) or (len(obs_cube_hybrid_paths) <= 0):
+				st.caption("Load at least one valid cube to enable the preview.")
+			else:
+				ny_prev_h, nx_prev_h = int(obs_cube_hybrid_shape[0]), int(obs_cube_hybrid_shape[1])
+				px_default_x_h = int(max(0, min(nx_prev_h - 1, nx_prev_h // 2)))
+				px_default_y_h = int(max(0, min(ny_prev_h - 1, ny_prev_h // 2)))
+				pcx1_h, pcx2_h = st.columns(2)
+				with pcx1_h:
+					preview_x_h = st.number_input(
+						"Preview pixel x",
+						min_value=0,
+						max_value=max(0, nx_prev_h - 1),
+						value=int(px_default_x_h),
+						step=1,
+						key="p6_hybrid_preview_x",
+					)
+				with pcx2_h:
+					preview_y_h = st.number_input(
+						"Preview pixel y",
+						min_value=0,
+						max_value=max(0, ny_prev_h - 1),
+						value=int(px_default_y_h),
+						step=1,
+						key="p6_hybrid_preview_y",
+					)
+
+				freq_parts_h = []
+				val_parts_h = []
+				integ_map_accum_h = None
+				for i_cp_h, cp_h in enumerate(obs_cube_hybrid_paths, start=1):
+					try:
+						with fits.open(str(cp_h), memmap=True) as hdul_cp_h:
+							arr_cp_h = np.asarray(hdul_cp_h[0].data, dtype=np.float32)
+							hdr_cp_h = hdul_cp_h[0].header.copy()
+						if arr_cp_h.ndim == 4:
+							arr_cp_h = arr_cp_h[0]
+						if arr_cp_h.ndim != 3:
+							continue
+						nchan_cp_h = int(arr_cp_h.shape[0])
+						f_cp_h = _build_freq_axis_from_header(hdr_cp_h, nchan_cp_h)
+						if bool(hybrid_shift_enabled):
+							if str(hybrid_shift_mode).strip().lower() == "spw_center":
+								f_cp_h = _apply_velocity_shift_by_spw_center(f_cp_h, float(hybrid_shift_kms))
+							else:
+								f_cp_h = _apply_velocity_shift_to_frequency(f_cp_h, float(hybrid_shift_kms))
+
+						map_cp_h = np.asarray(np.nansum(np.where(np.isfinite(arr_cp_h), arr_cp_h, 0.0), axis=0), dtype=np.float64)
+						if integ_map_accum_h is None:
+							integ_map_accum_h = np.asarray(map_cp_h, dtype=np.float64)
+						elif integ_map_accum_h.shape == map_cp_h.shape:
+							integ_map_accum_h = np.asarray(integ_map_accum_h + map_cp_h, dtype=np.float64)
+
+						y_cp_h = np.asarray(arr_cp_h[:, int(preview_y_h), int(preview_x_h)], dtype=np.float64)
+						freq_parts_h.append(np.asarray(f_cp_h, dtype=np.float64))
+						val_parts_h.append(np.asarray(y_cp_h, dtype=np.float64))
+						st.caption(f"Cube {i_cp_h}: {os.path.basename(str(cp_h))} | nchan={int(nchan_cp_h)}")
+					except Exception as e:
+						st.warning(f"Could not read preview from cube: {cp_h} | {e}")
+
+				col_map_h, col_spec_h = st.columns([0.85, 2.15], vertical_alignment="top")
+				with col_map_h:
+					if integ_map_accum_h is not None:
+						v_map_h = np.asarray(integ_map_accum_h, dtype=np.float64)
+						m_map_h = np.isfinite(v_map_h)
+						if np.any(m_map_h):
+							vmin_map_h = float(np.nanpercentile(v_map_h[m_map_h], 5.0))
+							vmax_map_h = float(np.nanpercentile(v_map_h[m_map_h], 99.0))
+							if (not np.isfinite(vmin_map_h)) or (not np.isfinite(vmax_map_h)) or (vmax_map_h <= vmin_map_h):
+								vmin_map_h = float(np.nanmin(v_map_h[m_map_h]))
+								vmax_map_h = float(np.nanmax(v_map_h[m_map_h]))
+						else:
+							vmin_map_h, vmax_map_h = 0.0, 1.0
+
+						fig_h_map = go.Figure()
+						fig_h_map.add_trace(
+							go.Heatmap(
+								z=v_map_h,
+								colorscale="Viridis",
+								zmin=vmin_map_h,
+								zmax=vmax_map_h,
+								colorbar=dict(title="Integrated intensity"),
+								hovertemplate="x=%{x}<br>y=%{y}<br>Iint=%{z:.4g}<extra></extra>",
+							)
+						)
+						fig_h_map.add_trace(
+							go.Scatter(
+								x=[int(preview_x_h)],
+								y=[int(preview_y_h)],
+								mode="markers",
+								name="Preview pixel",
+								marker=dict(size=11, color="#ff3b30", symbol="x", line=dict(width=1, color="#ffffff")),
+							)
+						)
+						fig_h_map.update_layout(
+							title="Integrated intensity map (sum across channels and cubes)",
+							xaxis_title="x pixel",
+							yaxis_title="y pixel",
+							template="plotly_white",
+							height=360,
+							margin=dict(l=40, r=20, t=45, b=40),
+						)
+						fig_h_map.update_yaxes(scaleanchor="x", scaleratio=1)
+						st.plotly_chart(fig_h_map, width="stretch", key="p6_hybrid_preview_map")
+					else:
+						st.caption("Integrated map preview not available.")
+
+				with col_spec_h:
+					if (len(freq_parts_h) > 0) and (len(val_parts_h) > 0):
+						f_all_h = np.concatenate([np.asarray(ff, dtype=np.float64) for ff in freq_parts_h], axis=0)
+						y_all_h = np.concatenate([np.asarray(yy, dtype=np.float64) for yy in val_parts_h], axis=0)
+						ord_idx_h = np.argsort(np.asarray(f_all_h, dtype=np.float64))
+						f_all_h = np.asarray(f_all_h, dtype=np.float64)[ord_idx_h]
+						y_all_h = np.asarray(y_all_h, dtype=np.float64)[ord_idx_h]
+						fig_h_prev = go.Figure()
+						fig_h_prev.add_trace(
+							go.Scatter(
+								x=f_all_h,
+								y=y_all_h,
+								mode="lines",
+								name="Pixel spectrum (concatenated cubes)",
+								line=dict(color="#1f77b4", width=1.3),
+							)
+						)
+						if guide_freqs_hybrid:
+							try:
+								groups_prev_h = _group_target_freqs_by_signal_roi(
+									signal_models_source=str(signal_models_root),
+									filter_file=str(filter_file),
+									target_freqs=[float(v) for v in guide_freqs_hybrid],
+									allow_nearest=bool(allow_nearest),
+								)
+							except Exception:
+								groups_prev_h = []
+							for g_h in groups_prev_h:
+								lo_h = g_h.get("roi_f_min_ghz", None)
+								hi_h = g_h.get("roi_f_max_ghz", None)
+								if (lo_h is None) or (hi_h is None):
+									continue
+								try:
+									fig_h_prev.add_vrect(x0=float(lo_h), x1=float(hi_h), fillcolor="rgba(120,120,220,0.12)", line_width=0, layer="below")
+								except Exception:
+									pass
+							for gf_h in [float(v) for v in guide_freqs_hybrid]:
+								fig_h_prev.add_vline(x=float(gf_h), line=dict(color="#9467bd", dash="dash"))
+						fig_h_prev.update_layout(
+							title=f"Hybrid preview | pixel (x={int(preview_x_h)}, y={int(preview_y_h)})",
+							xaxis_title="Frequency (GHz)",
+							yaxis_title="Intensity",
+							template="plotly_white",
+							height=360,
+							margin=dict(l=40, r=20, t=45, b=40),
+						)
+						st.plotly_chart(fig_h_prev, width="stretch", key="p6_hybrid_preview_plot")
+					else:
+						st.caption("No preview available from selected cubes.")
+
+		with st.expander("Search settings", expanded=False):
+			hybrid_global_mode_ui = st.selectbox(
+				"Global fit strategy",
+				options=["Per-ROI aggregate", "Concatenated ROIs (single objective)"],
+				index=1,
+				key="p6_hybrid_global_mode",
+			)
+			hybrid_global_mode_map = {
+				"Per-ROI aggregate": "per_roi",
+				"Concatenated ROIs (single objective)": "concatenated",
+			}
+			hybrid_criterion_ui = st.selectbox("Fitting criterion", options=["MAE", "RMSE", "CHI_like", "R2"], index=1, key="p6_hybrid_criterion")
+			hybrid_candidate_mode_ui = st.selectbox("Candidate generation", options=["Smart ordered grid", "Random"], index=1, key="p6_hybrid_candidate_mode")
+			hybrid_candidate_mode_map = {"Smart ordered grid": "ordered_grid", "Random": "random"}
+			hybrid_weight_mode_ui = st.selectbox(
+				"Global aggregation weighting",
+				options=["Uniform (all ROIs equal)", "By overlap points per ROI", "By ROI fit quality (criterion-aware)"],
+				index=2,
+				key="p6_hybrid_weight_mode",
+			)
+			hybrid_weight_mode_map = {
+				"Uniform (all ROIs equal)": "uniform",
+				"By overlap points per ROI": "overlap_points",
+				"By ROI fit quality (criterion-aware)": "inverse_best_error",
+			}
+			hc1, hc2, hc3, hc4 = st.columns(4)
+			with hc1:
+				hybrid_logn_min = st.number_input("logN min", value=14.0, key="p6_hybrid_logn_min")
+				hybrid_logn_max = st.number_input("logN max", value=19.5, key="p6_hybrid_logn_max")
+			with hc2:
+				hybrid_tex_min = st.number_input("Tex min", value=100.0, key="p6_hybrid_tex_min")
+				hybrid_tex_max = st.number_input("Tex max", value=380.0, key="p6_hybrid_tex_max")
+			with hc3:
+				hybrid_velo_min = st.number_input("Velocity min", value=90.0, key="p6_hybrid_velo_min")
+				hybrid_velo_max = st.number_input("Velocity max", value=105.0, key="p6_hybrid_velo_max")
+			with hc4:
+				hybrid_fwhm_min = st.number_input("FWHM min", value=5.0, key="p6_hybrid_fwhm_min")
+				hybrid_fwhm_max = st.number_input("FWHM max", value=8.0, key="p6_hybrid_fwhm_max")
+			hn1, hn2 = st.columns(2)
+			with hn1:
+				hybrid_n_candidates = st.number_input("Number of candidates", min_value=50, max_value=4000, value=180, step=10, key="p6_hybrid_n_candidates")
+			with hn2:
+				hybrid_seed = st.number_input("Random seed", min_value=0, value=42, step=1, key="p6_hybrid_seed")
+			hybrid_candidate_shift_text = st.text_input(
+				"Candidate velocity shifts (km/s, comma-separated)",
+				value=str(st.session_state.get("p6_hybrid_candidate_velocity_shifts_text", "-3,-2,-1.5,-1,-0.5,-0.25,-0.1,0,0.1,0.25,0.5,1,1.5,3,2")),
+				key="p6_hybrid_candidate_velocity_shifts_text",
+			)
+
+		hb1, hb2 = st.columns(2)
+		with hb1:
+			run_hybrid = st.button("Run hybrid fast fitting", type="primary", key="p6_run_hybrid_btn", disabled=_is_hybridfit_running())
+		with hb2:
+			stop_hybrid = st.button("Stop hybrid fitting", key="p6_stop_hybrid_btn", disabled=not _is_hybridfit_running())
+
+		if run_hybrid:
+			if len(obs_cube_hybrid_paths) <= 0:
+				st.error("Upload or set at least one valid observational cube first.")
+			elif not guide_freqs_hybrid:
+				st.error("Guide frequencies is empty. Add at least one frequency.")
+			elif not os.path.isfile(filter_file):
+				st.error(f"Filter file not found: {filter_file}")
+			elif (not signal_models_root) or ((not os.path.isfile(signal_models_root)) and (not os.path.isdir(signal_models_root))):
+				st.error("Signal models source invalid.")
+			elif (str(hybrid_case_mode).strip().lower() == "synthetic_plus_noise") and (not _is_valid_noise_source(noise_models_root)):
+				st.error("Residuals (Noise) models source invalid for Case 2.")
+			elif (not tex_prior_map_path) or (not os.path.isfile(str(tex_prior_map_path))):
+				st.error("Tex prior map is required (valid .fits path or upload).")
+			elif (obs_cube_hybrid_shape is not None) and (_load_resume_map2d(str(tex_prior_map_path), (int(obs_cube_hybrid_shape[0]), int(obs_cube_hybrid_shape[1]))) is None):
+				st.error("Tex prior map shape is incompatible with cube spatial shape.")
+			else:
+				try:
+					hybrid_out_dir_user = str(hybrid_out_dir).strip()
+					hybrid_out_dir_default = str(os.path.join(tempfile.gettempdir(), "predobs_outputs", "hybrid_fit_tex_guided_C2H5OH_v1"))
+					hybrid_out_dir_resolved = str(hybrid_out_dir_user) if os.path.isdir(str(hybrid_out_dir_user)) else str(hybrid_out_dir_default)
+					if (not hybrid_out_dir_user) or (not os.path.isdir(str(hybrid_out_dir_user))):
+						st.warning(f"Output directory not found. Using temporary directory: {hybrid_out_dir_resolved}")
+
+					os.makedirs(hybrid_out_dir_resolved, exist_ok=True)
+					if not bool(hybrid_resume_enabled):
+						_cleanup_cubefit_outputs_for_dir(str(hybrid_out_dir_resolved))
+					ranges_hybrid = {
+						"logn_min": float(min(hybrid_logn_min, hybrid_logn_max)),
+						"logn_max": float(max(hybrid_logn_min, hybrid_logn_max)),
+						"tex_min": float(min(hybrid_tex_min, hybrid_tex_max)),
+						"tex_max": float(max(hybrid_tex_min, hybrid_tex_max)),
+						"velo_min": float(min(hybrid_velo_min, hybrid_velo_max)),
+						"velo_max": float(max(hybrid_velo_min, hybrid_velo_max)),
+						"fwhm_min": float(min(hybrid_fwhm_min, hybrid_fwhm_max)),
+						"fwhm_max": float(max(hybrid_fwhm_min, hybrid_fwhm_max)),
+					}
+					cfg_hybrid = {
+						"out_dir": str(hybrid_out_dir_resolved),
+						"obs_cube_path": str(obs_cube_hybrid_paths[0]),
+						"obs_cube_paths": [str(p) for p in obs_cube_hybrid_paths],
+						"signal_models_source": str(signal_models_root),
+						"noise_models_root": str(noise_models_root),
+						"filter_file": str(filter_file),
+						"target_freqs": [float(v) for v in guide_freqs_hybrid],
+						"case_mode": str(hybrid_case_mode),
+						"fit_criterion": str(hybrid_criterion_ui).strip().lower(),
+						"global_weight_mode": str(hybrid_weight_mode_map.get(str(hybrid_weight_mode_ui), "inverse_best_error")),
+						"global_search_mode": str(hybrid_global_mode_map.get(str(hybrid_global_mode_ui), "concatenated")),
+						"candidate_mode": str(hybrid_candidate_mode_map.get(str(hybrid_candidate_mode_ui), "random")),
+						"n_candidates": int(hybrid_n_candidates),
+						"candidate_velocity_shifts_kms": _parse_candidate_velocity_shifts(
+							str(hybrid_candidate_shift_text),
+							default_values=[float(v) for v in DEFAULT_CANDIDATE_VELOCITY_SHIFTS_KMS],
+						),
+						"local_optimizer_method": "trf",
+						"local_optimizer_max_nfev": 48,
+						"refine_after_first_fit": True,
+						"refine_span_fraction": 0.15,
+						"refine_n_candidates": int(max(120, min(1200, int(hybrid_n_candidates)))),
+						"peak_emphasis_alpha": 0.8,
+						"independent_pixel_candidates": False,
+						"ranges": ranges_hybrid,
+						"noise_scale": float(noise_scale),
+						"allow_nearest": bool(allow_nearest),
+						"seed": int(hybrid_seed),
+						"progress_every": int(hybrid_progress_every),
+						"spatial_stride": int(hybrid_spatial_stride),
+						"obs_shift_enabled": bool(hybrid_shift_enabled),
+						"obs_shift_mode": str(hybrid_shift_mode),
+						"obs_shift_kms": float(hybrid_shift_kms),
+						"resume_enabled": bool(hybrid_resume_enabled),
+						"out_prefix": "HYBRIDFIT",
+						"save_spectral_cubes": True,
+						"tex_prior_enabled": True,
+						"tex_prior_map_path": str(tex_prior_map_path),
+						"tex_prior_half_window": float(tex_half_window),
+						"tex_prior_min_candidates": int(tex_min_candidates),
+						"tex_prior_hard_fix": bool(tex_hard_fix),
+						"tex_prior_quant_step": float(tex_quant_step),
+					}
+					fdh, cfg_hybrid_path = tempfile.mkstemp(prefix="predobs6_hybridfit_cfg_", suffix=".json", dir=tempfile.gettempdir())
+					os.close(fdh)
+					with open(cfg_hybrid_path, "w", encoding="utf-8") as f_h:
+						json.dump(cfg_hybrid, f_h, ensure_ascii=False, indent=2)
+					log_hybrid_path = os.path.join(hybrid_out_dir_resolved, f"hybridfit_run_{time.strftime('%Y%m%d_%H%M%S')}.log")
+					log_hybrid_fh = open(log_hybrid_path, "a", encoding="utf-8", buffering=1)
+					proc_hybrid = subprocess.Popen(
+						[sys.executable, str(Path(__file__).resolve()), "--cube-fit-worker", cfg_hybrid_path],
+						cwd=str(_project_dir()),
+						stdout=log_hybrid_fh,
+						stderr=subprocess.STDOUT,
+						text=True,
+					)
+					st.session_state.hybridfit_proc = proc_hybrid
+					st.session_state.hybridfit_log_path = log_hybrid_path
+					st.session_state.hybridfit_cfg_path = cfg_hybrid_path
+					st.session_state.hybridfit_log_handle = log_hybrid_fh
+					st.session_state.hybridfit_start_ts = float(time.time())
+					st.session_state.p6_hybrid_last_out_dir = str(hybrid_out_dir_resolved)
+					st.success("Hybrid fast fitting started.")
+				except Exception as e:
+					st.error(f"Could not start hybrid fitting: {e}")
+
+		if stop_hybrid:
+			_stop_hybridfit_process()
+			st.warning("Hybrid fitting stopped by user.")
+
+		if _is_hybridfit_running():
+			start_ts_hf = st.session_state.get("hybridfit_start_ts", None)
+			if start_ts_hf is not None:
+				st.info(f"Hybrid fitting status: running | elapsed: {_format_elapsed_hms(float(time.time()) - float(start_ts_hf))}")
+			else:
+				st.info("Hybrid fitting status: running")
+			if "p6_hybrid_live_autorefresh" not in st.session_state:
+				st.session_state.p6_hybrid_live_autorefresh = True
+			if "p6_hybrid_live_autorefresh_interval_s" not in st.session_state:
+				st.session_state.p6_hybrid_live_autorefresh_interval_s = 5
+			if "p6_hybrid_live_last_autorefresh_ts" not in st.session_state:
+				st.session_state.p6_hybrid_live_last_autorefresh_ts = float(time.time())
+			if "p6_hybrid_live_last_click_ts" not in st.session_state:
+				st.session_state.p6_hybrid_live_last_click_ts = 0.0
+		else:
+			proc_hf = st.session_state.get("hybridfit_proc", None)
+			if proc_hf is not None:
+				code_hf = proc_hf.poll()
+				if code_hf == 0:
+					st.success("Hybrid fitting status: finished successfully")
+				elif code_hf is not None:
+					st.error(f"Hybrid fitting status: finished with code {code_hf}")
+				_stop_hybridfit_process()
+			else:
+				st.caption("Hybrid fitting status: idle")
+
+		hybrid_out_dir_show = str(st.session_state.get("p6_hybrid_last_out_dir", hybrid_out_dir))
+		progress_png_hf = _find_latest_progress_png(str(hybrid_out_dir_show))
+		if progress_png_hf:
+			with st.expander("Hybrid fitting progress", expanded=False):
+				progress_info_hf = _read_progress_info(progress_png_hf)
+				if isinstance(progress_info_hf, dict):
+					done_steps = int(progress_info_hf.get("done_steps", 0))
+					total_steps = int(max(1, progress_info_hf.get("total_steps", 1)))
+					pct = 100.0 * float(done_steps) / float(total_steps)
+					st.success(f"**Pixels processed:** {done_steps}/{total_steps} ({pct:.1f}%)")
+				img_bytes_hf = _read_progress_png_stable_bytes(progress_png_hf)
+				if img_bytes_hf is not None:
+					st.image(img_bytes_hf, caption=os.path.basename(progress_png_hf))
+
+		with st.expander("Live checkpoint spectra and pixel location", expanded=False):
+			lastpixel_npz_hf = os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_INPROGRESS_LASTPIXEL_SPECTRA.npz")
+			integ_map_hf = os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_INPROGRESS_INTEG_MAP.fits")
+			if not os.path.isfile(lastpixel_npz_hf):
+				st.caption("No checkpoint spectra available yet. They appear every 'Progress every N pixels'.")
+			else:
+				try:
+					with np.load(lastpixel_npz_hf, allow_pickle=False) as dd_hf:
+						px_hf = int(np.asarray(dd_hf.get("x", [0])).reshape(-1)[0])
+						py_hf = int(np.asarray(dd_hf.get("y", [0])).reshape(-1)[0])
+						ds_hf = int(np.asarray(dd_hf.get("done_steps", [0])).reshape(-1)[0])
+						ts_hf = int(max(1, np.asarray(dd_hf.get("total_steps", [1])).reshape(-1)[0]))
+						fit_ok_hf = bool(int(np.asarray(dd_hf.get("fit_ok", [0])).reshape(-1)[0]) == 1)
+						f_sp_hf = np.asarray(dd_hf.get("freq", np.asarray([], dtype=np.float32)), dtype=np.float64).reshape(-1)
+						y_obs_hf = np.asarray(dd_hf.get("obs", np.asarray([], dtype=np.float32)), dtype=np.float64).reshape(-1)
+						y_syn_hf = np.asarray(dd_hf.get("syn", np.asarray([], dtype=np.float32)), dtype=np.float64).reshape(-1)
+						y_noise_hf = np.asarray(dd_hf.get("noise", np.asarray([], dtype=np.float32)), dtype=np.float64).reshape(-1)
+						y_pred_hf = np.asarray(dd_hf.get("pred", np.asarray([], dtype=np.float32)), dtype=np.float64).reshape(-1)
+
+					pct_hf = 100.0 * float(ds_hf) / float(ts_hf)
+					st.caption(f"Checkpoint pixel: (x={px_hf}, y={py_hf}) | processed: {ds_hf}/{ts_hf} ({pct_hf:.1f}%)")
+					st.caption("Use manual pixel selection (x, y) to inspect the spectrum.")
+
+					if "p6_hybrid_live_sel_x" not in st.session_state:
+						st.session_state.p6_hybrid_live_sel_x = int(px_hf)
+					if "p6_hybrid_live_sel_y" not in st.session_state:
+						st.session_state.p6_hybrid_live_sel_y = int(py_hf)
+
+					col_live_map_hf, col_live_spec_hf = st.columns([0.85, 2.15], vertical_alignment="top")
+					with col_live_map_hf:
+						if os.path.isfile(integ_map_hf):
+							try:
+								arr_map_hf = np.asarray(fits.getdata(integ_map_hf), dtype=np.float32)
+								if arr_map_hf.ndim == 3:
+									arr_map_hf = arr_map_hf[0]
+								arr_map_hf = np.asarray(arr_map_hf, dtype=np.float64)
+								ny_map_hf, nx_map_hf = int(arr_map_hf.shape[0]), int(arr_map_hf.shape[1])
+								m_live_hf = np.isfinite(arr_map_hf)
+								if np.any(m_live_hf):
+									vmin_live_hf = float(np.nanpercentile(arr_map_hf[m_live_hf], 5.0))
+									vmax_live_hf = float(np.nanpercentile(arr_map_hf[m_live_hf], 99.0))
+									if (not np.isfinite(vmin_live_hf)) or (not np.isfinite(vmax_live_hf)) or (vmax_live_hf <= vmin_live_hf):
+										vmin_live_hf = float(np.nanmin(arr_map_hf[m_live_hf]))
+										vmax_live_hf = float(np.nanmax(arr_map_hf[m_live_hf]))
+								else:
+									vmin_live_hf, vmax_live_hf = 0.0, 1.0
+								sel_x_curr = int(max(0, min(nx_map_hf - 1, int(st.session_state.get("p6_hybrid_live_sel_x", px_hf)))))
+								sel_y_curr = int(max(0, min(ny_map_hf - 1, int(st.session_state.get("p6_hybrid_live_sel_y", py_hf)))))
+								fig_live_map_hf = go.Figure()
+								fig_live_map_hf.add_trace(go.Heatmap(z=arr_map_hf, colorscale="Viridis", zmin=vmin_live_hf, zmax=vmax_live_hf, colorbar=dict(title="Integrated intensity"), hovertemplate="x=%{x}<br>y=%{y}<br>Iint=%{z:.4g}<extra></extra>"))
+								fig_live_map_hf.add_trace(go.Scatter(x=[int(px_hf)], y=[int(py_hf)], mode="markers", name="Checkpoint pixel", marker=dict(size=10, color="#ff3b30", symbol="x", line=dict(width=1, color="#ffffff"))))
+								fig_live_map_hf.add_trace(go.Scatter(x=[int(sel_x_curr)], y=[int(sel_y_curr)], mode="markers", name="Selected pixel", marker=dict(size=10, color="#111111", symbol="circle-open", line=dict(width=2, color="#111111"))))
+								fig_live_map_hf.update_layout(title="Checkpoint pixel location", xaxis_title="x pixel", yaxis_title="y pixel", template="plotly_white", height=340, margin=dict(l=40, r=20, t=45, b=40))
+								fig_live_map_hf.update_yaxes(scaleanchor="x", scaleratio=1)
+								st.plotly_chart(fig_live_map_hf, width="stretch", key="p6_hybrid_live_map")
+								mx1_hf, mx2_hf = st.columns(2)
+								with mx1_hf:
+									manual_x_hf = st.number_input(
+										"Selected x",
+										min_value=0,
+										max_value=max(0, int(nx_map_hf) - 1),
+										value=int(st.session_state.get("p6_hybrid_live_sel_x", sel_x_curr)),
+										step=1,
+										key="p6_hybrid_live_sel_x_input",
+									)
+								with mx2_hf:
+									manual_y_hf = st.number_input(
+										"Selected y",
+										min_value=0,
+										max_value=max(0, int(ny_map_hf) - 1),
+										value=int(st.session_state.get("p6_hybrid_live_sel_y", sel_y_curr)),
+										step=1,
+										key="p6_hybrid_live_sel_y_input",
+									)
+								if st.button("Apply selected pixel", key="p6_hybrid_apply_manual_pixel"):
+									st.session_state.p6_hybrid_live_sel_x = int(max(0, min(int(nx_map_hf) - 1, int(manual_x_hf))))
+									st.session_state.p6_hybrid_live_sel_y = int(max(0, min(int(ny_map_hf) - 1, int(manual_y_hf))))
+									st.session_state.p6_hybrid_live_last_click_ts = float(time.time())
+									st.rerun()
+							except Exception:
+								st.caption("Could not render checkpoint location map.")
+						else:
+							st.caption("Integrated map not available yet.")
+
+					with col_live_spec_hf:
+						target_freqs_live_hf = []
+						try:
+							cfg_live_hf_path = str(st.session_state.get("hybridfit_cfg_path", "")).strip()
+							if cfg_live_hf_path and os.path.isfile(cfg_live_hf_path):
+								with open(cfg_live_hf_path, "r", encoding="utf-8") as f_cfg_live_hf:
+									cfg_live_hf = json.load(f_cfg_live_hf)
+								target_freqs_live_hf = [float(v) for v in cfg_live_hf.get("target_freqs", []) if np.isfinite(float(v))]
+						except Exception:
+							target_freqs_live_hf = []
+
+						sel_x_plot_hf = int(st.session_state.get("p6_hybrid_live_sel_x", px_hf))
+						sel_y_plot_hf = int(st.session_state.get("p6_hybrid_live_sel_y", py_hf))
+						adj_cube_inprog_hf = os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_INPROGRESS_ADJUSTED.fits")
+						syn_cube_inprog_hf = os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_INPROGRESS_SYNTHETIC.fits")
+						noise_cube_inprog_hf = os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_INPROGRESS_NOISE.fits")
+						adj_cube_final_hf = os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_ADJUSTED.fits")
+						syn_cube_final_hf = os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_SYNTHETIC.fits")
+						noise_cube_final_hf = os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_NOISE.fits")
+
+						f_sel_hf = None
+						y_syn_sel_hf = None
+						y_noise_sel_hf = None
+						y_pred_sel_hf = None
+						f_obs_sel_hf = None
+						y_obs_sel_hf = None
+						used_obs_fallback_hf = False
+
+						if os.path.isfile(adj_cube_inprog_hf):
+							f_sel_hf, y_syn_sel_hf, y_noise_sel_hf, y_pred_sel_hf, _ = _extract_pixel_spectra_from_named_cubes(
+								adj_cube_inprog_hf,
+								syn_cube_inprog_hf if os.path.isfile(syn_cube_inprog_hf) else None,
+								noise_cube_inprog_hf if os.path.isfile(noise_cube_inprog_hf) else None,
+								ypix=int(sel_y_plot_hf),
+								xpix=int(sel_x_plot_hf),
+							)
+						elif os.path.isfile(adj_cube_final_hf):
+							f_sel_hf, y_syn_sel_hf, y_noise_sel_hf, y_pred_sel_hf, _ = _extract_pixel_spectra_from_named_cubes(
+								adj_cube_final_hf,
+								syn_cube_final_hf if os.path.isfile(syn_cube_final_hf) else None,
+								noise_cube_final_hf if os.path.isfile(noise_cube_final_hf) else None,
+								ypix=int(sel_y_plot_hf),
+								xpix=int(sel_x_plot_hf),
+							)
+
+						if (f_sel_hf is not None) and (np.asarray(f_sel_hf).size >= 2) and (y_pred_sel_hf is not None):
+							f_sp_plot_hf = np.asarray(f_sel_hf, dtype=np.float64).reshape(-1)
+							y_pred_plot_hf = np.asarray(y_pred_sel_hf, dtype=np.float64).reshape(-1)
+							y_syn_plot_hf = np.asarray(y_syn_sel_hf, dtype=np.float64).reshape(-1) if y_syn_sel_hf is not None else np.asarray([], dtype=np.float64)
+							y_noise_plot_hf = np.asarray(y_noise_sel_hf, dtype=np.float64).reshape(-1) if y_noise_sel_hf is not None else np.asarray([], dtype=np.float64)
+							obs_live_paths_hf = st.session_state.get("p6_hybrid_obs_cube_paths_live", [])
+							if not isinstance(obs_live_paths_hf, list):
+								obs_live_paths_hf = []
+							f_obs_sel_hf, y_obs_sel_hf, _ = _extract_observed_pixel_from_obs_cubes(
+								obs_cube_paths=[str(p) for p in obs_live_paths_hf],
+								ypix=int(sel_y_plot_hf),
+								xpix=int(sel_x_plot_hf),
+								target_freq_axis_ghz=np.asarray(f_sp_plot_hf, dtype=np.float64),
+								obs_shift_enabled=bool(st.session_state.get("p6_hybrid_obs_shift_enabled_live", bool(hybrid_shift_enabled))),
+								obs_shift_mode=str(st.session_state.get("p6_hybrid_obs_shift_mode_live", str(hybrid_shift_mode))),
+								obs_shift_kms=float(st.session_state.get("p6_hybrid_obs_shift_kms_live", float(hybrid_shift_kms))),
+							)
+							used_obs_fallback_hf = False
+							if (f_obs_sel_hf is not None) and (y_obs_sel_hf is not None) and (np.asarray(y_obs_sel_hf).size == f_sp_plot_hf.size):
+								y_obs_plot_hf = np.asarray(y_obs_sel_hf, dtype=np.float64).reshape(-1)
+							else:
+								y_obs_plot_hf = np.asarray(y_obs_hf, dtype=np.float64).reshape(-1)
+								if y_obs_plot_hf.size != f_sp_plot_hf.size:
+									used_obs_fallback_hf = True
+									y_obs_plot_hf = np.asarray(y_pred_plot_hf, dtype=np.float64).reshape(-1)
+								else:
+									used_obs_fallback_hf = True
+
+							# Prefer checkpoint vectors if they span a broader frequency coverage
+							# (typically includes all configured target frequencies).
+							f_ck_hf = np.asarray(f_sp_hf, dtype=np.float64).reshape(-1)
+							y_obs_ck_hf = np.asarray(y_obs_hf, dtype=np.float64).reshape(-1)
+							y_syn_ck_hf = np.asarray(y_syn_hf, dtype=np.float64).reshape(-1)
+							y_noise_ck_hf = np.asarray(y_noise_hf, dtype=np.float64).reshape(-1)
+							y_pred_ck_hf = np.asarray(y_pred_hf, dtype=np.float64).reshape(-1)
+							if f_ck_hf.size >= 2 and y_obs_ck_hf.size == f_ck_hf.size:
+								span_sel = float(np.nanmax(f_sp_plot_hf) - np.nanmin(f_sp_plot_hf)) if f_sp_plot_hf.size >= 2 else -1.0
+								span_ck = float(np.nanmax(f_ck_hf) - np.nanmin(f_ck_hf)) if f_ck_hf.size >= 2 else -1.0
+								if (span_ck > (span_sel + 1e-12)) or (f_ck_hf.size > f_sp_plot_hf.size):
+									f_sp_plot_hf = f_ck_hf
+									y_obs_plot_hf = y_obs_ck_hf
+									y_syn_plot_hf = y_syn_ck_hf if y_syn_ck_hf.size == f_ck_hf.size else np.asarray([], dtype=np.float64)
+									y_noise_plot_hf = y_noise_ck_hf if y_noise_ck_hf.size == f_ck_hf.size else np.asarray([], dtype=np.float64)
+									y_pred_plot_hf = y_pred_ck_hf if y_pred_ck_hf.size == f_ck_hf.size else np.asarray([], dtype=np.float64)
+						else:
+							f_sp_plot_hf = np.asarray(f_sp_hf, dtype=np.float64)
+							y_obs_plot_hf = np.asarray(y_obs_hf, dtype=np.float64)
+							y_syn_plot_hf = np.asarray(y_syn_hf, dtype=np.float64)
+							y_noise_plot_hf = np.asarray(y_noise_hf, dtype=np.float64)
+							y_pred_plot_hf = np.asarray(y_pred_hf, dtype=np.float64)
+							sel_x_plot_hf = int(px_hf)
+							sel_y_plot_hf = int(py_hf)
+
+						if f_sp_plot_hf.size >= 2 and y_obs_plot_hf.size == f_sp_plot_hf.size:
+							fig_live_hf = go.Figure()
+							fig_live_hf.add_trace(go.Scatter(x=f_sp_plot_hf, y=y_obs_plot_hf, mode="lines", name="Observed", line=dict(color="#2ca02c", width=1.4)))
+							if y_syn_plot_hf.size == f_sp_plot_hf.size:
+								fig_live_hf.add_trace(go.Scatter(x=f_sp_plot_hf, y=y_syn_plot_hf, mode="lines", name="Synthetic", line=dict(color="#1f77b4", width=1.2)))
+							if y_noise_plot_hf.size == f_sp_plot_hf.size:
+								fig_live_hf.add_trace(go.Scatter(x=f_sp_plot_hf, y=y_noise_plot_hf, mode="lines", name="Residuals (Noise)", line=dict(color="#ff7f0e", width=1.1, dash="dot")))
+							if y_pred_plot_hf.size == f_sp_plot_hf.size:
+								fig_live_hf.add_trace(go.Scatter(x=f_sp_plot_hf, y=y_pred_plot_hf, mode="lines", name="Synthetic+Residuals (Noise)", line=dict(color="#d62728", width=1.2)))
+							if target_freqs_live_hf:
+								fmin_plot_hf = float(np.nanmin(f_sp_plot_hf))
+								fmax_plot_hf = float(np.nanmax(f_sp_plot_hf))
+								for tf_hf in sorted([float(v) for v in target_freqs_live_hf if np.isfinite(float(v))]):
+									if fmin_plot_hf <= float(tf_hf) <= fmax_plot_hf:
+										fig_live_hf.add_vline(x=float(tf_hf), line=dict(color="#7f7f7f", width=1, dash="dash"), opacity=0.45)
+							fig_live_hf.update_layout(title=f"Hybrid spectral fit | pixel (x={int(sel_x_plot_hf)}, y={int(sel_y_plot_hf)})", xaxis_title="Frequency (GHz)", yaxis_title="Intensity", template="plotly_white", height=340, margin=dict(l=40, r=20, t=45, b=40))
+							st.plotly_chart(fig_live_hf, width="stretch", key="p6_hybrid_live_spectra")
+							if target_freqs_live_hf:
+								st.caption(f"Guide frequencies in this run: {len(target_freqs_live_hf)}")
+							if bool(used_obs_fallback_hf):
+								st.caption("Observed curve fallback used (selected-pixel observed extraction unavailable).")
+							if not bool(fit_ok_hf):
+								st.caption("Last checkpoint pixel had no valid fit. Showing observed spectrum only.")
+						else:
+							st.caption("No checkpoint spectrum available yet.")
+				except Exception as e:
+					st.caption(f"Could not load checkpoint preview: {e}")
+
+		if not _is_hybridfit_running():
+			hybrid_maps = {
+				"logN": os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_LOGN.fits"),
+				"Tex": os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_TEX.fits"),
+				"Velocity": os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_VELOCITY.fits"),
+				"FWHM": os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_FWHM.fits"),
+			}
+			available_hybrid_maps = {k: v for k, v in hybrid_maps.items() if os.path.isfile(v)}
+			if available_hybrid_maps:
+				st.markdown("**Hybrid fast-fit parameter maps (final, RA/Dec)**")
+				cmap_by_param_hf = {"logN": "viridis", "Tex": "magma", "Velocity": "coolwarm", "FWHM": "plasma"}
+				hm1, hm2 = st.columns(2)
+				for i_hm, (mk, mp) in enumerate(available_hybrid_maps.items()):
+					with [hm1, hm2][i_hm % 2]:
+						try:
+							arr_m = np.asarray(fits.getdata(mp), dtype=np.float32)
+							hdr_m = fits.getheader(mp)
+							if arr_m.ndim == 3:
+								arr_m = arr_m[0]
+							_show_fits_preview(mk, arr_m, cmap=str(cmap_by_param_hf.get(str(mk), "viridis")), ref_hdr=hdr_m)
+						except Exception:
+							st.caption(f"Could not render preview for {mk}")
+						try:
+							with open(mp, "rb") as f_mp:
+								st.download_button(
+									f"Download {mk} map (.fits)",
+									data=f_mp.read(),
+									file_name=os.path.basename(mp),
+									mime="application/fits",
+									key=f"p6_hybrid_download_{mk}",
+								)
+						except Exception:
+							pass
+
+				hybrid_cube_products = {
+					"Adjusted (Synthetic + Residuals (Noise))": os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_ADJUSTED.fits"),
+				"Synthetic": os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_SYNTHETIC.fits"),
+					"Residuals (Noise)": os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_NOISE.fits"),
+			}
+			available_hybrid_cubes = {k: v for k, v in hybrid_cube_products.items() if os.path.isfile(v)}
+			if available_hybrid_cubes:
+				st.markdown("**Hybrid fast-fit spectral cubes (final)**")
+				for lbl_hc, path_hc in available_hybrid_cubes.items():
+					try:
+						with open(path_hc, "rb") as f_hc:
+							st.download_button(
+								f"Download {lbl_hc} cube (.fits)",
+								data=f_hc.read(),
+								file_name=os.path.basename(path_hc),
+								mime="application/fits",
+								key=f"p6_hybrid_download_cube_{lbl_hc.replace(' ', '_').replace('(', '').replace(')', '').replace('+', '_').lower()}",
+							)
+					except Exception:
+						pass
+
+		log_txt_hf = os.path.join(str(hybrid_out_dir_show), "Log.txt")
+		if os.path.isfile(log_txt_hf):
+			with st.expander("Hybrid fitting Log.txt", expanded=False):
+				st.text(_read_log_tail(log_txt_hf, n_lines=300))
+
+		if _is_hybridfit_running():
+			ar1, ar2, ar3 = st.columns([1.0, 1.1, 1.2])
+			with ar1:
+				st.session_state.p6_hybrid_live_autorefresh = bool(
+					st.checkbox("Auto-refresh", value=bool(st.session_state.get("p6_hybrid_live_autorefresh", True)), key="p6_hybrid_live_autorefresh_chk")
+				)
+			with ar2:
+				st.session_state.p6_hybrid_live_autorefresh_interval_s = int(
+					st.number_input("Refresh every (s)", min_value=2, max_value=60, value=int(st.session_state.get("p6_hybrid_live_autorefresh_interval_s", 5)), step=1, key="p6_hybrid_live_autorefresh_sec")
+				)
+			with ar3:
+				if st.button("Refresh now", key="p6_hybrid_live_refresh_now"):
+					st.session_state.p6_hybrid_live_last_autorefresh_ts = float(time.time())
+					st.rerun()
+
+			st.caption("Tip: if clicks are not captured while running, disable Auto-refresh temporarily, select a pixel, then re-enable.")
+			if bool(st.session_state.get("p6_hybrid_live_autorefresh", True)):
+				now_ts = float(time.time())
+				last_click_ts = float(st.session_state.get("p6_hybrid_live_last_click_ts", 0.0))
+				last_auto_ts = float(st.session_state.get("p6_hybrid_live_last_autorefresh_ts", now_ts))
+				interval_s = float(max(2, int(st.session_state.get("p6_hybrid_live_autorefresh_interval_s", 5))))
+				# Give a short grace period after click interactions so spectra update is visible.
+				if (now_ts - last_click_ts) >= 1.2 and (now_ts - last_auto_ts) >= interval_s:
+					st.session_state.p6_hybrid_live_last_autorefresh_ts = now_ts
+					st.rerun()
+
 
 def _worker_entry_if_needed() -> bool:
+	if "--inverse-cube-worker" in sys.argv:
+		idx = sys.argv.index("--inverse-cube-worker")
+		if idx + 1 >= len(sys.argv):
+			print("Missing inverse-cube config path")
+			sys.exit(2)
+		cfg_path = sys.argv[idx + 1]
+		code = run_inverse_cube_pred_worker(cfg_path)
+		sys.exit(int(code))
 	if "--cube-fit-worker" in sys.argv:
 		idx = sys.argv.index("--cube-fit-worker")
 		if idx + 1 >= len(sys.argv):
