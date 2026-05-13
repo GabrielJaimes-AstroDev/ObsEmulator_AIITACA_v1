@@ -11566,10 +11566,10 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 						except Exception:
 							pass
 
-				hybrid_cube_products = {
-					"Adjusted (Synthetic + Residuals (Noise))": os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_ADJUSTED.fits"),
+			hybrid_cube_products = {
+				"Adjusted (Synthetic + Residuals (Noise))": os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_ADJUSTED.fits"),
 				"Synthetic": os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_SYNTHETIC.fits"),
-					"Residuals (Noise)": os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_NOISE.fits"),
+				"Residuals (Noise)": os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_NOISE.fits"),
 			}
 			available_hybrid_cubes = {k: v for k, v in hybrid_cube_products.items() if os.path.isfile(v)}
 			if available_hybrid_cubes:
