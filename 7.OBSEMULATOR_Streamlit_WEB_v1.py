@@ -14,6 +14,8 @@ import tempfile
 import subprocess
 import collections
 import shutil
+import zipfile
+import tarfile
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 from urllib.parse import urlparse, parse_qs
@@ -219,6 +221,55 @@ def _extract_gdrive_folder_id(url_or_id: str) -> Optional[str]:
 	except Exception:
 		return None
 	return None
+
+
+def _extract_gdrive_file_id(url_or_id: str) -> Optional[str]:
+	v = str(url_or_id or "").strip()
+	if not v:
+		return None
+	# If it already looks like a Drive ID, accept it.
+	if "/" not in v and "?" not in v and len(v) >= 10:
+		return v
+	try:
+		u = urlparse(v)
+		netloc = str(u.netloc or "")
+		if "drive.google.com" not in netloc and "docs.google.com" not in netloc:
+			return None
+		# /file/d/<id>/view
+		m = re.search(r"/file/d/([a-zA-Z0-9_-]+)", u.path or "")
+		if m:
+			return str(m.group(1))
+		# /uc?id=<id>, /open?id=<id>, etc.
+		q = parse_qs(u.query or "")
+		if "id" in q and len(q["id"]) > 0:
+			return str(q["id"][0])
+		# Sometimes exported links use /u/<n>/uc style with id in query as well.
+		if "confirm" in q and "id" in q and len(q["id"]) > 0:
+			return str(q["id"][0])
+	except Exception:
+		return None
+	return None
+
+
+def _extract_archive_to_dir(archive_path: str, dst_dir: str) -> bool:
+	ap = str(archive_path or "").strip()
+	if (not ap) or (not os.path.isfile(ap)):
+		return False
+	try:
+		if zipfile.is_zipfile(ap):
+			with zipfile.ZipFile(ap, "r") as zf:
+				zf.extractall(dst_dir)
+			return True
+	except Exception:
+		pass
+	try:
+		if tarfile.is_tarfile(ap):
+			with tarfile.open(ap, "r:*") as tf:
+				tf.extractall(dst_dir)
+			return True
+	except Exception:
+		pass
+	return False
 
 
 def _h5_has_groups_or_datasets(h5_path: str, keys: List[str]) -> bool:
@@ -531,8 +582,9 @@ def _validate_roi_rank_artifacts(model_dir: str) -> Optional[str]:
 
 def _download_gdrive_folder_temp(folder_url_or_id: str) -> Tuple[Optional[str], Optional[str]]:
 	folder_id = _extract_gdrive_folder_id(folder_url_or_id)
-	if not folder_id:
-		return None, "Invalid Google Drive folder link or ID."
+	file_id = _extract_gdrive_file_id(folder_url_or_id)
+	if (not folder_id) and (not file_id):
+		return None, "Invalid Google Drive folder/file link or ID."
 
 	try:
 		gdown = __import__("gdown")
@@ -541,20 +593,81 @@ def _download_gdrive_folder_temp(folder_url_or_id: str) -> Tuple[Optional[str], 
 
 	tmp_root = os.path.join(tempfile.gettempdir(), "predobs_gdrive_cache")
 	os.makedirs(tmp_root, exist_ok=True)
-	dst = os.path.join(tmp_root, f"folder_{folder_id}")
+	cache_key = str(folder_id if folder_id else file_id)
+	dst = os.path.join(tmp_root, f"folder_{cache_key}")
 	os.makedirs(dst, exist_ok=True)
 
+	last_errors: List[str] = []
+
 	try:
-		url = f"https://drive.google.com/drive/folders/{folder_id}"
-		try:
-			gdown.download_folder(url=url, output=dst, quiet=True, use_cookies=False, remaining_ok=True)
-		except TypeError:
-			gdown.download_folder(url=url, output=dst, quiet=True, use_cookies=False)
+		if folder_id:
+			url = f"https://drive.google.com/drive/folders/{folder_id}"
+			folder_download_ok = False
+			# Try without cookies first.
+			try:
+				try:
+					gdown.download_folder(url=url, output=dst, quiet=True, use_cookies=False, remaining_ok=True)
+				except TypeError:
+					gdown.download_folder(url=url, output=dst, quiet=True, use_cookies=False)
+				folder_download_ok = True
+			except Exception as e1:
+				last_errors.append(f"folder(no-cookies): {e1}")
+				# Retry with cookies enabled for some Drive setups.
+				try:
+					try:
+						gdown.download_folder(url=url, output=dst, quiet=True, use_cookies=True, remaining_ok=True)
+					except TypeError:
+						gdown.download_folder(url=url, output=dst, quiet=True, use_cookies=True)
+					folder_download_ok = True
+				except Exception as e2:
+					last_errors.append(f"folder(with-cookies): {e2}")
+
+			# If folder call looked successful but yielded no files, we'll attempt single-file fallback below.
+			if folder_download_ok:
+				pass
+
 		files_count = 0
 		for _, _, files in os.walk(dst):
 			files_count += int(len(files))
+
+		# Fallback: some users provide a file link/ID instead of a folder.
+		if files_count <= 0 and file_id:
+			file_url = f"https://drive.google.com/uc?id={file_id}"
+			download_target = os.path.join(dst, f"gdrive_file_{file_id}")
+			downloaded_path = None
+			try:
+				try:
+					downloaded_path = gdown.download(url=file_url, output=download_target, quiet=True, fuzzy=True, use_cookies=False)
+				except TypeError:
+					downloaded_path = gdown.download(url=file_url, output=download_target, quiet=True, use_cookies=False)
+			except Exception as e3:
+				last_errors.append(f"file(no-cookies): {e3}")
+				try:
+					try:
+						downloaded_path = gdown.download(url=file_url, output=download_target, quiet=True, fuzzy=True, use_cookies=True)
+					except TypeError:
+						downloaded_path = gdown.download(url=file_url, output=download_target, quiet=True, use_cookies=True)
+				except Exception as e4:
+					last_errors.append(f"file(with-cookies): {e4}")
+
+			if downloaded_path and os.path.isfile(str(downloaded_path)):
+				# If the downloaded object is an archive, extract it so auto-detection can find model files.
+				try:
+					_extract_archive_to_dir(str(downloaded_path), dst)
+				except Exception:
+					pass
+
+			files_count = 0
+			for _, _, files in os.walk(dst):
+				files_count += int(len(files))
+
 		if files_count <= 0:
-			return None, "Download completed but no files were found in cache folder."
+			err_detail = "; ".join(last_errors) if len(last_errors) > 0 else "unknown error"
+			return None, (
+				"Google Drive download produced no files. "
+				"Ensure shared permission is 'Anyone with the link' and avoid highly restricted/private links. "
+				f"Details: {err_detail}"
+			)
 		return dst, None
 	except Exception as e:
 		return None, f"Google Drive download failed: {e}"
@@ -7431,7 +7544,7 @@ def _render_model_sources_sidebar(runtime_info: dict) -> dict:
 		st.markdown("---")
 		st.markdown("**DRIVE: use temporary Google Drive download**")
 		use_drive_temp = st.checkbox("Use Google Drive temporary models", value=False, key="p6_use_drive_temp")
-		drive_link = st.text_input("Google Drive folder link", value=DEFAULT_GDRIVE_MODELS_LINK, key="p6_drive_link")
+		drive_link = st.text_input("Google Drive folder/file link (or ID)", value=DEFAULT_GDRIVE_MODELS_LINK, key="p6_drive_link")
 		download_drive_now = st.button("Download / refresh from Drive", key="p6_drive_download_btn")
 
 		if use_drive_temp and (download_drive_now or (not str(st.session_state.get("drive_cache_dir", "")).strip())):
