@@ -14,12 +14,6 @@ import tempfile
 import subprocess
 import collections
 import shutil
-import zipfile
-import tarfile
-import urllib.request
-import urllib.parse
-import urllib.error
-import http.cookiejar
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 from urllib.parse import urlparse, parse_qs
@@ -83,16 +77,16 @@ except Exception:
 DEFAULT_MERGED_H5 = r"D:\4.DATASETS\MODELS_CH3OCHO_ENSEMBLES_PERCHANNEL_ROI_dynamicrange_v2_PER_ROI"
 DEFAULT_NOISE_NN_H5 = ""
 DEFAULT_FILTER_FILE = ""
-DEFAULT_GDRIVE_MODELS_LINK = "https://drive.google.com/drive/folders/1FiX-qgl1iAbSOYMppY5-_npOJOYpNWbZ?usp=sharing"
+DEFAULT_GDRIVE_MODELS_LINK = "https://drive.google.com/drive/folders/1wsCOZ4G32ZO5fdzGI8YR_0Qp3ej7m5oC?usp=sharing"
 
 # Local preset (Windows)
 
-DEFAULT_LOCAL_SIGNAL_H5 = r"D:\4.DATASETS\CH3OCHO_MODELS_COMPRESSED_v2_PER_ROI.h5"
-DEFAULT_LOCAL_NOISE_H5 = r"D:\4.DATASETS\NOISE_MODELS_CH3OCHO_NN_GUAPOS_v12plotstyle_roi_bundle.h5"
-DEFAULT_LOCAL_FILTER_FILE = r"D:\4.DATASETS\filter_reference_CH3OCHO_100spectra.txt"
-DEFAULT_LOCAL_ROI_RANK_MODEL_DIR = r"D:\4.DATASETS\RANKING_MODELS\ROI_RANKING_MODELS_CH3OCHO_v3\roi_rank_model_bundle.h5"
-DEFAULT_LOCAL_INVERSE_PARAM_MODELS_DIR = r"D:\4.DATASETS\INVERSE_MODELS_FROM_SYNTH_ROI_CH3OCHO_v3"
-DEFAULT_LOCAL_INVERSE_CUBE_MODELS_DIR = r"D:\4.DATASETS\MODELS_CH3OCHO_NN_CUSTOMROI_TARGETFREQ_W51_Lines_ENSEMBLES_TEST10"
+# DEFAULT_LOCAL_SIGNAL_H5 = r"D:\4.DATASETS\CH3OCHO_MODELS_COMPRESSED_v2_PER_ROI.h5"
+# DEFAULT_LOCAL_NOISE_H5 = r"D:\4.DATASETS\NOISE_MODELS_CH3OCHO_NN_GUAPOS_v12plotstyle_roi_bundle.h5"
+# DEFAULT_LOCAL_FILTER_FILE = r"D:\4.DATASETS\filter_reference_CH3OCHO_100spectra.txt"
+# DEFAULT_LOCAL_ROI_RANK_MODEL_DIR = r"D:\4.DATASETS\RANKING_MODELS\ROI_RANKING_MODELS_CH3OCHO_v3\roi_rank_model_bundle.h5"
+# DEFAULT_LOCAL_INVERSE_PARAM_MODELS_DIR = r"D:\4.DATASETS\INVERSE_MODELS_FROM_SYNTH_ROI_CH3OCHO_v3"
+# DEFAULT_LOCAL_INVERSE_CUBE_MODELS_DIR = r"D:\4.DATASETS\MODELS_CH3OCHO_NN_CUSTOMROI_TARGETFREQ_W51_Lines_ENSEMBLES_TEST10"
 
 
 # DEFAULT_LOCAL_SIGNAL_H5 = r"D:\4.DATASETS\MODELS_C2H5OH_ENSEMBLES_PERCHANNEL_ROI_dynamicrange_v2_PER_ROI.h5"
@@ -111,12 +105,12 @@ DEFAULT_LOCAL_INVERSE_CUBE_MODELS_DIR = r"D:\4.DATASETS\MODELS_CH3OCHO_NN_CUSTOM
 # DEFAULT_LOCAL_INVERSE_CUBE_MODELS_DIR = r"D:\4.DATASETS\MODELS_C2H5OH_NN_FROM_SYNTHDB_CUSTOMROI_TARGETFREQ_v1"
 
 
-# DEFAULT_LOCAL_SIGNAL_H5 = r"D:\4.DATASETS\2.ObsEmu_C2H5OH_Models\SYNTHETIC.h5"
-# DEFAULT_LOCAL_NOISE_H5 = r"D:\4.DATASETS\2.ObsEmu_C2H5OH_Models\NOISE.h5"
-# DEFAULT_LOCAL_FILTER_FILE = r"D:\4.DATASETS\2.ObsEmu_C2H5OH_Models\filter_reference_C2H5OH_100spectra.txt"
-# DEFAULT_LOCAL_ROI_RANK_MODEL_DIR = r"D:\4.DATASETS\2.ObsEmu_C2H5OH_Models\roi_rank_model_bundle.h5"
-# DEFAULT_LOCAL_INVERSE_PARAM_MODELS_DIR = r"D:\4.DATASETS\INVERSE_MODELS_FROM_SYNTH_ROI_CH3OCHO_v3"
-# DEFAULT_LOCAL_INVERSE_CUBE_MODELS_DIR = r"D:\4.DATASETS\MODELS_C2H5OH_NN_CUSTOMROI_TARGETFREQ_W51_Lines_ENSEMBLES_TEST9\ROI_TARGET_001_ch524_ch550_f106p924926to106p937624GHz"
+DEFAULT_LOCAL_SIGNAL_H5 = r"D:\4.DATASETS\2.ObsEmu_C2H5OH_Models\SYNTHETIC.h5"
+DEFAULT_LOCAL_NOISE_H5 = r"D:\4.DATASETS\2.ObsEmu_C2H5OH_Models\NOISE.h5"
+DEFAULT_LOCAL_FILTER_FILE = r"D:\4.DATASETS\2.ObsEmu_C2H5OH_Models\filter_reference_C2H5OH_100spectra.txt"
+DEFAULT_LOCAL_ROI_RANK_MODEL_DIR = r"D:\4.DATASETS\2.ObsEmu_C2H5OH_Models\roi_rank_model_bundle.h5"
+DEFAULT_LOCAL_INVERSE_PARAM_MODELS_DIR = r"D:\4.DATASETS\INVERSE_MODELS_FROM_SYNTH_ROI_CH3OCHO_v3"
+DEFAULT_LOCAL_INVERSE_CUBE_MODELS_DIR = r"D:\4.DATASETS\MODELS_C2H5OH_NN_CUSTOMROI_TARGETFREQ_W51_Lines_ENSEMBLES_TEST9\ROI_TARGET_001_ch524_ch550_f106p924926to106p937624GHz"
 
 
 
@@ -131,18 +125,26 @@ DEFAULT_LOCAL_INVERSE_CUBE_MODELS_DIR = r"D:\4.DATASETS\MODELS_CH3OCHO_NN_CUSTOM
 
 
 DEFAULT_TARGET_FREQS = [
-	84.299,
-	110.855,
+	108.4385616,
+	106.9312289,
 ]
 
 DEFAULT_CUBEFIT_GUIDE_FREQS = [
 	108.4385616,
 	106.9312289,
 ]
+DEFAULT_HYBRID_GUIDE_FREQS = [
+	93.701191,
+	106.930,
+]
+DEFAULT_HYBRID_FIT_OUTDIR = os.path.join(tempfile.gettempdir(), "predobs_outputs", "hybrid_fit_tex_guided_C2H5OH_v12")
+DEFAULT_HYBRID_PROGRESS_EVERY = 10
+DEFAULT_HYBRID_SPATIAL_STRIDE = 1
 
 DEFAULT_CUBEFIT_OUTDIR = os.path.join(tempfile.gettempdir(), "predobs_outputs", "cube_C2H5OH_v3")
 DEFAULT_INVERSE_CUBEPRED_OUTDIR = os.path.join(tempfile.gettempdir(), "predobs_outputs", "inverse_cube_C2H5OH_v1")
-DEFAULT_HYBRID_FIT_OUTDIR = r"C:\Users\Usuario\AppData\Local\Temp\predobs_outputs\hybrid_fit_tex_guided_CH3OCHO_v10"
+DEFAULT_INVERSE_CUBEPRED_SPATIAL_STRIDE = 1
+DEFAULT_INVERSE_CUBEPRED_MIN_OVERLAP = 2
 DEFAULT_OBS_CUBE_PATH = r"D:\4.DATASETS\3.W51\MAD_CUB_MOD_member.uid___A001_X879_X36f.W51_sci.spw29.cube.I.pbcor_kelvins.fits"
 
 DEFAULT_ALLOW_NEAREST = True
@@ -225,157 +227,6 @@ def _extract_gdrive_folder_id(url_or_id: str) -> Optional[str]:
 	except Exception:
 		return None
 	return None
-
-
-def _extract_gdrive_file_id(url_or_id: str) -> Optional[str]:
-	v = str(url_or_id or "").strip()
-	if not v:
-		return None
-	# If it already looks like a Drive ID, accept it.
-	if "/" not in v and "?" not in v and len(v) >= 10:
-		return v
-	try:
-		u = urlparse(v)
-		netloc = str(u.netloc or "")
-		if "drive.google.com" not in netloc and "docs.google.com" not in netloc:
-			return None
-		# /file/d/<id>/view
-		m = re.search(r"/file/d/([a-zA-Z0-9_-]+)", u.path or "")
-		if m:
-			return str(m.group(1))
-		# /uc?id=<id>, /open?id=<id>, etc.
-		q = parse_qs(u.query or "")
-		if "id" in q and len(q["id"]) > 0:
-			return str(q["id"][0])
-		# Sometimes exported links use /u/<n>/uc style with id in query as well.
-		if "confirm" in q and "id" in q and len(q["id"]) > 0:
-			return str(q["id"][0])
-	except Exception:
-		return None
-	return None
-
-
-def _extract_archive_to_dir(archive_path: str, dst_dir: str) -> bool:
-	ap = str(archive_path or "").strip()
-	if (not ap) or (not os.path.isfile(ap)):
-		return False
-	try:
-		if zipfile.is_zipfile(ap):
-			with zipfile.ZipFile(ap, "r") as zf:
-				zf.extractall(dst_dir)
-			return True
-	except Exception:
-		pass
-	try:
-		if tarfile.is_tarfile(ap):
-			with tarfile.open(ap, "r:*") as tf:
-				tf.extractall(dst_dir)
-			return True
-	except Exception:
-		pass
-	return False
-
-
-def _filename_from_content_disposition(cd_header: str, fallback_name: str) -> str:
-	cd = str(cd_header or "")
-	if not cd:
-		return str(fallback_name)
-	# filename*=UTF-8''...
-	m = re.search(r"filename\*=(?:UTF-8''|)([^;]+)", cd, flags=re.IGNORECASE)
-	if m:
-		try:
-			name = urllib.parse.unquote(str(m.group(1)).strip().strip('"'))
-			if name:
-				return os.path.basename(name)
-		except Exception:
-			pass
-	# filename="..."
-	m = re.search(r"filename=\"([^\"]+)\"", cd, flags=re.IGNORECASE)
-	if m:
-		return os.path.basename(str(m.group(1)))
-	m = re.search(r"filename=([^;]+)", cd, flags=re.IGNORECASE)
-	if m:
-		return os.path.basename(str(m.group(1)).strip().strip('"'))
-	return str(fallback_name)
-
-
-def _stream_response_to_file(resp, out_path: str) -> None:
-	with open(out_path, "wb") as f:
-		while True:
-			chunk = resp.read(8 * 1024 * 1024)
-			if not chunk:
-				break
-			f.write(chunk)
-
-
-def _download_gdrive_file_direct(file_id: str, dst_dir: str) -> Tuple[Optional[str], Optional[str]]:
-	"""Fallback direct download for public Google Drive files when gdown fails."""
-	fid = str(file_id or "").strip()
-	if not fid:
-		return None, "Missing Google Drive file id."
-	if not os.path.isdir(dst_dir):
-		os.makedirs(dst_dir, exist_ok=True)
-
-	cj = http.cookiejar.CookieJar()
-	opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
-	headers = {
-		"User-Agent": "Mozilla/5.0",
-	}
-
-	base_url = f"https://drive.google.com/uc?export=download&id={fid}"
-
-	def _open(url: str):
-		req = urllib.request.Request(url, headers=headers)
-		return opener.open(req, timeout=120)
-
-	try:
-		resp = _open(base_url)
-		ctype = str(getattr(resp, "headers", {}).get("Content-Type", "")).lower()
-		cd = str(getattr(resp, "headers", {}).get("Content-Disposition", ""))
-
-		# If not HTML, it is likely already the file.
-		if "text/html" not in ctype:
-			name = _filename_from_content_disposition(cd, f"gdrive_file_{fid}.bin")
-			out_path = os.path.join(dst_dir, name)
-			_stream_response_to_file(resp, out_path)
-			if os.path.isfile(out_path) and os.path.getsize(out_path) > 0:
-				return out_path, None
-			return None, "Direct download returned empty file."
-
-		# HTML interstitial (virus scan/confirm). Parse confirm token.
-		html = resp.read(1024 * 1024).decode("utf-8", errors="ignore")
-		confirm_token = None
-		m = re.search(r"confirm=([0-9A-Za-z_\-]+)&amp;id=", html)
-		if m:
-			confirm_token = str(m.group(1))
-		if not confirm_token:
-			m = re.search(r"name=\"confirm\"\s+value=\"([^\"]+)\"", html)
-			if m:
-				confirm_token = str(m.group(1))
-
-		if not confirm_token:
-			return None, "Direct download could not get confirm token (file may be private or quota-limited)."
-
-		confirm_url = f"https://drive.google.com/uc?export=download&confirm={urllib.parse.quote(confirm_token)}&id={fid}"
-		resp2 = _open(confirm_url)
-		ctype2 = str(getattr(resp2, "headers", {}).get("Content-Type", "")).lower()
-		cd2 = str(getattr(resp2, "headers", {}).get("Content-Disposition", ""))
-
-		if "text/html" in ctype2 and ("attachment" not in cd2.lower()):
-			return None, "Direct download still returned HTML (likely permission/quota restriction)."
-
-		name2 = _filename_from_content_disposition(cd2, f"gdrive_file_{fid}.bin")
-		out_path2 = os.path.join(dst_dir, name2)
-		_stream_response_to_file(resp2, out_path2)
-		if os.path.isfile(out_path2) and os.path.getsize(out_path2) > 0:
-			return out_path2, None
-		return None, "Direct download wrote an empty file."
-	except urllib.error.HTTPError as e:
-		return None, f"HTTP error during direct download: {e}"
-	except urllib.error.URLError as e:
-		return None, f"Network error during direct download: {e}"
-	except Exception as e:
-		return None, f"Direct download error: {e}"
 
 
 def _h5_has_groups_or_datasets(h5_path: str, keys: List[str]) -> bool:
@@ -688,9 +539,8 @@ def _validate_roi_rank_artifacts(model_dir: str) -> Optional[str]:
 
 def _download_gdrive_folder_temp(folder_url_or_id: str) -> Tuple[Optional[str], Optional[str]]:
 	folder_id = _extract_gdrive_folder_id(folder_url_or_id)
-	file_id = _extract_gdrive_file_id(folder_url_or_id)
-	if (not folder_id) and (not file_id):
-		return None, "Invalid Google Drive folder/file link or ID."
+	if not folder_id:
+		return None, "Invalid Google Drive folder link or ID."
 
 	try:
 		gdown = __import__("gdown")
@@ -699,88 +549,20 @@ def _download_gdrive_folder_temp(folder_url_or_id: str) -> Tuple[Optional[str], 
 
 	tmp_root = os.path.join(tempfile.gettempdir(), "predobs_gdrive_cache")
 	os.makedirs(tmp_root, exist_ok=True)
-	cache_key = str(folder_id if folder_id else file_id)
-	dst = os.path.join(tmp_root, f"folder_{cache_key}")
+	dst = os.path.join(tmp_root, f"folder_{folder_id}")
 	os.makedirs(dst, exist_ok=True)
 
-	last_errors: List[str] = []
-
 	try:
-		if folder_id:
-			url = f"https://drive.google.com/drive/folders/{folder_id}"
-			folder_download_ok = False
-			# Try without cookies first.
-			try:
-				try:
-					gdown.download_folder(url=url, output=dst, quiet=True, use_cookies=False, remaining_ok=True)
-				except TypeError:
-					gdown.download_folder(url=url, output=dst, quiet=True, use_cookies=False)
-				folder_download_ok = True
-			except Exception as e1:
-				last_errors.append(f"folder(no-cookies): {e1}")
-				# Retry with cookies enabled for some Drive setups.
-				try:
-					try:
-						gdown.download_folder(url=url, output=dst, quiet=True, use_cookies=True, remaining_ok=True)
-					except TypeError:
-						gdown.download_folder(url=url, output=dst, quiet=True, use_cookies=True)
-					folder_download_ok = True
-				except Exception as e2:
-					last_errors.append(f"folder(with-cookies): {e2}")
-
-			# If folder call looked successful but yielded no files, we'll attempt single-file fallback below.
-			if folder_download_ok:
-				pass
-
+		url = f"https://drive.google.com/drive/folders/{folder_id}"
+		try:
+			gdown.download_folder(url=url, output=dst, quiet=True, use_cookies=False, remaining_ok=True)
+		except TypeError:
+			gdown.download_folder(url=url, output=dst, quiet=True, use_cookies=False)
 		files_count = 0
 		for _, _, files in os.walk(dst):
 			files_count += int(len(files))
-
-		# Fallback: some users provide a file link/ID instead of a folder.
-		if files_count <= 0 and file_id:
-			file_url = f"https://drive.google.com/uc?id={file_id}"
-			download_target = os.path.join(dst, f"gdrive_file_{file_id}")
-			downloaded_path = None
-			try:
-				try:
-					downloaded_path = gdown.download(url=file_url, output=download_target, quiet=True, fuzzy=True, use_cookies=False)
-				except TypeError:
-					downloaded_path = gdown.download(url=file_url, output=download_target, quiet=True, use_cookies=False)
-			except Exception as e3:
-				last_errors.append(f"file(no-cookies): {e3}")
-				try:
-					try:
-						downloaded_path = gdown.download(url=file_url, output=download_target, quiet=True, fuzzy=True, use_cookies=True)
-					except TypeError:
-						downloaded_path = gdown.download(url=file_url, output=download_target, quiet=True, use_cookies=True)
-				except Exception as e4:
-					last_errors.append(f"file(with-cookies): {e4}")
-
-			if (not downloaded_path) or (not os.path.isfile(str(downloaded_path))):
-				direct_path, direct_err = _download_gdrive_file_direct(file_id=file_id, dst_dir=dst)
-				if direct_path and os.path.isfile(str(direct_path)):
-					downloaded_path = str(direct_path)
-				elif direct_err:
-					last_errors.append(f"file(direct): {direct_err}")
-
-			if downloaded_path and os.path.isfile(str(downloaded_path)):
-				# If the downloaded object is an archive, extract it so auto-detection can find model files.
-				try:
-					_extract_archive_to_dir(str(downloaded_path), dst)
-				except Exception:
-					pass
-
-			files_count = 0
-			for _, _, files in os.walk(dst):
-				files_count += int(len(files))
-
 		if files_count <= 0:
-			err_detail = "; ".join(last_errors) if len(last_errors) > 0 else "unknown error"
-			return None, (
-				"Google Drive download produced no files. "
-				"Ensure shared permission is 'Anyone with the link' and avoid highly restricted/private links. "
-				f"Details: {err_detail}"
-			)
+			return None, "Download completed but no files were found in cache folder."
 		return dst, None
 	except Exception as e:
 		return None, f"Google Drive download failed: {e}"
@@ -2343,9 +2125,9 @@ def _plot_roi_overview(signal_rois: List[dict], noise_rois: List[dict], guide_fr
 			mode="lines+markers",
 			line=dict(color=color, width=width),
 			marker=dict(size=6, color=color),
-			name="Residuals (Noise) ROI",
+			name="Noise ROI",
 			showlegend=False,
-			hovertemplate=f"Residuals (Noise) ROI {int(r['index'])}<br>{float(r['lo']):.6f} - {float(r['hi']):.6f} GHz<extra></extra>",
+			hovertemplate=f"Noise ROI {int(r['index'])}<br>{float(r['lo']):.6f} - {float(r['hi']):.6f} GHz<extra></extra>",
 		))
 	if guide_freqs_ghz:
 		for gf in guide_freqs_ghz:
@@ -2354,12 +2136,12 @@ def _plot_roi_overview(signal_rois: List[dict], noise_rois: List[dict], guide_fr
 		for cf in selected_combo_freqs_ghz:
 			fig.add_vline(x=float(cf), line=dict(color="#ff7f0e", dash="dash"))
 	fig.update_layout(
-		title="ROI overview (Signal vs Residuals (Noise))",
+		title="ROI overview (Signal vs Noise)",
 		xaxis_title="Frequency (GHz)",
 		yaxis=dict(
 			tickmode="array",
 			tickvals=[0.0, 1.0],
-			ticktext=["Residuals (Noise) ROIs", "Synthetic ROIs"],
+			ticktext=["Noise ROIs", "Synthetic ROIs"],
 			range=[-0.5, 1.5],
 		),
 		template="plotly_white",
@@ -7654,10 +7436,18 @@ def _render_model_sources_sidebar(runtime_info: dict) -> dict:
 	source_mode_label = "manual paths"
 
 	with st.sidebar:
+		st.header("Model Sources")
+		st.caption(
+			f"Runtime: CPU-only | cores={runtime_info['cpu_count']} | "
+			f"threads={runtime_info['cpu_threads']}"
+		)
+
+		# Model-upload controls removed by request; use Drive/local preset/manual sources only.
+
 		st.markdown("---")
-		st.markdown("**DRIVE: use temporary Google Drive download**")
+		st.markdown("**Optional: use temporary Google Drive download**")
 		use_drive_temp = st.checkbox("Use Google Drive temporary models", value=False, key="p6_use_drive_temp")
-		drive_link = st.text_input("Google Drive folder/file link (or ID)", value=DEFAULT_GDRIVE_MODELS_LINK, key="p6_drive_link")
+		drive_link = st.text_input("Google Drive folder link", value=DEFAULT_GDRIVE_MODELS_LINK, key="p6_drive_link")
 		download_drive_now = st.button("Download / refresh from Drive", key="p6_drive_download_btn")
 
 		if use_drive_temp and (download_drive_now or (not str(st.session_state.get("drive_cache_dir", "")).strip())):
@@ -7696,7 +7486,7 @@ def _render_model_sources_sidebar(runtime_info: dict) -> dict:
 			st.caption("Active source mode: manual paths")
 
 		st.markdown("---")
-		st.markdown("**LOCAL: use local preset paths**")
+		st.markdown("**Optional: use local preset paths (D:\\4.DATASETS)**")
 		use_local_preset = st.checkbox("Use local preset models", value=False, key="p6_use_local_preset")
 		if use_local_preset:
 			signal_models_root = str(DEFAULT_LOCAL_SIGNAL_H5)
@@ -7708,7 +7498,7 @@ def _render_model_sources_sidebar(runtime_info: dict) -> dict:
 				st.warning(str(w))
 
 		st.caption(f"Signal source in use: {signal_models_root}")
-		st.caption(f"Residuals (Noise) source in use: {noise_models_root}")
+		st.caption(f"Noise source in use: {noise_models_root}")
 		st.caption(f"Filter file in use: {filter_file}")
 
 		# If model/filter sources change, clear fitting outputs to avoid stale state.
@@ -7728,7 +7518,7 @@ def _render_model_sources_sidebar(runtime_info: dict) -> dict:
 			target_freqs = [float(v) for v in DEFAULT_TARGET_FREQS]
 		allow_nearest = False
 		st.caption("ROI selection mode for cube generation: exact overlap only (nearest disabled).")
-		noise_scale = st.number_input("Residuals (Noise) scale", min_value=0.0, value=float(DEFAULT_NOISE_SCALE), step=0.1, format="%.3f")
+		noise_scale = st.number_input("Noise scale", min_value=0.0, value=float(DEFAULT_NOISE_SCALE), step=0.1, format="%.3f")
 
 	return {
 		"signal_models_root": str(signal_models_root),
@@ -7742,11 +7532,11 @@ def _render_model_sources_sidebar(runtime_info: dict) -> dict:
 
 
 def run_streamlit_app():
-	st.set_page_config(page_title="SpecGen | AI-ITACA", page_icon="📡", layout="wide")
+	st.set_page_config(page_title="SynGen | AI - ITACA", page_icon="📡", layout="wide")
 	runtime_info = _configure_runtime_resources_cpu_only()
 	_ensure_state()
 	_cleanup_generated_outputs_on_startup_once()
-	st.title("SpecGen | AI-ITACA")
+	st.title("SynGen | AI - ITACA")
 
 	intro_img = _project_dir() / "NGC6523_BVO_2.jpg"
 	if intro_img.is_file():
@@ -7768,13 +7558,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 	allow_nearest = bool(sidebar_cfg["allow_nearest"])
 	noise_scale = float(sidebar_cfg["noise_scale"])
 
-	tab_cube, tab_cube2, tab_cube3, tab_hybrid_fit, tab_pred_from_cube = st.tabs([
-		"Cube Generator",
-		"Simulate Single Spectrum",
-		"Simulate Single Synthetic Spectrum",
-		"Hybrid Fast Fit (Tex-guided)",
-		"Inverse Cube Prediction",
-	])
+	tab_cube, tab_cube2, tab_cube_fit, tab_hybrid_fit, tab_pred_from_cube = st.tabs(["Cube Generator", "Simulate Single Spectrum", "Cube Fitting", "Hybrid Fast Fit (Tex-guided)", "Inverse Cube Prediction"])
 
 	try:
 		syngen_path = _resolve_local_file("4.SYNGEN_Streamlit_v1.py")
@@ -7786,7 +7570,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 
 	with tab_cube:
 		st.subheader("Cube Generator | CH3OCHO")
-		st.markdown("**ROI explorer (signal and Residuals (Noise) models)**")
+		st.markdown("**ROI explorer (signal and noise models)**")
 		if bool(st.session_state.get("p6_guide_main_refresh", False)):
 			st.session_state.p6_guide_freqs_main_input = str(st.session_state.get("p6_guide_freqs_main_pending", "")).strip()
 			st.session_state.p6_guide_main_refresh = False
@@ -7857,7 +7641,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					sel_s = signal_rois[int(sel_sig_pos)]
 					match_n = _get_overlapping_noise_roi_indices(sel_s, noise_rois)
 					match_txt = ",".join([str(v) for v in match_n]) if match_n else "none"
-					st.caption(f"Selected: ROI S{int(sel_s['index'])} | range {float(sel_s['lo']):.6f}–{float(sel_s['hi']):.6f} GHz | matching Residuals (Noise) ROI(s): {match_txt}")
+					st.caption(f"Selected: ROI S{int(sel_s['index'])} | range {float(sel_s['lo']):.6f}–{float(sel_s['hi']):.6f} GHz | matching Noise ROI(s): {match_txt}")
 				else:
 					st.caption("No signal ROIs available")
 
@@ -7865,7 +7649,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				if noise_rois:
 					noi_opts = list(range(len(noise_rois)))
 					st.selectbox(
-						"Residuals (Noise)-model ROIs",
+						"Noise-model ROIs",
 						options=noi_opts,
 						format_func=lambda i: (
 							f"ROI N{noise_rois[i]['index']} | {noise_rois[i]['lo']:.6f}–{noise_rois[i]['hi']:.6f} GHz"
@@ -7883,7 +7667,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					match_s_txt = ",".join([f"S{v}" for v in match_s]) if match_s else "none"
 					st.caption(f"Selected: ROI N{int(sel_n['index'])} | range {float(sel_n['lo']):.6f}–{float(sel_n['hi']):.6f} GHz | SPW: {spw_txt} | matching Signal ROI(s): {match_s_txt}")
 				else:
-					st.caption("No Residuals (Noise) ROIs available")
+					st.caption("No noise ROIs available")
 
 			sel_sig_idx = None if not signal_rois else int(signal_rois[int(sel_sig_pos)]["index"])
 			sel_noi_idx = None if not noise_rois else int(noise_rois[int(sel_noi_pos)]["index"])
@@ -7955,7 +7739,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			elif (not signal_models_root) or ((not os.path.isfile(signal_models_root)) and (not os.path.isdir(signal_models_root))):
 				st.error("Signal models source invalid.")
 			elif not _is_valid_noise_source(noise_models_root):
-				st.error("Residuals (Noise) models root invalid.")
+				st.error("Noise models root invalid.")
 			else:
 				try:
 					os.makedirs(cube_out_dir, exist_ok=True)
@@ -8191,14 +7975,14 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				if (noise_bytes is not None) and (noise_err is None):
 					base_name = os.path.splitext(os.path.basename(str(sel_cube_dl)))[0]
 					st.download_button(
-						"Download residuals cube (.fits) [observational - synthetic]",
+						"Download noise cube (.fits) [observational - synthetic]",
 						data=noise_bytes,
 						file_name=f"{base_name}_NOISEONLY.fits",
 						mime="application/fits",
 						key="p6_cube_download_button_noise",
 					)
 				elif noise_err:
-					st.caption(f"Residuals (Noise) cube not available: {noise_err}")
+					st.caption(f"Noise cube not available: {noise_err}")
 			except Exception as e:
 				st.error(f"Could not prepare cube download: {e}")
 		else:
@@ -8214,7 +7998,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		st.subheader("Simulate Single Spectrum | CH3OCHO")
 		st.caption("Same workflow as Cube Generator, using implicit scalar values for LogN, Tex, FWHM, and Velocity.")
 
-		st.markdown("**ROI explorer (signal and Residuals (Noise) models)**")
+		st.markdown("**ROI explorer (signal and noise models)**")
 		if bool(st.session_state.get("p6_guide_cube2_refresh", False)):
 			st.session_state.p6_guide_freqs_cube2_input = str(st.session_state.get("p6_guide_freqs_cube2_pending", "")).strip()
 			st.session_state.p6_guide_cube2_refresh = False
@@ -8285,7 +8069,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					sel_s2 = signal_rois2[int(sel_sig_pos2)]
 					match_n2 = _get_overlapping_noise_roi_indices(sel_s2, noise_rois2)
 					match_txt2 = ",".join([str(v) for v in match_n2]) if match_n2 else "none"
-					st.caption(f"Selected: ROI S{int(sel_s2['index'])} | range {float(sel_s2['lo']):.6f}–{float(sel_s2['hi']):.6f} GHz | matching Residuals (Noise) ROI(s): {match_txt2}")
+					st.caption(f"Selected: ROI S{int(sel_s2['index'])} | range {float(sel_s2['lo']):.6f}–{float(sel_s2['hi']):.6f} GHz | matching Noise ROI(s): {match_txt2}")
 				else:
 					st.caption("No signal ROIs available")
 
@@ -8293,7 +8077,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				if noise_rois2:
 					noi_opts2 = list(range(len(noise_rois2)))
 					st.selectbox(
-						"Residuals (Noise)-model ROIs",
+						"Noise-model ROIs",
 						options=noi_opts2,
 						format_func=lambda i: (
 							f"ROI N{noise_rois2[i]['index']} | {noise_rois2[i]['lo']:.6f}–{noise_rois2[i]['hi']:.6f} GHz"
@@ -8311,7 +8095,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					match_s_txt2 = ",".join([f"S{v}" for v in match_s2]) if match_s2 else "none"
 					st.caption(f"Selected: ROI N{int(sel_n2['index'])} | range {float(sel_n2['lo']):.6f}–{float(sel_n2['hi']):.6f} GHz | SPW: {spw_txt2} | matching Signal ROI(s): {match_s_txt2}")
 				else:
-					st.caption("No Residuals (Noise) ROIs available")
+					st.caption("No noise ROIs available")
 
 			sel_sig_idx2 = None if not signal_rois2 else int(signal_rois2[int(sel_sig_pos2)]["index"])
 			sel_noi_idx2 = None if not noise_rois2 else int(noise_rois2[int(sel_noi_pos2)]["index"])
@@ -8372,7 +8156,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			elif (not signal_models_root) or ((not os.path.isfile(signal_models_root)) and (not os.path.isdir(signal_models_root))):
 				st.error("Signal models source invalid.")
 			elif not _is_valid_noise_source(noise_models_root):
-				st.error("Residuals (Noise) models root invalid.")
+				st.error("Noise models root invalid.")
 			else:
 				try:
 					os.makedirs(cube2_out_dir, exist_ok=True)
@@ -8545,11 +8329,11 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			time.sleep(5)
 			st.rerun()
 
-	with tab_cube3:
+	if False:
 		st.subheader("Simulate Single Synthetic Spectrum | CH3OCHO")
-		st.caption("Same workflow as Simulate Single Spectrum, but using only synthetic-spectrum models (no Residuals (Noise) models).")
+		st.caption("Same workflow as Simulate Single Spectrum, but using only synthetic-spectrum models (no noise models).")
 
-		st.markdown("**ROI explorer (signal and Residuals (Noise) models)**")
+		st.markdown("**ROI explorer (signal and noise models)**")
 		if bool(st.session_state.get("p6_guide_cube3_refresh", False)):
 			st.session_state.p6_guide_freqs_cube3_input = str(st.session_state.get("p6_guide_freqs_cube3_pending", "")).strip()
 			st.session_state.p6_guide_cube3_refresh = False
@@ -8611,7 +8395,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					st.caption("No signal ROIs available")
 
 			with c3_roi_2:
-				st.caption("Residuals (Noise) ROI selector hidden in this tab (synthetic-only mode).")
+				st.caption("Noise ROI selector hidden in this tab (synthetic-only mode).")
 
 			sel_sig_idx3 = None if not signal_rois3 else int(signal_rois3[int(sel_sig_pos3)]["index"])
 			combo_freqs3 = _selected_roi_combo_freqs(
@@ -9003,7 +8787,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			elif (not signal_models_root) or ((not os.path.isfile(signal_models_root)) and (not os.path.isdir(signal_models_root))):
 				st.error("Signal models source invalid.")
 			elif (batch_mode == "synthetic_plus_noise") and (not _is_valid_noise_source(noise_models_root)):
-				st.error("Residuals (Noise) models source invalid for Synthetic + noise mode.")
+				st.error("Noise models source invalid for Synthetic + noise mode.")
 			elif is_ordered_grid_sb and total_grid_sb <= 0:
 				st.error("Ordered grid from current step settings is empty.")
 			else:
@@ -9955,8 +9739,8 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		predcube_out_dir = st.text_input("Output directory", value=str(DEFAULT_INVERSE_CUBEPRED_OUTDIR), key="p6_predcube_out_dir")
 		predcube_out_prefix = st.text_input("Output prefix", value="PRED_FROMCUBE", key="p6_predcube_out_prefix")
 		predcube_progress_every = st.number_input("Progress every N pixels", min_value=1, value=3000, step=1, key="p6_predcube_progress_every")
-		predcube_spatial_stride = st.number_input("Spatial stride", min_value=1, value=1, step=1, key="p6_predcube_spatial_stride")
-		predcube_min_overlap = st.number_input("Minimum overlap channels per ROI", min_value=1, value=2, step=1, key="p6_predcube_min_overlap")
+		predcube_spatial_stride = int(DEFAULT_INVERSE_CUBEPRED_SPATIAL_STRIDE)
+		predcube_min_overlap = int(DEFAULT_INVERSE_CUBEPRED_MIN_OVERLAP)
 
 		pc1, pc2 = st.columns(2)
 		with pc1:
@@ -9973,23 +9757,10 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				st.error("ROI models directory is invalid.")
 			else:
 				try:
-					predcube_out_dir_user = str(predcube_out_dir).strip()
-					predcube_out_dir_default = str(DEFAULT_INVERSE_CUBEPRED_OUTDIR)
-					if predcube_out_dir_user:
-						try:
-							os.makedirs(predcube_out_dir_user, exist_ok=True)
-							predcube_out_dir_resolved = str(predcube_out_dir_user)
-						except Exception:
-							predcube_out_dir_resolved = str(predcube_out_dir_default)
-							st.warning(f"Could not create output directory. Using temporary directory: {predcube_out_dir_resolved}")
-					else:
-						predcube_out_dir_resolved = str(predcube_out_dir_default)
-						st.warning(f"Output directory not set. Using temporary directory: {predcube_out_dir_resolved}")
-
-					os.makedirs(predcube_out_dir_resolved, exist_ok=True)
-					_cleanup_invcubepred_outputs_for_dir(str(predcube_out_dir_resolved))
+					os.makedirs(predcube_out_dir, exist_ok=True)
+					_cleanup_invcubepred_outputs_for_dir(str(predcube_out_dir))
 					cfg_icp = {
-						"out_dir": str(predcube_out_dir_resolved),
+						"out_dir": str(predcube_out_dir),
 						"obs_cube_path": str(obs_cube_predcube_paths[0]),
 						"obs_cube_paths": [str(p) for p in obs_cube_predcube_paths],
 						"inverse_models_root": str(models_root_predcube),
@@ -10011,7 +9782,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					os.close(fd_icp)
 					with open(cfg_icp_path, "w", encoding="utf-8") as f:
 						json.dump(cfg_icp, f, ensure_ascii=False, indent=2)
-					log_icp_path = os.path.join(predcube_out_dir_resolved, f"predcube_run_{time.strftime('%Y%m%d_%H%M%S')}.log")
+					log_icp_path = os.path.join(predcube_out_dir, f"predcube_run_{time.strftime('%Y%m%d_%H%M%S')}.log")
 					log_icp_fh = open(log_icp_path, "a", encoding="utf-8", buffering=1)
 					proc_icp = subprocess.Popen(
 						[sys.executable, str(Path(__file__).resolve()), "--inverse-cube-worker", cfg_icp_path],
@@ -10025,7 +9796,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					st.session_state.invcubepred_cfg_path = cfg_icp_path
 					st.session_state.invcubepred_log_handle = log_icp_fh
 					st.session_state.invcubepred_start_ts = float(time.time())
-					st.session_state.p6_predcube_last_out_dir = str(predcube_out_dir_resolved)
+					st.session_state.p6_predcube_last_out_dir = str(predcube_out_dir)
 					st.session_state.p6_predcube_last_out_prefix = str(cfg_icp.get("out_prefix", "PRED_FROMCUBE"))
 					st.success(f"Map prediction started for {len(obs_cube_predcube_paths)} cube(s).")
 				except Exception as e:
@@ -10268,7 +10039,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			time.sleep(5)
 			st.rerun()
 
-	if False:
+	with tab_cube_fit:
 		st.subheader("Cube Fitting")
 		st.caption("Same fitting parameterization as 'Fitting', but applied pixel-by-pixel to an uploaded observational cube to produce LogN/Tex/Velocity/FWHM maps.")
 
@@ -10698,7 +10469,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			elif (not signal_models_root) or ((not os.path.isfile(signal_models_root)) and (not os.path.isdir(signal_models_root))):
 				st.error("Signal models source invalid.")
 			elif (str(cubefit_case_mode).strip().lower() == "synthetic_plus_noise") and (not _is_valid_noise_source(noise_models_root)):
-				st.error("Residuals (Noise) models source invalid for Case 2.")
+				st.error("Noise models source invalid for Case 2.")
 			else:
 				try:
 					os.makedirs(cubefit_out_dir, exist_ok=True)
@@ -10931,9 +10702,9 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 							if y_syn_sp.size == f_sp.size:
 								fig_live.add_trace(go.Scatter(x=f_sp, y=y_syn_sp, mode="lines", name="Synthetic", line=dict(color="#1f77b4", width=1.2)))
 							if y_noise_sp.size == f_sp.size:
-								fig_live.add_trace(go.Scatter(x=f_sp, y=y_noise_sp, mode="lines", name="Residuals (Noise)", line=dict(color="#ff7f0e", width=1.1, dash="dot")))
+								fig_live.add_trace(go.Scatter(x=f_sp, y=y_noise_sp, mode="lines", name="Noise", line=dict(color="#ff7f0e", width=1.1, dash="dot")))
 							if y_pred_sp.size == f_sp.size:
-								fig_live.add_trace(go.Scatter(x=f_sp, y=y_pred_sp, mode="lines", name="Synthetic+Residuals (Noise)", line=dict(color="#d62728", width=1.2)))
+								fig_live.add_trace(go.Scatter(x=f_sp, y=y_pred_sp, mode="lines", name="Synthetic+Noise", line=dict(color="#d62728", width=1.2)))
 							fig_live.update_layout(
 								title=f"Checkpoint spectral fit | pixel (x={int(px)}, y={int(py)})",
 								xaxis_title="Frequency (GHz)",
@@ -11049,57 +10820,17 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		st.caption("Uses Tex predicted by Inverse Cube Prediction (NN recommended) to constrain candidate search during cube fitting.")
 
 		if not str(st.session_state.get("p6_hybrid_guide_freqs_input", "")).strip():
-			st.session_state.p6_hybrid_guide_freqs_input = _freqs_to_text([float(v) for v in DEFAULT_CUBEFIT_GUIDE_FREQS])
+			st.session_state.p6_hybrid_guide_freqs_input = _freqs_to_text([float(v) for v in DEFAULT_HYBRID_GUIDE_FREQS])
+		if not str(st.session_state.get("p6_hybrid_out_dir", "")).strip():
+			st.session_state.p6_hybrid_out_dir = str(DEFAULT_HYBRID_FIT_OUTDIR)
+		if "p6_hybrid_progress_every" not in st.session_state:
+			st.session_state.p6_hybrid_progress_every = int(DEFAULT_HYBRID_PROGRESS_EVERY)
+		if "p6_hybrid_spatial_stride" not in st.session_state:
+			st.session_state.p6_hybrid_spatial_stride = int(DEFAULT_HYBRID_SPATIAL_STRIDE)
+		if "p6_hybrid_tex_quant_step" not in st.session_state:
+			st.session_state.p6_hybrid_tex_quant_step = 1.0
 		guide_freqs_hybrid_text = st.text_input("Guide frequencies (GHz)", key="p6_hybrid_guide_freqs_input")
 		guide_freqs_hybrid = _normalize_target_freqs_for_run(parse_freq_list(str(guide_freqs_hybrid_text)))
-		guide_freqs_hybrid_run = [float(v) for v in guide_freqs_hybrid]
-		if not guide_freqs_hybrid_run:
-			guide_freqs_hybrid_run = [float(v) for v in _normalize_target_freqs_for_run(parse_freq_list(str(st.session_state.get("p6_hybrid_guide_freqs_input", ""))))]
-
-		st.markdown("**ROI overview (Signal vs Residuals (Noise))**")
-		signal_rois_h = _collect_signal_rois_for_ui(signal_models_root, filter_file)
-		noise_rois_h = _collect_noise_rois_for_ui(noise_models_root)
-		signal_rois_h, noise_rois_h = _mark_roi_overlaps(signal_rois_h, noise_rois_h)
-		guide_freq_h = float(guide_freqs_hybrid[0]) if len(guide_freqs_hybrid) > 0 else None
-
-		if (not signal_rois_h) and (not noise_rois_h):
-			st.info("Could not load ROIs yet. Check model/filter paths.")
-		else:
-			if "p6_roi_hybrid_guide_prev" not in st.session_state:
-				st.session_state.p6_roi_hybrid_guide_prev = None
-			guide_key_h = tuple([round(float(v), 9) for v in guide_freqs_hybrid])
-			guide_changed_h = st.session_state.p6_roi_hybrid_guide_prev != guide_key_h
-			if guide_changed_h:
-				if signal_rois_h:
-					st.session_state.p6_signal_roi_select_hybrid = int(_pick_default_roi_index(signal_rois_h, guide_freq_h))
-				if noise_rois_h:
-					st.session_state.p6_noise_roi_select_hybrid = int(_pick_default_roi_index(noise_rois_h, guide_freq_h))
-				st.session_state.p6_roi_hybrid_guide_prev = guide_key_h
-
-			sel_sig_pos_h = _resolve_roi_selected_pos(st.session_state.get("p6_signal_roi_select_hybrid", 0), signal_rois_h, default_pos=0)
-			sel_noi_pos_h = _resolve_roi_selected_pos(st.session_state.get("p6_noise_roi_select_hybrid", 0), noise_rois_h, default_pos=0)
-			if signal_rois_h:
-				st.session_state.p6_signal_roi_select_hybrid = int(sel_sig_pos_h)
-			if noise_rois_h:
-				st.session_state.p6_noise_roi_select_hybrid = int(sel_noi_pos_h)
-
-			sel_sig_idx_h = None if not signal_rois_h else int(signal_rois_h[int(sel_sig_pos_h)]["index"])
-			sel_noi_idx_h = None if not noise_rois_h else int(noise_rois_h[int(sel_noi_pos_h)]["index"])
-			combo_freqs_h = _selected_roi_combo_freqs(
-				signal_rois=signal_rois_h,
-				noise_rois=noise_rois_h,
-				selected_signal_pos=int(sel_sig_pos_h) if signal_rois_h else None,
-				selected_noise_pos=int(sel_noi_pos_h) if noise_rois_h else None,
-			)
-			_plot_roi_overview(
-				signal_rois_h,
-				noise_rois_h,
-				guide_freqs_ghz=guide_freqs_hybrid_run,
-				selected_combo_freqs_ghz=combo_freqs_h,
-				selected_signal_index=sel_sig_idx_h,
-				selected_noise_index=sel_noi_idx_h,
-				chart_key="p6_roi_overview_hybrid",
-			)
 
 		up_obs_cube_hybrid = st.file_uploader(
 			"Upload one or more observational cubes (.fits)",
@@ -11162,7 +10893,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		)
 		tex_prior_map_path = str(tex_prior_upload_path).strip() if (tex_prior_upload_path and os.path.isfile(str(tex_prior_upload_path))) else str(tex_prior_manual_path).strip()
 
-		hf1, hf2, hf3 = st.columns(3)
+		hf1, hf2 = st.columns(2)
 		with hf1:
 			hybrid_out_dir = st.text_input(
 				"Output directory",
@@ -11170,19 +10901,17 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 				key="p6_hybrid_out_dir",
 			)
 		with hf2:
-			hybrid_progress_every = st.number_input("Progress every N pixels", min_value=1, value=40, step=1, key="p6_hybrid_progress_every")
-		with hf3:
-			hybrid_spatial_stride = st.number_input("Spatial stride", min_value=1, value=1, step=1, key="p6_hybrid_spatial_stride")
+			hybrid_progress_every = st.number_input("Progress every N pixels", min_value=1, value=int(DEFAULT_HYBRID_PROGRESS_EVERY), step=1, key="p6_hybrid_progress_every")
+		hybrid_spatial_stride = int(st.session_state.get("p6_hybrid_spatial_stride", int(DEFAULT_HYBRID_SPATIAL_STRIDE)))
 
-		hg1, hg2, hg3, hg4 = st.columns(4)
+		hg1, hg2, hg3 = st.columns(3)
 		with hg1:
 			tex_half_window = st.number_input("Tex prior half-window (K)", min_value=0.1, value=15.0, step=0.5, key="p6_hybrid_tex_half_window")
 		with hg2:
 			tex_min_candidates = st.number_input("Min candidates after Tex filter", min_value=1, value=48, step=1, key="p6_hybrid_tex_min_candidates")
 		with hg3:
 			tex_hard_fix = st.checkbox("Hard-fix Tex to prior", value=False, key="p6_hybrid_tex_hard_fix")
-		with hg4:
-			tex_quant_step = st.number_input("Tex quant step (K)", min_value=0.1, value=1.0, step=0.1, key="p6_hybrid_tex_quant_step")
+		tex_quant_step = float(st.session_state.get("p6_hybrid_tex_quant_step", 1.0))
 
 		hybrid_case = st.radio(
 			"Fitting mode",
@@ -11195,7 +10924,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 
 		hybrid_shift_enabled = st.checkbox("Apply observational frequency shift", value=True, key="p6_hybrid_shift_enabled")
 		hybrid_shift_mode = st.selectbox("Shift mode", options=["per_frequency", "spw_center"], index=0, key="p6_hybrid_shift_mode")
-		hybrid_shift_kms = st.number_input("Observational shift (km/s)", value=-98.0, step=0.1, format="%.4f", key="p6_hybrid_shift_kms")
+		hybrid_shift_kms = st.number_input("Observational shift (km/s)", value=-55.0, step=0.1, format="%.4f", key="p6_hybrid_shift_kms")
 		hybrid_resume_enabled = st.checkbox("Resume from previous checkpoint", value=True, key="p6_hybrid_resume_enabled")
 		st.session_state.p6_hybrid_obs_shift_enabled_live = bool(hybrid_shift_enabled)
 		st.session_state.p6_hybrid_obs_shift_mode_live = str(hybrid_shift_mode)
@@ -11416,36 +11145,23 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		if run_hybrid:
 			if len(obs_cube_hybrid_paths) <= 0:
 				st.error("Upload or set at least one valid observational cube first.")
-			elif not guide_freqs_hybrid_run:
+			elif not guide_freqs_hybrid:
 				st.error("Guide frequencies is empty. Add at least one frequency.")
 			elif not os.path.isfile(filter_file):
 				st.error(f"Filter file not found: {filter_file}")
 			elif (not signal_models_root) or ((not os.path.isfile(signal_models_root)) and (not os.path.isdir(signal_models_root))):
 				st.error("Signal models source invalid.")
 			elif (str(hybrid_case_mode).strip().lower() == "synthetic_plus_noise") and (not _is_valid_noise_source(noise_models_root)):
-				st.error("Residuals (Noise) models source invalid for Case 2.")
+				st.error("Noise models source invalid for Case 2.")
 			elif (not tex_prior_map_path) or (not os.path.isfile(str(tex_prior_map_path))):
 				st.error("Tex prior map is required (valid .fits path or upload).")
 			elif (obs_cube_hybrid_shape is not None) and (_load_resume_map2d(str(tex_prior_map_path), (int(obs_cube_hybrid_shape[0]), int(obs_cube_hybrid_shape[1]))) is None):
 				st.error("Tex prior map shape is incompatible with cube spatial shape.")
 			else:
 				try:
-					hybrid_out_dir_user = str(hybrid_out_dir).strip()
-					hybrid_out_dir_default = str(DEFAULT_HYBRID_FIT_OUTDIR)
-					if hybrid_out_dir_user:
-						try:
-							os.makedirs(hybrid_out_dir_user, exist_ok=True)
-							hybrid_out_dir_resolved = str(hybrid_out_dir_user)
-						except Exception:
-							hybrid_out_dir_resolved = str(hybrid_out_dir_default)
-							st.warning(f"Could not create output directory. Using temporary directory: {hybrid_out_dir_resolved}")
-					else:
-						hybrid_out_dir_resolved = str(hybrid_out_dir_default)
-						st.warning(f"Output directory not set. Using temporary directory: {hybrid_out_dir_resolved}")
-
-					os.makedirs(hybrid_out_dir_resolved, exist_ok=True)
+					os.makedirs(hybrid_out_dir, exist_ok=True)
 					if not bool(hybrid_resume_enabled):
-						_cleanup_cubefit_outputs_for_dir(str(hybrid_out_dir_resolved))
+						_cleanup_cubefit_outputs_for_dir(str(hybrid_out_dir))
 					ranges_hybrid = {
 						"logn_min": float(min(hybrid_logn_min, hybrid_logn_max)),
 						"logn_max": float(max(hybrid_logn_min, hybrid_logn_max)),
@@ -11457,13 +11173,13 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 						"fwhm_max": float(max(hybrid_fwhm_min, hybrid_fwhm_max)),
 					}
 					cfg_hybrid = {
-						"out_dir": str(hybrid_out_dir_resolved),
+						"out_dir": str(hybrid_out_dir),
 						"obs_cube_path": str(obs_cube_hybrid_paths[0]),
 						"obs_cube_paths": [str(p) for p in obs_cube_hybrid_paths],
 						"signal_models_source": str(signal_models_root),
 						"noise_models_root": str(noise_models_root),
 						"filter_file": str(filter_file),
-						"target_freqs": [float(v) for v in guide_freqs_hybrid_run],
+						"target_freqs": [float(v) for v in guide_freqs_hybrid],
 						"case_mode": str(hybrid_case_mode),
 						"fit_criterion": str(hybrid_criterion_ui).strip().lower(),
 						"global_weight_mode": str(hybrid_weight_mode_map.get(str(hybrid_weight_mode_ui), "inverse_best_error")),
@@ -11504,7 +11220,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					os.close(fdh)
 					with open(cfg_hybrid_path, "w", encoding="utf-8") as f_h:
 						json.dump(cfg_hybrid, f_h, ensure_ascii=False, indent=2)
-					log_hybrid_path = os.path.join(hybrid_out_dir_resolved, f"hybridfit_run_{time.strftime('%Y%m%d_%H%M%S')}.log")
+					log_hybrid_path = os.path.join(hybrid_out_dir, f"hybridfit_run_{time.strftime('%Y%m%d_%H%M%S')}.log")
 					log_hybrid_fh = open(log_hybrid_path, "a", encoding="utf-8", buffering=1)
 					proc_hybrid = subprocess.Popen(
 						[sys.executable, str(Path(__file__).resolve()), "--cube-fit-worker", cfg_hybrid_path],
@@ -11518,8 +11234,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 					st.session_state.hybridfit_cfg_path = cfg_hybrid_path
 					st.session_state.hybridfit_log_handle = log_hybrid_fh
 					st.session_state.hybridfit_start_ts = float(time.time())
-					st.session_state.p6_hybrid_last_out_dir = str(hybrid_out_dir_resolved)
-					st.session_state.p6_hybrid_last_run_target_freqs = [float(v) for v in guide_freqs_hybrid_run]
+					st.session_state.p6_hybrid_last_out_dir = str(hybrid_out_dir)
 					st.success("Hybrid fast fitting started.")
 				except Exception as e:
 					st.error(f"Could not start hybrid fitting: {e}")
@@ -11662,10 +11377,6 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 								target_freqs_live_hf = [float(v) for v in cfg_live_hf.get("target_freqs", []) if np.isfinite(float(v))]
 						except Exception:
 							target_freqs_live_hf = []
-						if not target_freqs_live_hf:
-							target_freqs_live_hf = [float(v) for v in st.session_state.get("p6_hybrid_last_run_target_freqs", []) if np.isfinite(float(v))]
-						if not target_freqs_live_hf:
-							target_freqs_live_hf = [float(v) for v in guide_freqs_hybrid_run if np.isfinite(float(v))]
 
 						sel_x_plot_hf = int(st.session_state.get("p6_hybrid_live_sel_x", px_hf))
 						sel_y_plot_hf = int(st.session_state.get("p6_hybrid_live_sel_y", py_hf))
@@ -11760,9 +11471,9 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 							if y_syn_plot_hf.size == f_sp_plot_hf.size:
 								fig_live_hf.add_trace(go.Scatter(x=f_sp_plot_hf, y=y_syn_plot_hf, mode="lines", name="Synthetic", line=dict(color="#1f77b4", width=1.2)))
 							if y_noise_plot_hf.size == f_sp_plot_hf.size:
-								fig_live_hf.add_trace(go.Scatter(x=f_sp_plot_hf, y=y_noise_plot_hf, mode="lines", name="Residuals (Noise)", line=dict(color="#ff7f0e", width=1.1, dash="dot")))
+								fig_live_hf.add_trace(go.Scatter(x=f_sp_plot_hf, y=y_noise_plot_hf, mode="lines", name="Noise", line=dict(color="#ff7f0e", width=1.1, dash="dot")))
 							if y_pred_plot_hf.size == f_sp_plot_hf.size:
-								fig_live_hf.add_trace(go.Scatter(x=f_sp_plot_hf, y=y_pred_plot_hf, mode="lines", name="Synthetic+Residuals (Noise)", line=dict(color="#d62728", width=1.2)))
+								fig_live_hf.add_trace(go.Scatter(x=f_sp_plot_hf, y=y_pred_plot_hf, mode="lines", name="Synthetic+Noise", line=dict(color="#d62728", width=1.2)))
 							if target_freqs_live_hf:
 								fmin_plot_hf = float(np.nanmin(f_sp_plot_hf))
 								fmax_plot_hf = float(np.nanmax(f_sp_plot_hf))
@@ -11817,9 +11528,9 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 							pass
 
 			hybrid_cube_products = {
-				"Adjusted (Synthetic + Residuals (Noise))": os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_ADJUSTED.fits"),
+				"Adjusted (Synthetic + Noise)": os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_ADJUSTED.fits"),
 				"Synthetic": os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_SYNTHETIC.fits"),
-				"Residuals (Noise)": os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_NOISE.fits"),
+				"Noise": os.path.join(str(hybrid_out_dir_show), "HYBRIDFIT_NOISE.fits"),
 			}
 			available_hybrid_cubes = {k: v for k, v in hybrid_cube_products.items() if os.path.isfile(v)}
 			if available_hybrid_cubes:
