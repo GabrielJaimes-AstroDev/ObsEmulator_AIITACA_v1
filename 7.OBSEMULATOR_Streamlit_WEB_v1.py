@@ -9672,6 +9672,8 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 			if drive_roi_dir:
 				default_predcube_models_root = str(drive_roi_dir)
 				st.caption(f"Using Drive ROI folder by default: {default_predcube_models_root}")
+				# Force update to avoid stale local Windows path persisted in session_state.
+				st.session_state.p6_predcube_models_root = str(default_predcube_models_root)
 
 		if not str(st.session_state.get("p6_predcube_models_root", "")).strip():
 			st.session_state.p6_predcube_models_root = str(default_predcube_models_root)
