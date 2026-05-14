@@ -111,6 +111,7 @@ DEFAULT_LOCAL_FILTER_FILE = r"D:\4.DATASETS\2.ObsEmu_C2H5OH_Models\filter_refere
 DEFAULT_LOCAL_ROI_RANK_MODEL_DIR = r"D:\4.DATASETS\2.ObsEmu_C2H5OH_Models\roi_rank_model_bundle.h5"
 DEFAULT_LOCAL_INVERSE_PARAM_MODELS_DIR = r"D:\4.DATASETS\INVERSE_MODELS_FROM_SYNTH_ROI_CH3OCHO_v3"
 DEFAULT_LOCAL_INVERSE_CUBE_MODELS_DIR = r"D:\4.DATASETS\MODELS_C2H5OH_NN_CUSTOMROI_TARGETFREQ_W51_Lines_ENSEMBLES_TEST9\ROI_TARGET_001_ch524_ch550_f106p924926to106p937624GHz"
+DEFAULT_INVERSE_CUBEPRED_DRIVE_ROI_SUBDIR = "ROI_TARGET_001_ch524_ch550_f106p924926to106p937624GHz"
 
 
 
@@ -366,6 +367,29 @@ def _detect_model_data_paths(root_dir: str) -> dict:
 	if not result["roi_rank_model_dir"]:
 		result["warnings"].append("ROI ranking model directory could not be auto-detected in Drive folder.")
 	return result
+
+
+def _find_named_subdir(root_dir: str, subdir_name: str) -> str:
+	root = str(root_dir or "").strip()
+	name = str(subdir_name or "").strip()
+	if (not root) or (not name) or (not os.path.isdir(root)):
+		return ""
+
+	direct = os.path.join(root, name)
+	if os.path.isdir(direct):
+		return str(os.path.abspath(direct))
+
+	try:
+		cands = sorted(glob.glob(os.path.join(root, "**", name), recursive=True))
+	except Exception:
+		cands = []
+	dirs = [str(os.path.abspath(p)) for p in cands if os.path.isdir(p)]
+	if not dirs:
+		return ""
+
+	# Prefer shortest path depth (usually the intended folder under the downloaded root).
+	dirs.sort(key=lambda p: (p.count(os.sep), len(p), p.lower()))
+	return str(dirs[0])
 
 
 def _prepare_uploaded_roi_rank_model_dir(
@@ -9641,9 +9665,20 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		st.subheader("Inverse Cube Prediction")
 		st.caption("Equivalent to script 4.PREDICT_ParamMaps_FromCube... inside Streamlit (no external script dependency).")
 
+		default_predcube_models_root = str(DEFAULT_LOCAL_INVERSE_CUBE_MODELS_DIR)
+		if bool(st.session_state.get("p6_use_drive_temp", False)):
+			drive_cache_dir = str(st.session_state.get("drive_cache_dir", "")).strip()
+			drive_roi_dir = _find_named_subdir(drive_cache_dir, str(DEFAULT_INVERSE_CUBEPRED_DRIVE_ROI_SUBDIR))
+			if drive_roi_dir:
+				default_predcube_models_root = str(drive_roi_dir)
+				st.caption(f"Using Drive ROI folder by default: {default_predcube_models_root}")
+
+		if not str(st.session_state.get("p6_predcube_models_root", "")).strip():
+			st.session_state.p6_predcube_models_root = str(default_predcube_models_root)
+
 		models_root_predcube = st.text_input(
 			"ROI models directory",
-			value=str(DEFAULT_LOCAL_INVERSE_CUBE_MODELS_DIR),
+			value=str(default_predcube_models_root),
 			key="p6_predcube_models_root",
 		)
 		model_selection_mode = st.selectbox(
