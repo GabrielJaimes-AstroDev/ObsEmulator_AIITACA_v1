@@ -146,6 +146,7 @@ DEFAULT_CUBEFIT_OUTDIR = os.path.join(tempfile.gettempdir(), "predobs_outputs", 
 DEFAULT_INVERSE_CUBEPRED_OUTDIR = os.path.join(tempfile.gettempdir(), "predobs_outputs", "inverse_cube_C2H5OH_v1")
 DEFAULT_INVERSE_CUBEPRED_SPATIAL_STRIDE = 1
 DEFAULT_INVERSE_CUBEPRED_MIN_OVERLAP = 2
+DEFAULT_INVERSE_CUBEPRED_GUIDE_FREQS = [106.930000]
 DEFAULT_OBS_CUBE_PATH = r"D:\4.DATASETS\3.W51\MAD_CUB_MOD_member.uid___A001_X879_X36f.W51_sci.spw29.cube.I.pbcor_kelvins.fits"
 
 DEFAULT_ALLOW_NEAREST = True
@@ -307,7 +308,6 @@ def _detect_model_data_paths(root_dir: str) -> dict:
 	elif len(noise_candidates) > 1:
 		noise_candidates.sort(key=lambda p: os.path.getmtime(p), reverse=True)
 		result["noise_models_root"] = noise_candidates[0]
-		result["warnings"].append("Multiple noise model candidates found in Drive folder; newest one was selected.")
 	else:
 		noise_dirs = [d for d in sorted(set(os.path.dirname(x) for x in all_files)) if os.path.isfile(os.path.join(d, "final_noise_model.h5"))]
 		if noise_dirs:
@@ -364,8 +364,6 @@ def _detect_model_data_paths(root_dir: str) -> dict:
 		result["warnings"].append("Noise models source could not be auto-detected in Drive folder.")
 	if not result["filter_file"]:
 		result["warnings"].append("Filter file could not be auto-detected in Drive folder.")
-	if not result["roi_rank_model_dir"]:
-		result["warnings"].append("ROI ranking model directory could not be auto-detected in Drive folder.")
 	return result
 
 
@@ -9704,7 +9702,7 @@ A remarkable upsurge in the complexity of molecules identified in the interstell
 		guide_freqs_predcube: List[float] = []
 		if str(model_selection_mode) == "guide_frequencies":
 			if not str(st.session_state.get("p6_predcube_guide_freqs_input", "")).strip():
-				st.session_state.p6_predcube_guide_freqs_input = _freqs_to_text([float(v) for v in DEFAULT_CUBEFIT_GUIDE_FREQS])
+				st.session_state.p6_predcube_guide_freqs_input = _freqs_to_text([float(v) for v in DEFAULT_INVERSE_CUBEPRED_GUIDE_FREQS])
 			guide_freqs_text = st.text_input(
 				"Guide frequencies (GHz)",
 				key="p6_predcube_guide_freqs_input",
